@@ -6,22 +6,16 @@ import {
     View,
     TouchableOpacity,
 } from "react-native";
-import { useNavigation, NavigationProp } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 
-// Define your navigation params (adjust keys to match your navigator)
-type RootStackParamList = {
-    "sign-up": undefined;
-    signupAgent: undefined;
-};
 
 const AccountType: React.FC = () => {
-    const navigation = useNavigation<NavigationProp<RootStackParamList>>();
-
+    const router = useRouter();
     const handleAccountSelection = (type: "basic" | "agent") => {
         if (type === "basic") {
-            navigation.navigate("sign-up");
+            router.push("/(auth)/sign-up");
         } else {
-            navigation.navigate("signupAgent");
+            router.push("/(auth)/signupAgent");
         }
     };
 

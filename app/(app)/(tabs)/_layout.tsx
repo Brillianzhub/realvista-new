@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { Chrome as Home, Briefcase, TrendingUp } from 'lucide-react-native';
+import { Home, Briefcase, TrendingUp } from 'lucide-react-native';
 import { Menu } from 'lucide-react-native';
 
 export default function TabLayout() {
@@ -25,12 +25,17 @@ export default function TabLayout() {
           },
           shadowOpacity: 0.1,
           shadowRadius: 4,
+          height: 65,
+          // paddingBottom: 8,
         },
+        headerTitleAlign: "center",
         headerTitleStyle: {
           fontSize: 20,
           fontWeight: 'bold',
           color: '#1f2937',
         },
+        headerStatusBarHeight: 0,
+
         headerLeft: () => (
           <TouchableOpacity
             onPress={toggleDrawer}

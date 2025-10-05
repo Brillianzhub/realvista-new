@@ -1,5 +1,4 @@
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import { TouchableOpacity } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from "expo-router";
@@ -31,7 +30,7 @@ export default function AuthLayout() {
                         ),
                     }}
                 />
-                {/* <Stack.Screen
+                <Stack.Screen
                     name="sign-up"
                     options={{
                         headerShown: false,
@@ -43,9 +42,9 @@ export default function AuthLayout() {
                             </TouchableOpacity>
                         ),
                     }}
-                /> */}
+                />
 
-                {/* <Stack.Screen
+                <Stack.Screen
                     name="signupAgent"
                     options={{
                         headerShown: false,
@@ -71,8 +70,8 @@ export default function AuthLayout() {
                             </TouchableOpacity>
                         ),
                     }}
-                /> */}
-                {/* <Stack.Screen
+                />
+                <Stack.Screen
                     name="verify-otp"
                     options={{
                         headerShown: false,
@@ -97,8 +96,8 @@ export default function AuthLayout() {
                             </TouchableOpacity>
                         ),
                     }}
-                /> */}
-                {/* <Stack.Screen
+                />
+                <Stack.Screen
                     name="reset-password"
                     options={{
                         headerShown: false,
@@ -109,7 +108,7 @@ export default function AuthLayout() {
                             </TouchableOpacity>
                         ),
                     }}
-                /> */}
+                />
                 <Stack.Screen
                     name="account-type"
                     options={{
@@ -122,7 +121,7 @@ export default function AuthLayout() {
                         ),
                     }}
                 />
-                {/* <Stack.Screen
+                <Stack.Screen
                     name="update-profile"
                     options={{
                         headerShown: true,
@@ -135,9 +134,9 @@ export default function AuthLayout() {
                             </TouchableOpacity>
                         ),
                     }}
-                /> */}
+                />
 
-                {/* <Stack.Screen
+                <Stack.Screen
                     name="change-password"
                     options={{
                         headerShown: true,
@@ -150,7 +149,7 @@ export default function AuthLayout() {
                             </TouchableOpacity>
                         ),
                     }}
-                /> */}
+                />
             </Stack>
 
             {/* <StatusBar barStyle="dark-content" backgroundColor="#FFFFF" /> */}

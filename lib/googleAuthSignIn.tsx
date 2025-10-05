@@ -1,7 +1,11 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { router } from 'expo-router';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Alert } from "react-native";
+import * as Google from "expo-auth-session/providers/google";
+import * as WebBrowser from "expo-web-browser";
+import { router } from "expo-router";
+
+// required for Expo AuthSession to complete redirects
+WebBrowser.maybeCompleteAuthSession();
 
 // User interface based on backend response
 interface User {
@@ -28,71 +32,65 @@ interface GoogleAuthSignInProps {
     router: typeof router;
 }
 
+/**
+ * Google Authentication with Expo AuthSession
+ */
 export const googleAuthSignIn = async ({
     setUser,
     setIsLogged,
     router,
 }: GoogleAuthSignInProps): Promise<void> => {
     try {
-        await GoogleSignin.hasPlayServices();
-        // const googleUserInfo = await GoogleSignin.signIn();
+        // Request object for Google Sign-In
+        const [request, response, promptAsync] = Google.useAuthRequest({
+            clientId: "YOUR_EXPO_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+            iosClientId: "YOUR_IOS_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+            androidClientId: "YOUR_ANDROID_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+            webClientId: "YOUR_WEB_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+        });
 
-        // Dummy Google user info object
-        const googleUserInfo = {
-            user: {
-                id: "1234567890",
-                email: "orjigodswill@gmail.com",
-                name: "Godswill Orji",
-                familyName: "Orji",
-                givenName: "Godswill",
-            },
-        };
+        // Trigger Google login popup
+        const result = await promptAsync();
 
-        // Destructure like in your code
-        const { email, id, name, familyName, givenName } = googleUserInfo.user;
+        if (result.type !== "success" || !result.authentication?.accessToken) {
+            throw new Error("Google sign-in was cancelled or failed.");
+        }
 
-        const fullName = name || givenName || '';
-        const firstName = givenName || familyName || fullName.split(' ')[0];
-        const lastName = familyName || fullName.split(' ')[1] || '';
-
-        // Register or login with backend
-        const response = await fetch(
-            'https://www.realvistamanagement.com/accounts/register_google_user/',
+        // Send access token to backend
+        const responseApi = await fetch(
+            "https://www.realvistamanagement.com/accounts/register_google_user/",
             {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    name: lastName,
-                    first_name: firstName,
-                    email: email,
-                    google_id: id,
-                    auth_provider: 'google',
+                    token: result.authentication.accessToken,
+                    auth_provider: "google",
                 }),
             }
         );
 
-        if (!response.ok) {
-            throw new Error('Failed to register with Google');
+        if (!responseApi.ok) {
+            throw new Error("Failed to register with Google");
         }
 
-        const result = await response.json();
-        await AsyncStorage.setItem('authToken', result.token);
+        const resultApi = await responseApi.json();
+        await AsyncStorage.setItem("authToken", resultApi.token);
 
-        // Fetch current user
+        // Fetch user details
         const userResponse = await fetch(
-            'https://www.realvistamanagement.com/accounts/current-user/',
+            "https://www.realvistamanagement.com/accounts/current-user/",
             {
-                method: 'GET',
+                method: "GET",
                 headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Token ${result.token}`,
+                    "Content-Type": "application/json",
+                    Authorization: `Token ${resultApi.token}`,
                 },
             }
         );
 
         if (!userResponse.ok) {
             const errorData = await userResponse.json();
-            throw new Error(errorData.error || 'Failed to fetch user details');
+            throw new Error(errorData.error || "Failed to fetch user details");
         }
 
         const userData = await userResponse.json();
@@ -101,7 +99,7 @@ export const googleAuthSignIn = async ({
             id: userData.id,
             email: userData.email,
             name: userData.name,
-            authProvider: 'google',
+            authProvider: "google",
             isActive: userData.is_active,
             isStaff: userData.is_staff,
             profile: userData.profile,
@@ -116,8 +114,11 @@ export const googleAuthSignIn = async ({
 
         setUser(mappedUser);
         setIsLogged(true);
-        router.replace('/(app)/(tabs)');
+        router.replace("/(app)/(tabs)");
     } catch (error: any) {
-        Alert.alert('Google Sign-In Error', error.message || 'Something went wrong');
+        Alert.alert(
+            "Google Sign-In Error",
+            error.message || "Something went wrong"
+        );
     }
 };

@@ -18,9 +18,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import FingerprintAuth from '@/components/auth/FingerprintAuth';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import * as WebBrowser from "expo-web-browser";
 import { googleAuthSignIn } from '@/lib/googleAuthSignIn';
 import { appleAuthSignIn } from '@/lib/appleAuthSignIn';
+import GoogleSignIn from '@/components/auth/GoogleSignIn';
 import AppleLogin from '@/components/auth/AppleLogin';
 import Constants from 'expo-constants';
 
@@ -161,28 +162,7 @@ const SignIn: React.FC = () => {
         password: '',
     });
 
-    const configureGoogleSignIn = async (): Promise<void> => {
-        GoogleSignin.configure({
-            webClientId: googleWebClientId,
-            iosClientId: googleIosClientId,
-            offlineAccess: true,
-        });
-    };
 
-    useEffect(() => {
-        configureGoogleSignIn();
-    }, []);
-
-    const handleGoogleAuth = async (): Promise<void> => {
-        setIsSubmitting(true);
-        try {
-            await googleAuthSignIn({ setUser, setIsLogged, router });
-        } catch (error) {
-            console.error('Google Auth Error:', error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const fetchUserData = async (): Promise<void> => {
         try {
@@ -329,21 +309,11 @@ const SignIn: React.FC = () => {
 
                             {Platform.OS === 'android' ? (
                                 <View style={{ marginVertical: 20 }}>
-                                    <Text>Google Login</Text>
-                                    {/* <Pressable
-                                        style={[styles.googleBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }]}
-                                        onPress={handleGoogleAuth}
-                                    >
-                                        <Image
-                                            source={images.google}
-                                            style={styles.googleBtnImage}
-                                        />
-                                        <Text style={[styles.buttonText, { color: '#000', textAlign: 'center' }]}>Login with Google</Text>
-                                    </Pressable> */}
+                                    <GoogleSignIn setUser={setUser} setIsLogged={setIsLogged} />
                                 </View>
                             ) : (
                                 <View style={{ marginVertical: 20 }}>
-                                    <AppleLogin />
+                                    <AppleLogin setUser={setUser} setIsLogged={setIsLogged} />
                                 </View>
                             )}
 

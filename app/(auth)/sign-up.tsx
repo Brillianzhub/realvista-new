@@ -8,7 +8,8 @@ import {
     Alert,
     Image,
     Linking,
-    Dimensions
+    Dimensions,
+    Platform
 } from 'react-native';
 import images from '@/constants/images';
 import { useGlobalContext } from '../../context/GlobalProvider';
@@ -16,10 +17,8 @@ import { Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
-import { googleAuthSignIn } from '@/lib/googleAuthSignIn';
-import Constants from 'expo-constants';
-
+import GoogleSignIn from '@/components/auth/GoogleSignIn';
+import AppleLogin from '@/components/auth/AppleLogin';
 import FormInput from '@/components/auth/FormInput';
 import PasswordInput from '@/components/auth/PasswordInput';
 
@@ -74,7 +73,6 @@ interface GlobalContextType {
     setIsLogged: (isLogged: boolean) => void;
 }
 
-const { googleWebClientId, googleIosClientId } = Constants.expoConfig?.extra || {};
 
 const RegistrationForm = () => {
     const { setUser, setIsLogged } = useGlobalContext() as GlobalContextType;
@@ -94,28 +92,6 @@ const RegistrationForm = () => {
     });
 
 
-    const configureGoogleSignIn = async () => {
-        GoogleSignin.configure({
-            webClientId: googleWebClientId,
-            iosClientId: googleIosClientId,
-            offlineAccess: true,
-        });
-    };
-
-    useEffect(() => {
-        configureGoogleSignIn();
-    }, []);
-
-    const handleGoogleAuth = async () => {
-        setIsSubmitting(true);
-        try {
-            await googleAuthSignIn({ setUser, setIsLogged, router });
-        } catch (error) {
-            console.error('Google Auth Error:', error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
     const validateForm = (form: FormData): ValidationResult => {
         const { email, password, confirmPassword } = form;
@@ -315,15 +291,16 @@ const RegistrationForm = () => {
                             <View style={{ marginVertical: 10 }}>
                                 <Text style={{ textAlign: 'center' }}>OR</Text>
                             </View>
-                            <View style={{ marginVertical: 20 }}>
-                                <Pressable style={[styles.googleBtn, { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 }]} onPress={handleGoogleAuth}>
-                                    <Image
-                                        source={images.google}
-                                        style={styles.googleBtnImage}
-                                    />
-                                    <Text style={[styles.buttonText, { color: '#000', textAlign: 'center' }]}>Login with Google</Text>
-                                </Pressable>
-                            </View>
+                            {Platform.OS === 'android' ? (
+                                <View style={{ marginVertical: 20 }}>
+                                    <GoogleSignIn setUser={setUser} setIsLogged={setIsLogged} />
+                                </View>
+                            ) : (
+                                <View style={{ marginVertical: 10 }}>
+                                    <AppleLogin setUser={setUser} setIsLogged={setIsLogged} />
+                                </View>
+                            )}
+
                             <View style={{ marginVertical: 10 }}>
                                 <Text style={styles.text}>
                                     By continuing, you agree to our{' '}

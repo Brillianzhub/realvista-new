@@ -1,15 +1,37 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Image,
   Dimensions,
-  SafeAreaView,
 } from 'react-native';
-import { Briefcase, TrendingUp, Target, Calculator, Users, BookOpen, ChartBar as BarChart3, Settings, DollarSign } from 'lucide-react-native';
+import {
+  Briefcase,
+  TrendingUp,
+  Target,
+  Calculator,
+  Users,
+  BookOpen,
+  BarChart3,
+  Settings,
+  DollarSign,
+} from 'lucide-react-native';
+import { useRouter, Href } from 'expo-router';
+import FeaturedCarousel from '@/components/home/FeaturedCarousel';
+
+const ROUTES = {
+  PORTFOLIO: '/(tabs)/portfolio' as Href,
+  INVESTMENT: '/(tabs)/investment' as Href,
+  TARGETS: '/(tabs)/targetList' as Href,
+  TRENDS: '/(app)/(trends)' as Href,
+  ANALYSIS: '/(app)/(analyser)' as Href,
+  LEARN: '/(app)/(learn)' as Href,
+  MUTUAL: '/(enterprise)' as Href,
+  MANAGER: '/(manage)/manage' as Href,
+  SETTINGS: '/(settings)' as Href,
+};
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -18,70 +40,29 @@ interface NavigationItem {
   title: string;
   icon: React.ComponentType<any>;
   color: string;
-}
-
-interface CarouselItem {
-  id: string;
-  title: string;
-  image: string;
-  description: string;
+  route: Href; // add route here
 }
 
 const navigationItems: NavigationItem[] = [
-  { id: '1', title: 'Portfolio', icon: Briefcase, color: '#3b82f6' },
-  { id: '2', title: 'RealInvest', icon: DollarSign, color: '#10b981' },
-  { id: '3', title: 'MutualInvest', icon: TrendingUp, color: '#f59e0b' },
+  { id: '1', title: 'Portfolio', icon: Briefcase, color: 'rgba(53, 139, 139, 1)', route: ROUTES.PORTFOLIO },
+  { id: '2', title: 'RealInvest', icon: DollarSign, color: '#10b981', route: ROUTES.INVESTMENT },
+  { id: '3', title: 'MutualInvest', icon: TrendingUp, color: '#f59e0b', route: ROUTES.MUTUAL },
 ];
 
 const secondaryNavigationItems: NavigationItem[] = [
-  { id: '4', title: 'Targets', icon: Target, color: '#ef4444' },
-  { id: '5', title: 'Calculator', icon: Calculator, color: '#8b5cf6' },
-  { id: '6', title: 'Manager', icon: Users, color: '#ec4899' },
-  { id: '7', title: 'Learn', icon: BookOpen, color: '#06b6d4' },
-  { id: '8', title: 'Trends', icon: BarChart3, color: '#84cc16' },
-  { id: '9', title: 'Settings', icon: Settings, color: '#6b7280' },
-];
-
-const carouselItems: CarouselItem[] = [
-  {
-    id: '1',
-    title: 'Real Estate Investment',
-    image: 'https://images.pexels.com/photos/186077/pexels-photo-186077.jpeg?auto=compress&cs=tinysrgb&w=800',
-    description: 'Invest in premium real estate opportunities',
-  },
-  {
-    id: '2',
-    title: 'Portfolio Management',
-    image: 'https://images.pexels.com/photos/590022/pexels-photo-590022.jpeg?auto=compress&cs=tinysrgb&w=800',
-    description: 'Diversify your investment portfolio',
-  },
-  {
-    id: '3',
-    title: 'Market Analysis',
-    image: 'https://images.pexels.com/photos/7567486/pexels-photo-7567486.jpeg?auto=compress&cs=tinysrgb&w=800',
-    description: 'Stay ahead with market insights',
-  },
+  { id: '4', title: 'Targets', icon: Target, color: '#ef4444', route: ROUTES.TARGETS },
+  { id: '5', title: 'Calculator', icon: Calculator, color: 'rgba(53, 139, 139, 1)', route: ROUTES.ANALYSIS },
+  { id: '6', title: 'Manager', icon: Users, color: '#ec4899', route: ROUTES.MANAGER },
+  { id: '7', title: 'Learn', icon: BookOpen, color: '#06b6d4', route: ROUTES.LEARN },
+  { id: '8', title: 'Trends', icon: BarChart3, color: '#84cc16', route: ROUTES.TRENDS },
+  { id: '9', title: 'Settings', icon: Settings, color: '#6b7280', route: ROUTES.SETTINGS },
 ];
 
 export default function HomeScreen() {
-  const [activeSlide, setActiveSlide] = useState(0);
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const nextSlide = (activeSlide + 1) % carouselItems.length;
-      setActiveSlide(nextSlide);
-      scrollViewRef.current?.scrollTo({
-        x: nextSlide * screenWidth,
-        animated: true,
-      });
-    }, 4000);
-
-    return () => clearInterval(timer);
-  }, [activeSlide]);
+  const router = useRouter();
 
   const handleNavigationPress = (item: NavigationItem) => {
-    console.log(`Navigating to ${item.title}`);
+    router.push(item.route);
   };
 
   const renderPrimaryNavigation = () => (
@@ -127,54 +108,17 @@ export default function HomeScreen() {
     </View>
   );
 
-  const renderCarousel = () => (
-    <View style={styles.carouselContainer}>
-      <Text style={styles.carouselTitle}>Featured Opportunities</Text>
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onMomentumScrollEnd={(event) => {
-          const slideIndex = Math.round(event.nativeEvent.contentOffset.x / screenWidth);
-          setActiveSlide(slideIndex);
-        }}
-        style={styles.carousel}
-      >
-        {carouselItems.map((item) => (
-          <View key={item.id} style={styles.carouselItem}>
-            <Image source={{ uri: item.image }} style={styles.carouselImage} />
-            <View style={styles.carouselContent}>
-              <Text style={styles.carouselItemTitle}>{item.title}</Text>
-              <Text style={styles.carouselItemDescription}>{item.description}</Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
-      <View style={styles.pagination}>
-        {carouselItems.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              { backgroundColor: index === activeSlide ? '#3b82f6' : '#d1d5db' }
-            ]}
-          />
-        ))}
-      </View>
-    </View>
-  );
-
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {renderPrimaryNavigation()}
         {renderSecondaryNavigation()}
-        {renderCarousel()}
+        <FeaturedCarousel />
       </ScrollView>
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {
