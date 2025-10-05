@@ -1,235 +1,211 @@
-import images from "@/constants/images";
-import React from "react";
+import React, { useState } from "react";
 import {
-    FlatList,
     View,
-    Text,
-    Image,
+    ScrollView,
     TouchableOpacity,
+    Image,
+    Text,
     StyleSheet,
-    Share,
-    ShareContent,
-    ListRenderItem,
+    Dimensions,
 } from "react-native";
-import { router } from "expo-router";
-import ImageCarousel from "./ImageCarousel";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-import * as Linking from "expo-linking";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { Listing } from "@/hooks/market/useAgentListings";
+import { formatCurrency } from "@/utils/general/formatCurrency";
 
-// Define the shape of a property
-export interface Property {
-    id: number;
-    title: string;
-    description: string;
-    city: string;
-    state: string;
-    price: number;
-    currency: string;
-    property_type: string;
-    listing_purpose: string;
-    bedrooms?: number;
-    listed_date?: string;
-    image_files?: Array<{ file?: string; image_url?: string }>;
-}
+const { width: screenWidth } = Dimensions.get("window");
 
-// Props for the component
 interface MarketPropertyListProps {
-    properties: Property[];
-    formatCurrency: (amount: number, currency: string) => string;
+    properties: Listing[];
+    onAddProperty?: () => void;
 }
+
 
 const MarketPropertyList: React.FC<MarketPropertyListProps> = ({
     properties,
-    formatCurrency,
+    onAddProperty,
 }) => {
-    const handleViewProperty = async (propertyId: number) => {
-        try {
-            const token = await AsyncStorage.getItem("authToken");
-            if (!token) {
-                throw new Error("Authentication token is missing");
-            }
+    const router = useRouter();
+    const [activeImageIndex, setActiveImageIndex] = useState<Record<number, number>>({});
 
-            await axios.get(
-                `https://www.realvistamanagement.com/market/view-property/${propertyId}/`,
-                {
-                    headers: {
-                        Authorization: `Token ${token}`,
-                    },
-                }
-            );
-        } catch (error: any) {
-            console.error(
-                "Error viewing property:",
-                error.response?.data || error.message
-            );
-        }
-    };
-
-    const handleShareProperty = (property: Property) => {
-        const deepLink = Linking.createURL("/MarketListingDetails", {
-            queryParams: { selectedItemId: property.id.toString() },
+    const handlePropertyPress = (property: Listing) => {
+        router.push({
+            pathname: "/market/marketdetails",
+            params: { propertyData: JSON.stringify(property) },
         });
-
-        const shareOptions: ShareContent = {
-            message: `Check out this property: ${property.title}\n\n${property.description}\n\nPrice: ${formatCurrency(
-                property.price,
-                property.currency
-            )}\nLocation: ${property.city}, ${property.state}\n\nView more details: ${deepLink}`,
-            title: "Share Property",
-            url: deepLink,
-        };
-
-        Share.share(shareOptions).catch((error) => {
-            console.error("Error sharing property:", error);
-        });
-    };
-
-    const renderProperty: ListRenderItem<Property> = ({ item }) => {
-        const validImages = Array.isArray(item.image_files)
-            ? item.image_files
-                .map(img => ({ file: img.file ?? img.image_url })) 
-                .filter((img): img is { file: string } => !!img.file) 
-            : [];
-
-        return (
-            <View style={styles.propertyCard}>
-                <ImageCarousel images={validImages} listed_date={item.listed_date} />
-
-                <TouchableOpacity
-                    onPress={async () => {
-                        await handleViewProperty(item.id);
-                        router.push({
-                            pathname: "/(app)/(tabs)/market/marketdetails",
-
-                            // pathname: "/(marketdetail)/MarketListingDetails",
-                            params: { selectedItemId: JSON.stringify(item.id) },
-                        });
-                    }}
-                >
-                    <View style={styles.propertyInfo}>
-                        <Text style={[styles.propertyTitle, { color: "#358B8B" }]}>
-                            {item.title}
-                        </Text>
-
-                        <Text
-                            style={[
-                                styles.propertyType,
-                                { color: "#FB902E", fontWeight: "bold" },
-                            ]}
-                        >
-                            {item?.bedrooms ? `${item?.bedrooms} Bedrooms ` : ""}
-                            {item?.property_type
-                                .replace(/_/g, " ")
-                                .replace(/\b\w/g, (char) => char.toUpperCase())}{" "}
-                            for{" "}
-                            {item?.listing_purpose
-                                .replace(/_/g, " ")
-                                .replace(/\b\w/g, (char) => char.toUpperCase())}
-                        </Text>
-
-                        <Text
-                            style={[styles.propertyDescription]}
-                            numberOfLines={2}
-                            ellipsizeMode="tail"
-                        >
-                            {item.description}
-                        </Text>
-
-                        <View
-                            style={{
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 5,
-                                marginTop: 5,
-                            }}
-                        >
-                            <Image source={images.location} style={{ width: 20, height: 20 }} />
-                            <Text style={styles.propertyDetails}>
-                                {item.state
-                                    .replace(/_/g, " ")
-                                    .replace(/\b\w/g, (char) => char.toUpperCase())}
-                                ,{" "}
-                                {item.city
-                                    .replace(/_/g, " ")
-                                    .replace(/\b\w/g, (char) => char.toUpperCase())}
-                            </Text>
-                        </View>
-
-                        <Text style={styles.propertyPrice}>
-                            {formatCurrency(item.price, item.currency)}
-                        </Text>
-                    </View>
-                </TouchableOpacity>
-
-                {/* Uncomment if you want Share button UI 
-        <TouchableOpacity
-          style={styles.shareButton}
-          onPress={() => handleShareProperty(item)}
-        >
-          <Text style={styles.shareButtonText}>Share</Text>
-        </TouchableOpacity> 
-        */}
-            </View>
-        );
     };
 
     return (
-        <FlatList
-            data={properties}
-            renderItem={renderProperty}
-            keyExtractor={(item) => item.id.toString()}
-            // style={styles.propertiesList}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-                <Text style={styles.emptyText}>No properties found</Text>
-            }
-        />
+        <View style={styles.container}>
+            <ScrollView
+                contentContainerStyle={styles.contentContainer}
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+            >
+                {properties.map((property) => (
+                    <View key={property.id} style={styles.propertyCard}>
+                        {/* Image Carousel */}
+                        <View style={styles.carouselContainer}>
+                            <ScrollView
+                                horizontal
+                                pagingEnabled
+                                showsHorizontalScrollIndicator={false}
+                                onScroll={(event) => {
+                                    const x = event.nativeEvent.contentOffset.x;
+                                    const index = Math.round(x / (screenWidth - 32));
+                                    setActiveImageIndex((prev) => ({
+                                        ...prev,
+                                        [property.id]: index,
+                                    }));
+                                }}
+                                scrollEventThrottle={16}
+                            >
+                                {(property.preview_images?.length
+                                    ? property.preview_images.slice(0, 3)
+                                    : [
+                                        "https://via.placeholder.com/400x250.png?text=No+Image",
+                                    ]
+                                ).map((img, index) => (
+                                    <Image
+                                        key={index}
+                                        source={{ uri: img }}
+                                        style={styles.propertyImage}
+                                    />
+                                ))}
+                            </ScrollView>
+
+                            {/* Pagination dots */}
+                            <View style={styles.dotsContainer}>
+                                {(property.preview_images?.slice(0, 3) || [0, 1, 2]).map(
+                                    (_, index) => (
+                                        <View
+                                            key={index}
+                                            style={[
+                                                styles.dot,
+                                                activeImageIndex[property.id] === index &&
+                                                styles.activeDot,
+                                            ]}
+                                        />
+                                    )
+                                )}
+                            </View>
+                        </View>
+
+                        {/* Property Info Section */}
+                        <TouchableOpacity
+                            style={styles.propertyInfo}
+                            onPress={() => handlePropertyPress(property)}
+                            activeOpacity={0.8}
+                        >
+                            <Text style={styles.propertyName}>{property.title}</Text>
+
+                            <View style={styles.locationRow}>
+                                <Ionicons name="location-outline" size={14} color="#6B7280" />
+                                <Text style={styles.locationText}>
+                                    {property.city}, {property.state}
+                                </Text>
+                            </View>
+
+                            <View style={styles.statsRow}>
+                                <Text style={styles.valueText}>
+                                    {formatCurrency(property.price, property.currency)}
+                                </Text>
+                            </View>
+
+                            <Text style={styles.description} numberOfLines={3}>
+                                {property.short_description}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+                ))}
+            </ScrollView>
+
+            {/* Floating Add Button */}
+            {onAddProperty && (
+                <TouchableOpacity style={styles.fabButton} onPress={onAddProperty}>
+                    <Ionicons name="add" size={28} color="#FFFFFF" />
+                </TouchableOpacity>
+            )}
+        </View>
     );
 };
 
 export default MarketPropertyList;
 
 const styles = StyleSheet.create({
+    container: { flex: 1 },
+    contentContainer: { padding: 16, paddingBottom: 80 },
     propertyCard: {
-        backgroundColor: "#f9f9f9",
-        borderRadius: 10,
+        backgroundColor: "#FFFFFF",
+        borderRadius: 16,
+        marginBottom: 16,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+        elevation: 4,
         overflow: "hidden",
-        marginBottom: 20,
-        width: "100%",
     },
-    propertyInfo: {
-        padding: 10,
+    carouselContainer: { position: "relative" },
+    propertyImage: {
+        width: screenWidth - 32,
+        height: 220,
+        resizeMode: "cover",
     },
-    propertyTitle: {
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 5,
+    dotsContainer: {
+        position: "absolute",
+        bottom: 8,
+        left: 0,
+        right: 0,
+        flexDirection: "row",
+        justifyContent: "center",
+        gap: 6,
     },
-    propertyDescription: {
-        fontSize: 16,
-        paddingVertical: 5,
-        color: "#444",
+    dot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: "rgba(255, 255, 255, 0.5)",
     },
-    propertyDetails: {
-        fontSize: 14,
-        marginBottom: 5,
-        color: "#666",
+    activeDot: {
+        backgroundColor: "#fff",
     },
-    propertyType: {
-        fontSize: 16,
-        marginBottom: 5,
-    },
-    propertyPrice: {
+    propertyInfo: { padding: 16 },
+    propertyName: {
         fontSize: 20,
-        fontWeight: "600",
-        marginVertical: 5,
-        color: "#FB902E",
+        fontWeight: "bold",
+        color: "#111827",
+        marginBottom: 8,
     },
-    emptyText: {
-        textAlign: "center",
-        marginTop: 20,
-        fontSize: 16,
-        color: "#aaa",
+    locationRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 4,
+        marginBottom: 12,
+    },
+    locationText: { fontSize: 14, color: "#6B7280" },
+    statsRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    valueText: { fontSize: 18, fontWeight: "600", color: "#111827" },
+    description: { fontSize: 14, color: "#4B5563", lineHeight: 20 },
+    fabButton: {
+        position: "absolute",
+        bottom: 24,
+        right: 24,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: "#14B8A6",
+        justifyContent: "center",
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
     },
 });

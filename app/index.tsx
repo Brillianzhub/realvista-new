@@ -51,7 +51,7 @@ const Index = () => {
     }, [fadeAnim]);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <View style={styles.container}>
             <View style={styles.topSection}>
                 <Text style={styles.welcomeTitle}>Welcome to Realvista</Text>
                 <Animated.Text style={[styles.titleText, { opacity: fadeAnim }]}>
@@ -108,7 +108,7 @@ const Index = () => {
                     <Text style={[styles.buttonText, { color: '#358B8B' }]}>Login</Text>
                 </Pressable>
             </View>
-        </SafeAreaView>
+        </View>
     );
 };
 

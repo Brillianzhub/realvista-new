@@ -27,6 +27,21 @@ const MarketLayout = () => {
                     ),
                 }}
             />
+            
+            <Stack.Screen
+                name="search"
+                options={{
+                    presentation: "card",
+                    animation: "slide_from_right",
+                    headerTitleAlign: "center",
+                    title: "Filter Listings",
+                    headerLeft: () => (
+                        <TouchableOpacity onPress={() => router.replace("/(app)/(tabs)")}>
+                            <Ionicons name="arrow-back" size={24} color="#358B8B" />
+                        </TouchableOpacity>
+                    ),
+                }}
+            />
         </Stack>
     );
 };
