@@ -63,6 +63,7 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
+          color: '#358B8B',
         },
       }}>
       <Tabs.Screen
@@ -71,7 +72,7 @@ export default function TabLayout() {
           title: 'Home',
           headerTitle: 'RealVista',
           tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
+            <Home size={size} color='#358B8B' />
           ),
         }}
       />
@@ -81,7 +82,7 @@ export default function TabLayout() {
           title: 'Portfolio',
           headerTitle: 'Portfolio',
           tabBarIcon: ({ size, color }) => (
-            <Briefcase size={size} color={color} />
+            <Briefcase size={size} color='#358B8B' />
           ),
         }}
       />
@@ -91,7 +92,7 @@ export default function TabLayout() {
           title: 'Market',
           headerTitle: 'Market Analysis',
           tabBarIcon: ({ size, color }) => (
-            <TrendingUp size={size} color={color} />
+            <TrendingUp size={size} color='#358B8B' />
           ),
         }}
       />

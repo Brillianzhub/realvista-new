@@ -8,6 +8,22 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import useUserProperties from '@/hooks/portfolio/useUserProperty';
+import { formatCurrency } from '@/utils/general/formatCurrency';
+
+interface Income {
+  amount: number | string;
+  currency?: string;
+  description?: string;
+  label?: string;
+}
+
+interface Expense {
+  amount: number | string;
+  currency?: string;
+  description?: string;
+  label?: string;
+}
 
 export interface Property {
   id: string;
@@ -27,8 +43,9 @@ export interface Property {
     latitude: number;
     longitude: number;
   };
-  income: Array<{ label: string; amount: number }>;
-  expenses: Array<{ label: string; amount: number }>;
+  incomes: Income[];
+  expenses: Expense[];
+  currency: string;
   performanceData: {
     labels: string[];
     datasets: Array<{ data: number[] }>;
@@ -40,6 +57,7 @@ interface Investment {
   name: string;
   type: 'Personal' | 'Group';
   value: number;
+  currency: string;
   roi: number;
 }
 
@@ -48,118 +66,12 @@ interface Portfolio {
   totalInvested: number;
   totalReturns: number;
   assetsCount: number;
+  currency: string;
   investments: Investment[];
 }
 
-const propertyDetails: Property[] = [
-  {
-    id: '1',
-    name: 'Lakeside Villa',
-    type: 'Group',
-    value: 80000,
-    roi: 8.2,
-    initialCost: 32000,
-    appreciation: 150.0,
-    description: 'Luxurious lakeside property with stunning water views and modern amenities. Perfect investment opportunity in a growing vacation rental market.',
-    state: 'California',
-    city: 'Lake Tahoe',
-    country: 'USA',
-    units: 1,
-    yearBought: 2019,
-    coordinates: { latitude: 39.0968, longitude: -120.0324 },
-    income: [
-      { label: 'Rental Income', amount: 24000 },
-      { label: 'Parking Fees', amount: 1200 },
-    ],
-    expenses: [
-      { label: 'Property Tax', amount: 3200 },
-      { label: 'Maintenance', amount: 2400 },
-      { label: 'Insurance', amount: 1800 },
-      { label: 'HOA Fees', amount: 1200 },
-    ],
-    performanceData: {
-      labels: ['2019', '2020', '2021', '2022', '2023', '2024'],
-      datasets: [{ data: [32000, 40000, 52000, 68000, 75000, 80000] }],
-    },
-  },
-  {
-    id: '2',
-    name: 'Sunset Apartments',
-    type: 'Personal',
-    value: 50000,
-    roi: -2.4,
-    initialCost: 55000,
-    appreciation: -9.1,
-    description: 'Charming apartment complex in a transitioning neighborhood. Short-term market fluctuation expected to stabilize.',
-    state: 'Texas',
-    city: 'Austin',
-    country: 'USA',
-    units: 4,
-    yearBought: 2021,
-    coordinates: { latitude: 30.2672, longitude: -97.7431 },
-    income: [
-      { label: 'Rental Income', amount: 18000 },
-      { label: 'Laundry Fees', amount: 800 },
-    ],
-    expenses: [
-      { label: 'Property Tax', amount: 2800 },
-      { label: 'Maintenance', amount: 3200 },
-      { label: 'Insurance', amount: 1500 },
-      { label: 'Utilities', amount: 2400 },
-    ],
-    performanceData: {
-      labels: ['2021', '2022', '2023', '2024'],
-      datasets: [{ data: [55000, 52000, 48000, 50000] }],
-    },
-  },
-  {
-    id: '3',
-    name: 'City Towers',
-    type: 'Group',
-    value: 120000,
-    roi: 5.7,
-    initialCost: 95000,
-    appreciation: 26.3,
-    description: 'Prime commercial property in downtown district with excellent tenant mix and stable cash flow. Long-term growth potential.',
-    state: 'New York',
-    city: 'New York City',
-    country: 'USA',
-    units: 8,
-    yearBought: 2020,
-    coordinates: { latitude: 40.7128, longitude: -74.0060 },
-    income: [
-      { label: 'Rental Income', amount: 42000 },
-      { label: 'Commercial Lease', amount: 8400 },
-      { label: 'Parking Income', amount: 2400 },
-    ],
-    expenses: [
-      { label: 'Property Tax', amount: 8500 },
-      { label: 'Maintenance', amount: 4200 },
-      { label: 'Insurance', amount: 3800 },
-      { label: 'Management Fee', amount: 2800 },
-    ],
-    performanceData: {
-      labels: ['2020', '2021', '2022', '2023', '2024'],
-      datasets: [{ data: [95000, 102000, 110000, 115000, 120000] }],
-    },
-  },
-];
 
-const portfolio: Portfolio = {
-  totalValue: 250000,
-  totalInvested: 200000,
-  totalReturns: 50000,
-  assetsCount: 5,
-  investments: [
-    { id: '1', name: 'Lakeside Villa', type: 'Group', value: 80000, roi: 8.2 },
-    { id: '2', name: 'Sunset Apartments', type: 'Personal', value: 50000, roi: -2.4 },
-    { id: '3', name: 'City Towers', type: 'Group', value: 120000, roi: 5.7 },
-  ],
-};
 
-const formatCurrency = (value: number): string => {
-  return `$${value.toLocaleString()}`;
-};
 
 const formatROI = (roi: number): string => {
   return `${roi > 0 ? '+' : ''}${roi.toFixed(1)}%`;
@@ -168,24 +80,59 @@ const formatROI = (roi: number): string => {
 export default function PortfolioScreen() {
   const router = useRouter();
 
+  const { properties, loading, fetchUserProperties } = useUserProperties();
+
   const handleAddInvestment = () => {
-    console.log('Add Investment pressed');
+    router.push('/(app)/(manage)');
+  };
+
+  const investments: Investment[] = properties.map((p: any) => ({
+    id: p.id.toString(),
+    name: p.title,
+    currency: p.currency,
+    type: p.group_property_id ? 'Group' : 'Personal',
+    value: parseFloat(p.current_value),
+    roi: p.roi ?? 0,
+  }));
+
+
+  const totalValue = investments.reduce((sum, inv) => sum + inv.value, 0);
+  const assetsCount = investments.length;
+  const totalInvested = properties.reduce(
+    (sum, p) => sum + parseFloat(p.initial_cost || 0),
+    0
+  );
+  const totalReturns = totalValue - totalInvested;
+  const portfolioCurrency = investments[0]?.currency || 'NGN';
+
+  const portfolio: Portfolio = {
+    totalValue,
+    totalInvested,
+    totalReturns,
+    assetsCount,
+    currency: portfolioCurrency,
+    investments,
   };
 
   const handlePropertyPress = (investmentId: string) => {
-    const property = propertyDetails.find(p => p.id === investmentId);
+    // Find the matching property from the fetched data
+    const property = properties.find((p: any) => p.id.toString() === investmentId);
+
     if (property) {
       router.push({
         pathname: '/portfolio/portfoliodetails',
         params: { propertyData: JSON.stringify(property) },
       });
+    } else {
+      console.warn('Property not found for ID:', investmentId);
     }
   };
+
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Portfolio</Text>
+        {/* <Text style={styles.headerTitle}>Portfolio</Text> */}
         <TouchableOpacity style={styles.addButton} onPress={handleAddInvestment}>
           <Text style={styles.addButtonText}>+ Add Investment</Text>
         </TouchableOpacity>
@@ -195,7 +142,7 @@ export default function PortfolioScreen() {
         <View style={styles.cardsRow}>
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Total Portfolio Value</Text>
-            <Text style={styles.cardValue}>{formatCurrency(portfolio.totalValue)}</Text>
+            <Text style={styles.cardValue}>{formatCurrency(portfolio.totalValue, portfolio.currency)}</Text>
           </View>
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Number of Assets</Text>
@@ -205,11 +152,11 @@ export default function PortfolioScreen() {
         <View style={styles.cardsRow}>
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Total Invested</Text>
-            <Text style={styles.cardValue}>{formatCurrency(portfolio.totalInvested)}</Text>
+            <Text style={styles.cardValue}>{formatCurrency(portfolio.totalInvested, portfolio.currency)}</Text>
           </View>
           <View style={styles.card}>
             <Text style={styles.cardLabel}>Total Returns</Text>
-            <Text style={styles.cardValue}>{formatCurrency(portfolio.totalReturns)}</Text>
+            <Text style={styles.cardValue}>{formatCurrency(portfolio.totalReturns, portfolio.currency)}</Text>
           </View>
         </View>
       </View>
@@ -228,17 +175,17 @@ export default function PortfolioScreen() {
                 <Text style={styles.investmentType}>{investment.type}</Text>
               </View>
               <View style={styles.investmentStats}>
-                <Text style={styles.investmentValue}>{formatCurrency(investment.value)}</Text>
+                <Text style={styles.investmentValue}>{formatCurrency(investment.value, portfolio.currency)}</Text>
                 <View style={styles.roiContainer}>
                   <Ionicons
                     name={investment.roi > 0 ? 'arrow-up-outline' : 'arrow-down-outline'}
                     size={16}
-                    color={investment.roi > 0 ? '#10B981' : '#EF4444'}
+                    color={investment.roi > 0 ? '#358B8B' : '#EF4444'}
                   />
                   <Text
                     style={[
                       styles.roiText,
-                      { color: investment.roi > 0 ? '#10B981' : '#EF4444' },
+                      { color: investment.roi > 0 ? '#358B8B' : '#EF4444' },
                     ]}
                   >
                     {formatROI(investment.roi)}
@@ -260,7 +207,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   contentContainer: {
-    paddingTop: 50,
+    paddingTop: 20,
     paddingHorizontal: 16,
     paddingBottom: 32,
   },
@@ -276,7 +223,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   addButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: '#358B8B',
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
@@ -311,7 +258,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   cardValue: {
-    fontSize: 24,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#111827',
   },
@@ -354,7 +301,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   investmentValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
     color: '#111827',
     marginBottom: 4,

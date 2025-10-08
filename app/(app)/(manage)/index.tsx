@@ -1,98 +1,288 @@
-import { StyleSheet, Text, View, TouchableOpacity, FlatList, Image, ImageSourcePropType, Dimensions } from 'react-native';
-import React, { useState } from 'react';
-import { router } from 'expo-router';
-import images from '@/constants/images';
+import {
+    View,
+    Text,
+    StyleSheet,
+    ScrollView,
+    TouchableOpacity,
+    useColorScheme,
+} from 'react-native';
+import { useState } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import AddPropertyModal from '@/components/modals/AddPropertyModal';
+import AddIncomeModal from '@/components/modals/AddIncomeModal';
+import AddExpensesModal from '@/components/modals/AddExpensesModal';
+import RemovePropertyModal from '@/components/modals/RemovePropertyModal';
+import UpdatePropertyModal from '@/components/modals/UpdatePropertyModal';
+import ListToMarketModal from '@/components/modals/ListToMarketModal';
+import AddCoordinatesModal from '@/components/modals/AddCoordinatesModal';
+import AddFilesModal from '@/components/modals/AddFilesModal';
 
-interface ActionItem {
-    id: string;
-    label: string;
-    icon: ImageSourcePropType;
-    onPress: () => void;
-}
+type ManagementOption = {
+    title: string;
+    icon: keyof typeof Ionicons.glyphMap;
+    action: string;
+    color: string;
+};
 
-const ManageProperty: React.FC = () => {
-    const [refreshing, setRefreshing] = useState<boolean>(false);
+const managementOptions: ManagementOption[] = [
+    {
+        title: 'Add Property',
+        icon: 'home-outline',
+        action: 'addProperty',
+        color: '#3B82F6',
+    },
+    {
+        title: 'Add Files/Images',
+        icon: 'images-outline',
+        action: 'addFiles',
+        color: '#F97316',
+    },
+    {
+        title: 'Add Coordinates',
+        icon: 'navigate-outline',
+        action: 'addCoordinates',
+        color: '#14B8A6',
+    },
+    {
+        title: 'Add Income',
+        icon: 'cash-outline',
+        action: 'addIncome',
+        color: '#10B981',
+    },
+    {
+        title: 'Add Expenses',
+        icon: 'card-outline',
+        action: 'addExpense',
+        color: '#F59E0B',
+    },
+    {
+        title: 'Remove Property',
+        icon: 'trash-outline',
+        action: 'removeProperty',
+        color: '#EF4444',
+    },
+    {
+        title: 'Update Property',
+        icon: 'create-outline',
+        action: 'updateProperty',
+        color: '#8B5CF6',
+    },
+    {
+        title: 'List to Market',
+        icon: 'megaphone-outline',
+        action: 'listToMarket',
+        color: '#EC4899',
+    },
+];
 
-    const actions: ActionItem[] = [
-        { id: '1', label: 'Add Property', icon: images.add, onPress: () => router.push('/(app)/(manage)/add-property') },
-        { id: '2', label: 'Add Income', icon: images.income, onPress: () => router.push('/(app)/(manage)/add-property-income') },
-        { id: '3', label: 'Add Expenses', icon: images.expense, onPress: () => router.push('/(app)/(manage)/add-property-expenses') },
-        { id: '4', label: 'Remove Property', icon: images.remove, onPress: () => router.push('/(app)/(manage)/remove-property') },
-        { id: '5', label: 'Update Property', icon: images.update, onPress: () => router.push('/(app)/(manage)/update-property') },
-        // { id: '6', label: 'List to the Market', icon: images.sale, onPress: () => router.replace('/(marketlisting)/MarketListing') },
-        { id: '7', label: 'Add Coordinates', icon: images.coordinate, onPress: () => router.push('/(app)/(manage)/add-coordinates') },
-        { id: '8', label: 'Add Files/Images', icon: images.addfile, onPress: () => router.push('/(app)/(manage)/add-files') },
-    ];
+export default function ManagePropertyPage() {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === 'dark';
 
-    const renderAction = ({ item }: { item: ActionItem }) => (
-        <TouchableOpacity style={styles.box} onPress={item.onPress}>
-            <Image source={item.icon} style={styles.iconStyle} />
-            <Text style={styles.boxText}>{item.label}</Text>
-        </TouchableOpacity>
-    );
+    const [addPropertyVisible, setAddPropertyVisible] = useState(false);
+    const [addIncomeVisible, setAddIncomeVisible] = useState(false);
+    const [addExpensesVisible, setAddExpensesVisible] = useState(false);
+    const [removePropertyVisible, setRemovePropertyVisible] = useState(false);
+    const [updatePropertyVisible, setUpdatePropertyVisible] = useState(false);
+    const [listToMarketVisible, setListToMarketVisible] = useState(false);
+    const [addCoordinatesVisible, setAddCoordinatesVisible] = useState(false);
+    const [addFilesVisible, setAddFilesVisible] = useState(false);
 
-    const handleRefresh = () => {
-        setRefreshing(true);
-        setTimeout(() => {
-            setRefreshing(false);
-        }, 1000);
+    const handleOptionPress = (action: string) => {
+        switch (action) {
+            case 'addProperty':
+                setAddPropertyVisible(true);
+                break;
+            case 'addIncome':
+                setAddIncomeVisible(true);
+                break;
+            case 'addExpense':
+                setAddExpensesVisible(true);
+                break;
+            case 'removeProperty':
+                setRemovePropertyVisible(true);
+                break;
+            case 'updateProperty':
+                setUpdatePropertyVisible(true);
+                break;
+            case 'listToMarket':
+                setListToMarketVisible(true);
+                break;
+            case 'addCoordinates':
+                setAddCoordinatesVisible(true);
+                break;
+            case 'addFiles':
+                setAddFilesVisible(true);
+                break;
+        }
     };
 
     return (
-        <View style={styles.container}>
-            <FlatList
-                data={actions}
-                keyExtractor={(item) => item.id}
-                renderItem={renderAction}
-                numColumns={2}
-                contentContainerStyle={styles.grid}
-                columnWrapperStyle={styles.row}
-                bounces
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
+        <View style={[styles.container, isDark && styles.containerDark]}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <View style={styles.header}>
+                    <Text style={[styles.title, isDark && styles.titleDark]}>
+                        Manage Properties
+                    </Text>
+                    <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
+                        Follow the numbered order below to effectively manage your properties
+                    </Text>
+                </View>
+
+                <View style={styles.grid}>
+                    {managementOptions.map((option, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            style={[styles.card, isDark && styles.cardDark]}
+                            onPress={() => handleOptionPress(option.action)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={styles.cardHeader}>
+                                <View style={styles.numberBadge}>
+                                    <Text style={styles.numberText}>{index + 1}</Text>
+                                </View>
+                            </View>
+                            <View
+                                style={[
+                                    styles.iconContainer,
+                                    { backgroundColor: `${option.color}20` },
+                                ]}
+                            >
+                                <Ionicons name={option.icon} size={28} color={option.color} />
+                            </View>
+                            <Text style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
+                                {option.title}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </ScrollView>
+
+            <AddPropertyModal
+                visible={addPropertyVisible}
+                onClose={() => setAddPropertyVisible(false)}
+            />
+            <AddIncomeModal
+                visible={addIncomeVisible}
+                onClose={() => setAddIncomeVisible(false)}
+            />
+            <AddExpensesModal
+                visible={addExpensesVisible}
+                onClose={() => setAddExpensesVisible(false)}
+            />
+            <RemovePropertyModal
+                visible={removePropertyVisible}
+                onClose={() => setRemovePropertyVisible(false)}
+            />
+            <UpdatePropertyModal
+                visible={updatePropertyVisible}
+                onClose={() => setUpdatePropertyVisible(false)}
+            />
+            <ListToMarketModal
+                visible={listToMarketVisible}
+                onClose={() => setListToMarketVisible(false)}
+            />
+            <AddCoordinatesModal
+                visible={addCoordinatesVisible}
+                onClose={() => setAddCoordinatesVisible(false)}
+            />
+            <AddFilesModal
+                visible={addFilesVisible}
+                onClose={() => setAddFilesVisible(false)}
             />
         </View>
     );
 };
 
-export default ManageProperty
-
-const { width: screenWidth } = Dimensions.get('window');
-
-const dynamicFontSize = screenWidth < 380 ? 12 : 14;
-
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 10,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#F9FAFB',
+    },
+    containerDark: {
+        backgroundColor: '#111827',
+    },
+    scrollContent: {
+        padding: 20,
+        paddingTop: 20,
+    },
+    header: {
+        marginBottom: 32,
+    },
+    title: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#111827',
+        marginBottom: 8,
+    },
+    titleDark: {
+        color: '#F9FAFB',
+    },
+    subtitle: {
+        fontSize: 16,
+        color: '#6B7280',
+    },
+    subtitleDark: {
+        color: '#9CA3AF',
     },
     grid: {
-        justifyContent: 'space-between',
-    },
-    row: {
-        justifyContent: 'space-between',
-    },
-    box: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        gap: 16,
+    },
+    card: {
+        width: '47%',
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        padding: 20,
         alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+        position: 'relative',
+    },
+    cardHeader: {
+        position: 'absolute',
+        top: 12,
+        left: 12,
+    },
+    numberBadge: {
+        width: 28,
+        height: 28,
+        borderRadius: 14,
+        backgroundColor: '#bac0c9',
         justifyContent: 'center',
-        height: 80,
-        width: '48%',
-        paddingLeft: 15,
-        backgroundColor: '#358B8B0D',
-        borderRadius: 15,
-        margin: 5,
-        gap: 5
+        alignItems: 'center',
     },
-    boxText: {
-        flex: 1,
-        color: '#358B8B',
-        fontSize: dynamicFontSize,
-        textAlign: 'left',
+    numberText: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
     },
-    iconStyle: {
-        height: 24,
-        width: 24,
+    cardDark: {
+        backgroundColor: '#1F2937',
+    },
+    iconContainer: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+    },
+    cardTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#374151',
+        textAlign: 'center',
+    },
+    cardTitleDark: {
+        color: '#E5E7EB',
     },
 });

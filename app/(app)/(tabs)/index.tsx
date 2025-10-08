@@ -20,6 +20,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter, Href } from 'expo-router';
 import FeaturedCarousel from '@/components/home/FeaturedCarousel';
+import { useGlobalContext } from '@/context/GlobalProvider';
 
 const ROUTES = {
   PORTFOLIO: '/(tabs)/portfolio' as Href,
@@ -29,8 +30,8 @@ const ROUTES = {
   ANALYSIS: '/(app)/(analyser)' as Href,
   LEARN: '/(app)/(learn)' as Href,
   MUTUAL: '/(enterprise)' as Href,
-  MANAGER: '/(manage)/manage' as Href,
-  SETTINGS: '/(settings)' as Href,
+  MANAGER: '/(manage)' as Href,
+  SETTINGS: '/(services)' as Href,
 };
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -61,6 +62,9 @@ const secondaryNavigationItems: NavigationItem[] = [
 export default function HomeScreen() {
   const router = useRouter();
 
+  const { user } = useGlobalContext();
+
+  // console.log('User in HomeScreen:', user);
   const handleNavigationPress = (item: NavigationItem) => {
     router.push(item.route);
   };

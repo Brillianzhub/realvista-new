@@ -3,7 +3,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import PagerView from 'react-native-pager-view';
 import images from '@/constants/images';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 
 const { width, height } = Dimensions.get('window');

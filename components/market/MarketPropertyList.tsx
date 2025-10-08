@@ -31,7 +31,7 @@ const MarketPropertyList: React.FC<MarketPropertyListProps> = ({
     const handlePropertyPress = (property: Listing) => {
         router.push({
             pathname: "/market/marketdetails",
-            params: { propertyData: JSON.stringify(property) },
+            params: { selectedItemId: property.id.toString() },
         });
     };
 

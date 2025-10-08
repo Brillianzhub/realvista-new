@@ -13,38 +13,61 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
 import MapView, { Marker } from 'react-native-maps';
 import { Property } from './index';
+import { formatCurrency } from '@/utils/general/formatCurrency';
 
 const screenWidth = Dimensions.get('window').width;
 
-const formatCurrency = (value: number): string => {
-    return `$${value.toLocaleString()}`;
-};
 
-const formatROI = (roi: number): string => {
+const formatROI = (initial_cost: string | number, current_value: string | number): string => {
+    const initial = parseFloat(initial_cost as string);
+    const current = parseFloat(current_value as string);
+
+    if (!initial || initial <= 0) return 'N/A';
+
+    const roi = ((current - initial) / initial) * 100; // appreciation %
+
     return `${roi > 0 ? '+' : ''}${roi.toFixed(1)}%`;
 };
+
 
 export default function PropertyDetailScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
 
-    const property: Property = JSON.parse(params.propertyData as string);
+    const property = JSON.parse(params.propertyData as string);
 
-    const totalIncome = property.income.reduce((sum, item) => sum + item.amount, 0);
-    const totalExpenses = property.expenses.reduce((sum, item) => sum + item.amount, 0);
+    const incomes = property.incomes || [];
+    const expenses = property.expenses || [];
+
+    const totalIncome = incomes.reduce(
+        (sum: number, item: any) => sum + parseFloat(item.amount || 0),
+        0
+    );
+    const totalExpenses = expenses.reduce(
+        (sum: number, item: any) => sum + parseFloat(item.amount || 0),
+        0
+    );
     const netReturn = totalIncome - totalExpenses;
 
     const getAppreciationInsight = () => {
-        if (property.appreciation > 100) {
-            return `The property has appreciated strongly by ${property.appreciation.toFixed(2)}%, indicating strong growth.`;
-        } else if (property.appreciation > 20) {
-            return `The property has shown solid appreciation of ${property.appreciation.toFixed(2)}%, performing well in the market.`;
-        } else if (property.appreciation > 0) {
-            return `The property has appreciated modestly by ${property.appreciation.toFixed(2)}%, showing stable growth.`;
+        const initial = parseFloat(property.initial_cost || '0');
+        const current = parseFloat(property.current_value || '0');
+
+        if (!initial || initial <= 0) return 'Initial cost data is unavailable for appreciation calculation.';
+
+        const app = ((current - initial) / initial) * 100; // appreciation percentage
+
+        if (app > 100) {
+            return `The property has appreciated strongly by ${app.toFixed(2)}%, indicating strong growth.`;
+        } else if (app > 20) {
+            return `The property has shown solid appreciation of ${app.toFixed(2)}%, performing well in the market.`;
+        } else if (app > 0) {
+            return `The property has appreciated modestly by ${app.toFixed(2)}%, showing stable growth.`;
         } else {
-            return `The property has depreciated by ${Math.abs(property.appreciation).toFixed(2)}%, but market conditions may improve.`;
+            return `The property has depreciated by ${Math.abs(app).toFixed(2)}%, but market conditions may improve.`;
         }
     };
+
 
     const handleListForSale = () => {
         router.push({
@@ -53,6 +76,12 @@ export default function PropertyDetailScreen() {
         });
     };
 
+    const capitalize = (text?: string) => {
+        if (!text) return '';
+        return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+    };
+
+
     return (
         <ScrollView style={styles.container}>
             <View style={styles.header}>
@@ -60,22 +89,22 @@ export default function PropertyDetailScreen() {
                     <Ionicons name="arrow-back-outline" size={24} color="#111827" />
                 </TouchableOpacity>
                 <View style={styles.headerInfo}>
-                    <Text style={styles.propertyName}>{property.name}</Text>
+                    <Text style={styles.propertyName}>{property.title}</Text>
                     <View style={styles.headerStats}>
-                        <Text style={styles.currentValue}>{formatCurrency(property.value)}</Text>
+                        <Text style={styles.currentValue}>{formatCurrency(property.current_value, property.currency)}</Text>
                         <View style={styles.roiContainer}>
                             <Ionicons
                                 name={property.roi > 0 ? 'arrow-up-outline' : 'arrow-down-outline'}
                                 size={18}
-                                color={property.roi > 0 ? '#10B981' : '#EF4444'}
+                                color={property.roi > 0 ? '#358B8B' : '#EF4444'}
                             />
                             <Text
                                 style={[
                                     styles.roiText,
-                                    { color: property.roi > 0 ? '#10B981' : '#EF4444' },
+                                    { color: property.roi > 0 ? '#358B8B' : '#EF4444' },
                                 ]}
                             >
-                                {formatROI(property.roi)}
+                                {formatROI(property.initial_cost, property.current_value)}
                             </Text>
                         </View>
                     </View>
@@ -87,35 +116,24 @@ export default function PropertyDetailScreen() {
                 <View style={styles.performanceCards}>
                     <View style={styles.perfCard}>
                         <Text style={styles.perfLabel}>Initial Cost</Text>
-                        <Text style={styles.perfValue}>{formatCurrency(property.initialCost)}</Text>
+                        <Text style={styles.perfValue}>{formatCurrency(property.initial_cost, property.currency)}</Text>
                     </View>
                     <View style={styles.perfCard}>
                         <Text style={styles.perfLabel}>Appreciation</Text>
                         <Text
                             style={[
                                 styles.perfValue,
-                                { color: property.appreciation > 0 ? '#10B981' : '#EF4444' },
+                                { color: property.appreciation > 0 ? '#358B8B' : '#EF4444' },
                             ]}
                         >
-                            {property.appreciation.toFixed(1)}%
-                        </Text>
-                    </View>
-                    <View style={styles.perfCard}>
-                        <Text style={styles.perfLabel}>ROI</Text>
-                        <Text
-                            style={[
-                                styles.perfValue,
-                                { color: property.roi > 0 ? '#10B981' : '#EF4444' },
-                            ]}
-                        >
-                            {property.roi.toFixed(1)}%
+                            {formatCurrency(property.appreciation.toFixed(1), property.currency)}
                         </Text>
                     </View>
                 </View>
                 <Text style={styles.insightText}>{getAppreciationInsight()}</Text>
             </View>
 
-            <View style={styles.section}>
+            {/* <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Graphical Performance</Text>
                 <View style={styles.chartContainer}>
                     <LineChart
@@ -142,43 +160,52 @@ export default function PropertyDetailScreen() {
                         style={styles.chart}
                     />
                 </View>
-            </View>
+            </View> */}
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Income & Expenses</Text>
                 <View style={styles.financeContainer}>
                     <View style={styles.financeColumn}>
                         <Text style={styles.financeHeader}>Income</Text>
-                        {property.income.map((item, index) => (
+                        {property.incomes.map((item: { description?: string; amount: number; currency?: string }, index: number) => (
                             <View key={index} style={styles.financeRow}>
-                                <Text style={styles.financeLabel}>{item.label}</Text>
-                                <Text style={styles.financeAmount}>{formatCurrency(item.amount)}</Text>
+                                <Text style={styles.financeLabel}>{item.description || 'Income'}</Text>
+                                <Text style={styles.financeAmount}>
+                                    {formatCurrency(item.amount, item.currency || property.currency)}
+                                </Text>
                             </View>
                         ))}
                         <View style={[styles.financeRow, styles.totalRow]}>
                             <Text style={styles.totalLabel}>Total Income</Text>
-                            <Text style={styles.totalAmount}>{formatCurrency(totalIncome)}</Text>
+                            <Text style={styles.totalAmount}>{formatCurrency(totalIncome, property.currency)}</Text>
                         </View>
                     </View>
 
                     <View style={styles.financeColumn}>
                         <Text style={styles.financeHeader}>Expenses</Text>
-                        {property.expenses.map((item, index) => (
-                            <View key={index} style={styles.financeRow}>
-                                <Text style={styles.financeLabel}>{item.label}</Text>
-                                <Text style={styles.financeAmount}>{formatCurrency(item.amount)}</Text>
-                            </View>
-                        ))}
+                        {property.expenses.map(
+                            (
+                                item: { description?: string; amount: number; currency?: string },
+                                index: number
+                            ) => (
+                                <View key={index} style={styles.financeRow}>
+                                    <Text style={styles.financeLabel}>{item.description}</Text>
+                                    <Text style={styles.financeAmount}>
+                                        {formatCurrency(item.amount, item.currency || property.currency)}
+                                    </Text>
+                                </View>
+                            )
+                        )}
                         <View style={[styles.financeRow, styles.totalRow]}>
                             <Text style={styles.totalLabel}>Total Expenses</Text>
-                            <Text style={styles.totalAmount}>{formatCurrency(totalExpenses)}</Text>
+                            <Text style={styles.totalAmount}>{formatCurrency(totalExpenses, property.currency)}</Text>
                         </View>
                     </View>
 
                     <View style={[styles.netReturnContainer, netReturn > 0 ? styles.positiveNet : styles.negativeNet]}>
                         <Text style={styles.netReturnLabel}>Net Return</Text>
-                        <Text style={[styles.netReturnValue, { color: netReturn > 0 ? '#10B981' : '#EF4444' }]}>
-                            {formatCurrency(netReturn)}
+                        <Text style={[styles.netReturnValue, { color: netReturn > 0 ? '#358B8B' : '#EF4444' }]}>
+                            {formatCurrency(netReturn, property.currency)}
                         </Text>
                     </View>
                 </View>
@@ -193,16 +220,17 @@ export default function PropertyDetailScreen() {
                         <View style={styles.infoItem}>
                             <Text style={styles.infoLabel}>Location</Text>
                             <Text style={styles.infoValue}>
-                                {property.city}, {property.state}, {property.country}
+                                {`${capitalize(property.address)}, ${capitalize(property.city)}, ${capitalize(property.location)}`}
                             </Text>
                         </View>
+
                         <View style={styles.infoItem}>
                             <Text style={styles.infoLabel}>Number of Units</Text>
-                            <Text style={styles.infoValue}>{property.units}</Text>
+                            <Text style={styles.infoValue}>{property.num_units}</Text>
                         </View>
                         <View style={styles.infoItem}>
                             <Text style={styles.infoLabel}>Year Bought</Text>
-                            <Text style={styles.infoValue}>{property.yearBought}</Text>
+                            <Text style={styles.infoValue}>{property.year_bought}</Text>
                         </View>
                         <View style={styles.infoItem}>
                             <Text style={styles.infoLabel}>Investment Type</Text>
@@ -215,24 +243,30 @@ export default function PropertyDetailScreen() {
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Location</Text>
                 <View style={styles.mapContainer}>
-                    <MapView
-                        style={styles.map}
-                        initialRegion={{
-                            latitude: property.coordinates.latitude,
-                            longitude: property.coordinates.longitude,
-                            latitudeDelta: 0.0922,
-                            longitudeDelta: 0.0421,
-                        }}
-                    >
-                        <Marker
-                            coordinate={{
-                                latitude: property.coordinates.latitude,
-                                longitude: property.coordinates.longitude,
+                    {property.coordinates && property.coordinates.length > 0 ? (
+                        <MapView
+                            style={styles.map}
+                            initialRegion={{
+                                latitude: property.coordinates[0].latitude,
+                                longitude: property.coordinates[0].longitude,
+                                latitudeDelta: 0.0922,
+                                longitudeDelta: 0.0421,
                             }}
-                            title={property.name}
-                            description={`${property.city}, ${property.state}`}
-                        />
-                    </MapView>
+                        >
+                            <Marker
+                                coordinate={{
+                                    latitude: property.coordinates[0].latitude,
+                                    longitude: property.coordinates[0].longitude,
+                                }}
+                                title={property.title || property.name}
+                                description={`${property.city || ''}, ${property.location || ''}`}
+                            />
+                        </MapView>
+                    ) : (
+                        <Text style={{ color: '#888', textAlign: 'center', marginTop: 10 }}>
+                            No location data available
+                        </Text>
+                    )}
                 </View>
             </View>
 
@@ -252,7 +286,7 @@ const styles = StyleSheet.create({
     },
     header: {
         backgroundColor: '#FFFFFF',
-        paddingTop: 50,
+        paddingTop: 20,
         paddingBottom: 20,
         paddingHorizontal: 16,
         borderBottomWidth: 1,
@@ -464,7 +498,7 @@ const styles = StyleSheet.create({
         paddingBottom: 32,
     },
     listButton: {
-        backgroundColor: '#14B8A6',
+        backgroundColor: '#358B8B',
         paddingVertical: 16,
         borderRadius: 12,
         alignItems: 'center',

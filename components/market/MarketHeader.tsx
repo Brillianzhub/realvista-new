@@ -12,7 +12,7 @@ const MarketHeader: React.FC<MarketHeaderProps> = ({ marketType, setMarketType }
     const router = useRouter();
 
     const handleOpenFilter = () => {
-        router.push("/(app)/(tabs)/market/marketdetails");
+        router.push("/(app)/(tabs)/market/search");
     };
 
     return (
