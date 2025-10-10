@@ -38,7 +38,6 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({ propertyId, onClose
 
     const [documents, setDocuments] = useState<DocumentFile[]>([]);
     const [loading, setLoading] = useState(false);
-    const [property, setProperties] = useState<Property[]>([]);
     const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(
         propertyId || null
     );

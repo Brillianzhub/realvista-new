@@ -4,10 +4,13 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
+  Linking,
+  Image
 } from 'react-native';
 import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
-import { User, Settings, CircleHelp as HelpCircle, LogOut, Briefcase, TrendingUp, Target, Calculator, Users, BookOpen, ChartBar as BarChart3, DollarSign } from 'lucide-react-native';
+import { UserIcon, UserPen, GlobeLock, NotepadText, Handshake, Save, Settings, CircleHelp as HelpCircle, LogOut, Briefcase, FileQuestion, Calculator } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { useGlobalContext } from '@/context/GlobalProvider';
 
 interface DrawerItem {
   id: string;
@@ -17,55 +20,69 @@ interface DrawerItem {
 }
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
+
+  const { user } = useGlobalContext();
+
+  const name = user?.name || user?.first_name || "Unnamed User";
+  const email = user?.email || user?.agent?.user || "No email";
+  const avatarUrl =
+    user?.profile?.avatar ||
+    user?.agent?.avatar ||
+    "https://via.placeholder.com/150";
+  const agencyName = user?.agent?.agency_name || null;
+
   const drawerItems: DrawerItem[] = [
     {
       id: '1',
-      title: 'Portfolio',
-      icon: Briefcase,
-      onPress: () => console.log('Portfolio pressed'),
+      title: 'Profile',
+      icon: UserPen,
+      onPress: () => router.push('/(app)/(profile)'),
     },
     {
       id: '2',
-      title: 'RealInvest',
-      icon: DollarSign,
-      onPress: () => console.log('RealInvest pressed'),
-    },
-    {
-      id: '3',
-      title: 'MutualInvest',
-      icon: TrendingUp,
+      title: 'Saved Properties',
+      icon: Save,
       onPress: () => console.log('MutualInvest pressed'),
     },
     {
+      id: '3',
+      title: 'Property Management',
+      icon: NotepadText,
+      onPress: () => router.push('/(app)/(services)'),
+    },
+    {
       id: '4',
-      title: 'Targets',
-      icon: Target,
-      onPress: () => console.log('Targets pressed'),
+      title: 'Property Estimator',
+      icon: Calculator,
+      onPress: () => router.push('/(app)/(estimator)'),
     },
     {
       id: '5',
-      title: 'Calculator',
-      icon: Calculator,
-      onPress: () => console.log('Calculator pressed'),
+      title: 'Manage Portfolio',
+      icon: Briefcase,
+      onPress: () => router.push('/(app)/(manage)'),
     },
     {
       id: '6',
-      title: 'Manager',
-      icon: Users,
-      onPress: () => console.log('Manager pressed'),
+      title: 'FAQ',
+      icon: FileQuestion,
+      onPress: () =>
+        Linking.openURL('https://www.realvistaproperties.com/faq')
     },
     {
       id: '7',
-      title: 'Learn',
-      icon: BookOpen,
-      onPress: () => console.log('Learn pressed'),
+      title: 'Privacy Policy',
+      icon: GlobeLock,
+      onPress: () =>
+        Linking.openURL('https://www.realvistaproperties.com/privacy-policy')
     },
     {
       id: '8',
-      title: 'Trends',
-      icon: BarChart3,
-      onPress: () => console.log('Trends pressed'),
-    },
+      title: 'Terms of Service',
+      icon: Handshake,
+      onPress: () =>
+        Linking.openURL('https://www.realvistaproperties.com/terms')
+    }
   ];
 
   const bottomItems: DrawerItem[] = [
@@ -73,7 +90,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       id: '9',
       title: 'Settings',
       icon: Settings,
-      onPress: () => console.log('Settings pressed'),
+      onPress: () => router.push('/(app)/(settings)'),
     },
     {
       id: '10',
@@ -104,22 +121,28 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <DrawerContentScrollView {...props} contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <View style={styles.profileContainer}>
             <View style={styles.avatar}>
-              <User size={32} color="#ffffff" />
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
+              ) : (
+                <UserIcon size={32} color="#ffffff" />
+              )}
             </View>
+
             <View style={styles.profileInfo}>
-              <Text style={styles.userName}>John Doe</Text>
-              <Text style={styles.userEmail}>john.doe@example.com</Text>
+              <Text style={styles.userName}>{name}</Text>
+              <Text style={styles.userEmail}>{email}</Text>
+              {agencyName && <Text style={styles.agency}>{agencyName}</Text>}
             </View>
           </View>
         </View>
 
         <View style={styles.menuSection}>
-          <Text style={styles.sectionTitle}>Investment Tools</Text>
+          {/* <Text style={styles.sectionTitle}>Investment Tools</Text> */}
           {drawerItems.map((item) => renderDrawerItem(item))}
         </View>
 
@@ -129,7 +152,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
           {bottomItems.map((item) => renderDrawerItem(item, true))}
         </View>
       </DrawerContentScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -156,10 +179,16 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#2563eb',
+    overflow: "hidden",
+    backgroundColor: '#358B8B',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
+  },
+  avatarImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
   },
   profileInfo: {
     flex: 1,
@@ -174,8 +203,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6b7280',
   },
+  agency: {
+    fontSize: 13,
+    color: "#cfd8dc",
+    marginTop: 2,
+  },
   menuSection: {
-    paddingHorizontal: 20,
     paddingVertical: 16,
     flex: 1,
   },

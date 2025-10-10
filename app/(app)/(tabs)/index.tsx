@@ -25,9 +25,9 @@ import { useGlobalContext } from '@/context/GlobalProvider';
 const ROUTES = {
   PORTFOLIO: '/(tabs)/portfolio' as Href,
   INVESTMENT: '/(tabs)/investment' as Href,
-  TARGETS: '/(tabs)/targetList' as Href,
+  TARGETS: '/(app)/(savings)' as Href,
   TRENDS: '/(app)/(trends)' as Href,
-  ANALYSIS: '/(app)/(analyser)' as Href,
+  ANALYSIS: '/(app)/(estimator)' as Href,
   LEARN: '/(app)/(learn)' as Href,
   MUTUAL: '/(enterprise)' as Href,
   MANAGER: '/(manage)' as Href,

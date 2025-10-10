@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     propertyName: {
-        fontSize: 28,
+        fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
     },
@@ -309,6 +309,7 @@ const styles = StyleSheet.create({
         gap: 12,
     },
     currentValue: {
+        fontFamily: "RobotoSerif-Medium",
         fontSize: 20,
         fontWeight: '600',
         color: '#111827',
@@ -353,8 +354,8 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     perfValue: {
-        fontSize: 20,
-        fontWeight: 'bold',
+        fontFamily: "RobotoSerif-Medium",
+        fontSize: 18,
         color: '#111827',
     },
     insightText: {

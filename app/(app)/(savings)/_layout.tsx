@@ -1,37 +1,41 @@
 // app/search/_layout.tsx
+import React, { useEffect, useCallback } from "react";
 import { Stack } from "expo-router";
 import { TouchableOpacity, StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTheme } from "@/context/ThemeContext";
 
-const TrendLayout = () => {
+const CalculatorLayout = () => {
 
     const { colors } = useTheme();
+
+    const handleBackPress = useCallback(() => {
+        router.replace("/(app)/(tabs)");
+        return true;
+    }, [router]);
 
     return (
         <Stack
             screenOptions={{
                 headerShown: true,
                 headerStyle: {
-                    backgroundColor: colors.background
+                    backgroundColor: colors.background,
+                },
+                headerTitleStyle: {
+                    fontFamily: "RobotoSerif-SemiBold",
                 },
                 headerTintColor: colors.tint,
-                // headerTitleStyle: {
-                //     fontFamily: "Garamond_Medium",
-                //     fontSize: 22,
-                //     color: colors.text.primary,
-                // },
-
             }}
         >
+
             <Stack.Screen
                 name="index"
                 options={{
                     presentation: "card",
                     animation: "slide_from_right",
                     headerTitleAlign: "center",
-                    title: "Trends & Market Insights",
+                    title: "Savings Targets",
                     headerLeft: () => (
                         <TouchableOpacity onPress={() => router.replace("/(app)/(tabs)")}>
                             <Ionicons name="arrow-back" size={24} color="#358B8B" />
@@ -39,6 +43,7 @@ const TrendLayout = () => {
                     ),
                 }}
             />
+
         </Stack>
     );
 };
@@ -49,4 +54,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default TrendLayout;
+export default CalculatorLayout;

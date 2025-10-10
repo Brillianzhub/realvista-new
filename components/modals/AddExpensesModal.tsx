@@ -4,12 +4,10 @@ import {
     StyleSheet,
     Modal,
     TouchableOpacity,
-    TextInput,
-    ScrollView,
     useColorScheme,
 } from 'react-native';
-import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import PropertyExpenseForm from '@/components/forms/PropertyExpenseForm';
 
 type AddExpensesModalProps = {
     visible: boolean;
@@ -23,28 +21,7 @@ export default function AddExpensesModal({
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
-    const [property, setProperty] = useState('');
-    const [expenseType, setExpenseType] = useState('');
-    const [amount, setAmount] = useState('');
-    const [date, setDate] = useState('');
-    const [vendor, setVendor] = useState('');
-    const [description, setDescription] = useState('');
-
     const handleSubmit = () => {
-        console.log('Expense added:', {
-            property,
-            expenseType,
-            amount,
-            date,
-            vendor,
-            description,
-        });
-        setProperty('');
-        setExpenseType('');
-        setAmount('');
-        setDate('');
-        setVendor('');
-        setDescription('');
         onClose();
     };
 
@@ -69,96 +46,7 @@ export default function AddExpensesModal({
                             />
                         </TouchableOpacity>
                     </View>
-
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, isDark && styles.labelDark]}>
-                                Property
-                            </Text>
-                            <TextInput
-                                style={[styles.input, isDark && styles.inputDark]}
-                                placeholder="Select or enter property name"
-                                placeholderTextColor="#9CA3AF"
-                                value={property}
-                                onChangeText={setProperty}
-                            />
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, isDark && styles.labelDark]}>
-                                Expense Type
-                            </Text>
-                            <TextInput
-                                style={[styles.input, isDark && styles.inputDark]}
-                                placeholder="e.g., Maintenance, Utilities, Repairs"
-                                placeholderTextColor="#9CA3AF"
-                                value={expenseType}
-                                onChangeText={setExpenseType}
-                            />
-                        </View>
-
-                        <View style={styles.formRow}>
-                            <View style={[styles.formGroup, styles.formGroupHalf]}>
-                                <Text style={[styles.label, isDark && styles.labelDark]}>
-                                    Amount
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, isDark && styles.inputDark]}
-                                    placeholder="$350"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={amount}
-                                    onChangeText={setAmount}
-                                    keyboardType="numeric"
-                                />
-                            </View>
-
-                            <View style={[styles.formGroup, styles.formGroupHalf]}>
-                                <Text style={[styles.label, isDark && styles.labelDark]}>
-                                    Date
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, isDark && styles.inputDark]}
-                                    placeholder="MM/DD/YYYY"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={date}
-                                    onChangeText={setDate}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, isDark && styles.labelDark]}>
-                                Vendor/Payee
-                            </Text>
-                            <TextInput
-                                style={[styles.input, isDark && styles.inputDark]}
-                                placeholder="e.g., ABC Plumbing, Electric Company"
-                                placeholderTextColor="#9CA3AF"
-                                value={vendor}
-                                onChangeText={setVendor}
-                            />
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, isDark && styles.labelDark]}>
-                                Description
-                            </Text>
-                            <TextInput
-                                style={[styles.input, styles.textArea, isDark && styles.inputDark]}
-                                placeholder="Additional notes about this expense"
-                                placeholderTextColor="#9CA3AF"
-                                value={description}
-                                onChangeText={setDescription}
-                                multiline
-                                numberOfLines={4}
-                            />
-                        </View>
-
-                        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                            <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                            <Text style={styles.submitButtonText}>Add Expense</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
+                    <PropertyExpenseForm onSubmit={handleSubmit} />
                 </View>
             </View>
         </Modal>
@@ -194,59 +82,5 @@ const styles = StyleSheet.create({
     },
     modalTitleDark: {
         color: '#F9FAFB',
-    },
-    formGroup: {
-        marginBottom: 20,
-    },
-    formRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 12,
-    },
-    formGroupHalf: {
-        flex: 1,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#374151',
-        marginBottom: 8,
-    },
-    labelDark: {
-        color: '#E5E7EB',
-    },
-    input: {
-        backgroundColor: '#F9FAFB',
-        borderWidth: 1,
-        borderColor: '#E5E7EB',
-        borderRadius: 12,
-        padding: 16,
-        fontSize: 16,
-        color: '#111827',
-    },
-    inputDark: {
-        backgroundColor: '#374151',
-        borderColor: '#4B5563',
-        color: '#F9FAFB',
-    },
-    textArea: {
-        minHeight: 100,
-        textAlignVertical: 'top',
-    },
-    submitButton: {
-        backgroundColor: '#F59E0B',
-        borderRadius: 12,
-        padding: 16,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-        gap: 8,
-        marginTop: 8,
-        marginBottom: 20,
-    },
-    submitButtonText: {
-        color: '#FFFFFF',
-        fontSize: 16,
-        fontWeight: '600',
     },
 });

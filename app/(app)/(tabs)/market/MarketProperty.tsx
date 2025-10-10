@@ -1,3 +1,5 @@
+import React from 'react';
+import { View, Text } from 'react-native';
 
 export interface MarketProperty {
     id: string;
@@ -26,4 +28,13 @@ export interface MarketProperty {
         labels: string[];
         datasets: Array<{ data: number[] }>;
     };
+}
+
+// 👇 default export required by Expo Router
+export default function MarketPropertyPage() {
+    return (
+        <View>
+            <Text>Market Property Page</Text>
+        </View>
+    );
 }

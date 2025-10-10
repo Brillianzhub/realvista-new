@@ -3,6 +3,7 @@ import { useCallback, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, RobotoSerif_400Regular, RobotoSerif_500Medium, RobotoSerif_700Bold } from '@expo-google-fonts/roboto-serif';
+import { Poppins_400Regular, Poppins_500Medium, Poppins_700Bold } from '@expo-google-fonts/poppins';
 import { StatusBar, View, ActivityIndicator } from 'react-native';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { ThemeProvider } from '@/context/ThemeContext';
@@ -38,6 +39,9 @@ export default function RootLayout() {
     "RobotoSerif-Regular": RobotoSerif_400Regular,
     "RobotoSerif-Medium": RobotoSerif_500Medium,
     "RobotoSerif-Bold": RobotoSerif_700Bold,
+    "Poppins-Regular": Poppins_400Regular,
+    "Poppins-Medium": Poppins_500Medium,
+    "Poppins-Bold": Poppins_700Bold,
   });
 
   const onLayoutRootView = useCallback(async () => {

@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useTheme } from "@/context/ThemeContext";
 
-const TrendLayout = () => {
+const EstimatorLayout = () => {
 
     const { colors } = useTheme();
 
@@ -31,7 +31,7 @@ const TrendLayout = () => {
                     presentation: "card",
                     animation: "slide_from_right",
                     headerTitleAlign: "center",
-                    title: "Trends & Market Insights",
+                    title: "Estimate Property Value",
                     headerLeft: () => (
                         <TouchableOpacity onPress={() => router.replace("/(app)/(tabs)")}>
                             <Ionicons name="arrow-back" size={24} color="#358B8B" />
@@ -49,4 +49,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default TrendLayout;
+export default EstimatorLayout;

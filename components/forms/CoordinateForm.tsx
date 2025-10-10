@@ -12,15 +12,13 @@ import {
     useColorScheme,
     Platform,
     FlatList,
+    KeyboardAvoidingView,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// import { createClient } from '@supabase/supabase-js';
+import useUserProperties from '@/hooks/portfolio/useUserProperty';
 
-// const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-// const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
-// const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface Property {
     id: string;
@@ -43,7 +41,8 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
-    const [properties, setProperties] = useState<Property[]>([]);
+    const { properties, loading: propertiesLoading } = useUserProperties();
+
     const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
     const [showPropertyPicker, setShowPropertyPicker] = useState(false);
     const [coordinate, setCoordinate] = useState<Coordinate | null>(null);
@@ -57,23 +56,7 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isUTMInput, setIsUTMInput] = useState(true);
 
-    // useEffect(() => {
-    //     fetchProperties();
-    // }, []);
 
-    // const fetchProperties = async () => {
-    //     try {
-    //         const { data, error } = await supabase
-    //             .from('properties')
-    //             .select('id, title')
-    //             .order('created_at', { ascending: false });
-
-    //         if (error) throw error;
-    //         setProperties(data || []);
-    //     } catch (error) {
-    //         console.error('Error fetching properties:', error);
-    //     }
-    // };
 
     const handlePickCoordinates = async () => {
         setIsFetchingLocation(true);
@@ -244,260 +227,269 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
     };
 
     const getSelectedPropertyTitle = () => {
-        const property = properties.find((p) => p.id === selectedPropertyId);
+        const property = properties.find(
+            (p) => p.id === Number(selectedPropertyId)
+        );
         return property ? property.title : 'Select a property';
     };
 
     return (
-        <ScrollView
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             style={styles.container}
-            contentContainerStyle={styles.scrollContainer}
-            showsVerticalScrollIndicator={false}
         >
-            <TouchableOpacity style={styles.questionIconContainer} onPress={toggleModal}>
-                <Ionicons
-                    name="help-circle-outline"
-                    size={24}
-                    color="#358B8B"
-                    style={styles.questionIcon}
-                />
-            </TouchableOpacity>
-
-            <View style={styles.formGroup}>
-                <Text style={[styles.label, isDark && styles.labelDark]}>
-                    Select Property <Text style={styles.required}>*</Text>
-                </Text>
-                <TouchableOpacity
-                    style={[styles.pickerButton, isDark && styles.pickerButtonDark]}
-                    onPress={() => setShowPropertyPicker(!showPropertyPicker)}
-                >
-                    <Text
-                        style={[
-                            styles.pickerButtonText,
-                            isDark && styles.pickerButtonTextDark,
-                            !selectedPropertyId && styles.placeholderText,
-                        ]}
-                    >
-                        {getSelectedPropertyTitle()}
-                    </Text>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContainer}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                <TouchableOpacity style={styles.questionIconContainer} onPress={toggleModal}>
                     <Ionicons
-                        name="chevron-down"
-                        size={20}
-                        color={isDark ? '#9CA3AF' : '#6B7280'}
+                        name="help-circle-outline"
+                        size={24}
+                        color="#358B8B"
+                        style={styles.questionIcon}
                     />
                 </TouchableOpacity>
-                {showPropertyPicker && (
-                    <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
-                        <FlatList
-                            data={properties}
-                            keyExtractor={(item) => item.id}
-                            style={styles.pickerScroll}
-                            renderItem={({ item }) => (
-                                <TouchableOpacity
-                                    style={styles.pickerOption}
-                                    onPress={() => {
-                                        setSelectedPropertyId(item.id);
-                                        setShowPropertyPicker(false);
-                                    }}
-                                >
-                                    <Text
-                                        style={[styles.pickerOptionText, isDark && styles.pickerOptionTextDark]}
+
+                <View style={styles.formGroup}>
+                    <Text style={[styles.label, isDark && styles.labelDark]}>
+                        Select Property <Text style={styles.required}>*</Text>
+                    </Text>
+                    <TouchableOpacity
+                        style={[styles.pickerButton, isDark && styles.pickerButtonDark]}
+                        onPress={() => setShowPropertyPicker(!showPropertyPicker)}
+                    >
+                        <Text
+                            style={[
+                                styles.pickerButtonText,
+                                isDark && styles.pickerButtonTextDark,
+                                !selectedPropertyId && styles.placeholderText,
+                            ]}
+                        >
+                            {getSelectedPropertyTitle()}
+                        </Text>
+                        <Ionicons
+                            name="chevron-down"
+                            size={20}
+                            color={isDark ? '#9CA3AF' : '#6B7280'}
+                        />
+                    </TouchableOpacity>
+                    {showPropertyPicker && (
+                        <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
+                            <View style={styles.pickerScroll}>
+                                {properties.map((item) => (
+                                    <TouchableOpacity
+                                        key={item.id.toString()}
+                                        style={styles.pickerOption}
+                                        onPress={() => {
+                                            setSelectedPropertyId(item.id.toString());
+                                            setShowPropertyPicker(false);
+                                        }}
                                     >
-                                        {item.title}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    </View>
-                )}
-            </View>
-
-            <TouchableOpacity style={styles.toggleButton} onPress={toggleInputType}>
-                <Text style={styles.toggleButtonText}>
-                    {isUTMInput
-                        ? 'Switch to WGS84 (Latitude/Longitude)'
-                        : 'Switch to UTM Coordinates'}
-                </Text>
-            </TouchableOpacity>
-
-            {isUTMInput ? (
-                <>
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, isDark && styles.labelDark]}>
-                            UTM X (Easting mE) <Text style={styles.required}>*</Text>
-                        </Text>
-                        <TextInput
-                            style={[styles.input, isDark && styles.inputDark]}
-                            placeholder="Enter UTM X (Easting mE)"
-                            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
-                            keyboardType="numeric"
-                            value={utmX}
-                            onChangeText={setUtmX}
-                        />
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, isDark && styles.labelDark]}>
-                            UTM Y (Northing mN) <Text style={styles.required}>*</Text>
-                        </Text>
-                        <TextInput
-                            style={[styles.input, isDark && styles.inputDark]}
-                            placeholder="Enter UTM Y (Northing mN)"
-                            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
-                            keyboardType="numeric"
-                            value={utmY}
-                            onChangeText={setUtmY}
-                        />
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, isDark && styles.labelDark]}>
-                            UTM Zone <Text style={styles.required}>*</Text>
-                        </Text>
-                        <TextInput
-                            style={[styles.input, isDark && styles.inputDark]}
-                            placeholder="Enter UTM Zone (Default: 32)"
-                            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
-                            keyboardType="numeric"
-                            value={utmZone}
-                            onChangeText={setUtmZone}
-                        />
-                    </View>
-                </>
-            ) : (
-                <>
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, isDark && styles.labelDark]}>
-                            Latitude <Text style={styles.required}>*</Text>
-                        </Text>
-                        <TextInput
-                            style={[styles.input, isDark && styles.inputDark]}
-                            placeholder="Enter Latitude e.g. 5.496648"
-                            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
-                            keyboardType="numeric"
-                            value={latitude}
-                            onChangeText={setLatitude}
-                        />
-                    </View>
-
-                    <View style={styles.formGroup}>
-                        <Text style={[styles.label, isDark && styles.labelDark]}>
-                            Longitude <Text style={styles.required}>*</Text>
-                        </Text>
-                        <TextInput
-                            style={[styles.input, isDark && styles.inputDark]}
-                            placeholder="Enter Longitude e.g. 7.525206"
-                            placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
-                            keyboardType="numeric"
-                            value={longitude}
-                            onChangeText={setLongitude}
-                        />
-                    </View>
-                </>
-            )}
-
-            <TouchableOpacity
-                style={[styles.button, styles.addButton]}
-                onPress={addCoordinate}
-            >
-                <Ionicons name="add-circle-outline" size={20} color="#111827" />
-                <Text style={styles.addButtonText}>Add Coordinate</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-                style={[styles.button, styles.secondaryButton]}
-                onPress={handlePickCoordinates}
-                disabled={isFetchingLocation}
-            >
-                {isFetchingLocation ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                    <>
-                        <Ionicons name="location" size={20} color="#FFFFFF" />
-                        <Text style={styles.buttonText}>Pick Coordinates (WGS84)</Text>
-                    </>
-                )}
-            </TouchableOpacity>
-
-            {coordinate && (
-                <View style={[styles.coordinateCard, isDark && styles.coordinateCardDark]}>
-                    <View style={styles.coordinateHeader}>
-                        <Text style={[styles.coordinateTitle, isDark && styles.coordinateTitleDark]}>
-                            Current Coordinate
-                        </Text>
-                        <TouchableOpacity onPress={clearCoordinate}>
-                            <Ionicons name="close-circle" size={24} color="#EF4444" />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={styles.coordinateDetails}>
-                        {coordinate.latitude !== undefined && coordinate.longitude !== undefined ? (
-                            <>
-                                <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
-                                    Latitude: {coordinate.latitude.toFixed(6)}
-                                </Text>
-                                <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
-                                    Longitude: {coordinate.longitude.toFixed(6)}
-                                </Text>
-                            </>
-                        ) : (
-                            <>
-                                <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
-                                    UTM X: {coordinate.utm_x}
-                                </Text>
-                                <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
-                                    UTM Y: {coordinate.utm_y}
-                                </Text>
-                                <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
-                                    Zone: {coordinate.utm_zone}
-                                </Text>
-                            </>
-                        )}
-                    </View>
-                </View>
-            )}
-
-            <TouchableOpacity
-                style={[
-                    styles.submitButton,
-                    (isSubmitting || !coordinate || !selectedPropertyId) &&
-                    styles.submitButtonDisabled,
-                ]}
-                onPress={handleSubmit}
-                disabled={isSubmitting || !coordinate || !selectedPropertyId}
-            >
-                {isSubmitting ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                    <>
-                        <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                        <Text style={styles.submitButtonText}>Submit Coordinate</Text>
-                    </>
-                )}
-            </TouchableOpacity>
-
-            <Modal
-                visible={isModalVisible}
-                animationType="slide"
-                transparent={true}
-                onRequestClose={toggleModal}
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
-                        <View style={styles.modalHeader}>
-                            <Ionicons name="information-circle" size={32} color="#358B8B" />
+                                        <Text
+                                            style={[
+                                                styles.pickerOptionText,
+                                                isDark && styles.pickerOptionTextDark
+                                            ]}
+                                        >
+                                            {item.title}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
-                        <Text style={[styles.modalText, isDark && styles.modalTextDark]}>
-                            To locate the property on Google Maps, please provide one coordinate using
-                            either the UTM or WGS84 method. Please ensure the coordinate is accurate to
-                            minimize errors in property location.
-                        </Text>
-                        <TouchableOpacity style={styles.closeModalButton} onPress={toggleModal}>
-                            <Text style={styles.closeModalButtonText}>Close</Text>
-                        </TouchableOpacity>
-                    </View>
+                    )}
                 </View>
-            </Modal>
-        </ScrollView>
+
+                <TouchableOpacity style={styles.toggleButton} onPress={toggleInputType}>
+                    <Text style={styles.toggleButtonText}>
+                        {isUTMInput
+                            ? 'Switch to WGS84 (Latitude/Longitude)'
+                            : 'Switch to UTM Coordinates'}
+                    </Text>
+                </TouchableOpacity>
+
+                {isUTMInput ? (
+                    <>
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, isDark && styles.labelDark]}>
+                                UTM X (Easting mE) <Text style={styles.required}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={[styles.input, isDark && styles.inputDark]}
+                                placeholder="Enter UTM X (Easting mE)"
+                                placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                                keyboardType="numbers-and-punctuation"
+                                value={utmX}
+                                onChangeText={setUtmX}
+                            />
+                        </View>
+
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, isDark && styles.labelDark]}>
+                                UTM Y (Northing mN) <Text style={styles.required}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={[styles.input, isDark && styles.inputDark]}
+                                placeholder="Enter UTM Y (Northing mN)"
+                                placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                                keyboardType="numbers-and-punctuation"
+                                value={utmY}
+                                onChangeText={setUtmY}
+                            />
+                        </View>
+
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, isDark && styles.labelDark]}>
+                                UTM Zone <Text style={styles.required}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={[styles.input, isDark && styles.inputDark]}
+                                placeholder="Enter UTM Zone (Default: 32)"
+                                placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                                keyboardType="number-pad"
+                                value={utmZone}
+                                onChangeText={setUtmZone}
+                            />
+                        </View>
+                    </>
+                ) : (
+                    <>
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, isDark && styles.labelDark]}>
+                                Latitude <Text style={styles.required}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={[styles.input, isDark && styles.inputDark]}
+                                placeholder="Enter Latitude e.g. 5.496648"
+                                placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                                keyboardType="numbers-and-punctuation"
+                                value={latitude}
+                                onChangeText={setLatitude}
+                            />
+                        </View>
+
+                        <View style={styles.formGroup}>
+                            <Text style={[styles.label, isDark && styles.labelDark]}>
+                                Longitude <Text style={styles.required}>*</Text>
+                            </Text>
+                            <TextInput
+                                style={[styles.input, isDark && styles.inputDark]}
+                                placeholder="Enter Longitude e.g. 7.525206"
+                                placeholderTextColor={isDark ? '#9CA3AF' : '#6B7280'}
+                                keyboardType="numbers-and-punctuation"
+                                value={longitude}
+                                onChangeText={setLongitude}
+                            />
+                        </View>
+                    </>
+                )}
+
+                <TouchableOpacity
+                    style={[styles.button, styles.addButton]}
+                    onPress={addCoordinate}
+                >
+                    <Ionicons name="add-circle-outline" size={20} color="#111827" />
+                    <Text style={styles.addButtonText}>Add Coordinate</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={[styles.button, styles.secondaryButton]}
+                    onPress={handlePickCoordinates}
+                    disabled={isFetchingLocation}
+                >
+                    {isFetchingLocation ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                        <>
+                            <Ionicons name="location" size={20} color="#FFFFFF" />
+                            <Text style={styles.buttonText}>Pick Coordinates (WGS84)</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+
+                {coordinate && (
+                    <View style={[styles.coordinateCard, isDark && styles.coordinateCardDark]}>
+                        <View style={styles.coordinateHeader}>
+                            <Text style={[styles.coordinateTitle, isDark && styles.coordinateTitleDark]}>
+                                Current Coordinate
+                            </Text>
+                            <TouchableOpacity onPress={clearCoordinate}>
+                                <Ionicons name="close-circle" size={24} color="#EF4444" />
+                            </TouchableOpacity>
+                        </View>
+                        <View style={styles.coordinateDetails}>
+                            {coordinate.latitude !== undefined && coordinate.longitude !== undefined ? (
+                                <>
+                                    <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
+                                        Latitude: {coordinate.latitude.toFixed(6)}
+                                    </Text>
+                                    <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
+                                        Longitude: {coordinate.longitude.toFixed(6)}
+                                    </Text>
+                                </>
+                            ) : (
+                                <>
+                                    <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
+                                        UTM X: {coordinate.utm_x}
+                                    </Text>
+                                    <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
+                                        UTM Y: {coordinate.utm_y}
+                                    </Text>
+                                    <Text style={[styles.coordinateText, isDark && styles.coordinateTextDark]}>
+                                        Zone: {coordinate.utm_zone}
+                                    </Text>
+                                </>
+                            )}
+                        </View>
+                    </View>
+                )}
+
+                <TouchableOpacity
+                    style={[
+                        styles.submitButton,
+                        (isSubmitting || !coordinate || !selectedPropertyId) &&
+                        styles.submitButtonDisabled,
+                    ]}
+                    onPress={handleSubmit}
+                    disabled={isSubmitting || !coordinate || !selectedPropertyId}
+                >
+                    {isSubmitting ? (
+                        <ActivityIndicator color="#FFFFFF" />
+                    ) : (
+                        <>
+                            <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                            <Text style={styles.submitButtonText}>Submit Coordinate</Text>
+                        </>
+                    )}
+                </TouchableOpacity>
+
+                <Modal
+                    visible={isModalVisible}
+                    animationType="slide"
+                    transparent={true}
+                    onRequestClose={toggleModal}
+                >
+                    <View style={styles.modalOverlay}>
+                        <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
+                            <View style={styles.modalHeader}>
+                                <Ionicons name="information-circle" size={32} color="#358B8B" />
+                            </View>
+                            <Text style={[styles.modalText, isDark && styles.modalTextDark]}>
+                                To locate the property on Google Maps, please provide one coordinate using
+                                either the UTM or WGS84 method. Please ensure the coordinate is accurate to
+                                minimize errors in property location.
+                            </Text>
+                            <TouchableOpacity style={styles.closeModalButton} onPress={toggleModal}>
+                                <Text style={styles.closeModalButtonText}>Close</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
+            </ScrollView>
+        </KeyboardAvoidingView>
     );
 };
 
@@ -505,10 +497,13 @@ export default CoordinateForm;
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
+        // flex: 1,
+    },
+    scrollView: {
+        // flex: 1,
     },
     scrollContainer: {
-        paddingBottom: 20,
+        paddingBottom: 60,
     },
     questionIconContainer: {
         alignSelf: 'flex-end',
