@@ -16,7 +16,8 @@ import {
   BookOpen,
   BarChart3,
   Settings,
-  DollarSign,
+  NotebookPen,
+  CircleDollarSign
 } from 'lucide-react-native';
 import { useRouter, Href } from 'expo-router';
 import FeaturedCarousel from '@/components/home/FeaturedCarousel';
@@ -24,14 +25,14 @@ import { useGlobalContext } from '@/context/GlobalProvider';
 
 const ROUTES = {
   PORTFOLIO: '/(tabs)/portfolio' as Href,
-  INVESTMENT: '/(tabs)/investment' as Href,
+  MANAGEMENT: '/(app)/(services)' as Href,
   TARGETS: '/(app)/(savings)' as Href,
   TRENDS: '/(app)/(trends)' as Href,
   ANALYSIS: '/(app)/(estimator)' as Href,
   LEARN: '/(app)/(learn)' as Href,
   MUTUAL: '/(enterprise)' as Href,
   MANAGER: '/(manage)' as Href,
-  SETTINGS: '/(services)' as Href,
+  LISTINGS: '/(listings)' as Href,
 };
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -39,24 +40,25 @@ const { width: screenWidth } = Dimensions.get('window');
 interface NavigationItem {
   id: string;
   title: string;
+  subtitle?: string;
   icon: React.ComponentType<any>;
   color: string;
-  route: Href; // add route here
+  route: Href;
 }
 
 const navigationItems: NavigationItem[] = [
-  { id: '1', title: 'Portfolio', icon: Briefcase, color: 'rgba(53, 139, 139, 1)', route: ROUTES.PORTFOLIO },
-  { id: '2', title: 'RealInvest', icon: DollarSign, color: '#10b981', route: ROUTES.INVESTMENT },
-  { id: '3', title: 'MutualInvest', icon: TrendingUp, color: '#f59e0b', route: ROUTES.MUTUAL },
+  { id: '1', title: 'Portfolio', subtitle: 'Track your real estate assets', icon: Briefcase, color: 'rgba(53, 139, 139, 1)', route: ROUTES.PORTFOLIO },
+  { id: '2', title: 'RealManager', subtitle: 'We secure your investment', icon: NotebookPen, color: '#10b981', route: ROUTES.MANAGEMENT },
+  { id: '3', title: 'MutualInvest', subtitle: 'Invest with others & earn returns', icon: TrendingUp, color: '#f59e0b', route: ROUTES.MUTUAL },
 ];
 
 const secondaryNavigationItems: NavigationItem[] = [
-  { id: '4', title: 'Targets', icon: Target, color: '#ef4444', route: ROUTES.TARGETS },
-  { id: '5', title: 'Calculator', icon: Calculator, color: 'rgba(53, 139, 139, 1)', route: ROUTES.ANALYSIS },
-  { id: '6', title: 'Manager', icon: Users, color: '#ec4899', route: ROUTES.MANAGER },
+  { id: '4', title: 'Set Financial Targets', icon: Target, color: '#ef4444', route: ROUTES.TARGETS },
+  { id: '5', title: 'Evaluate Your Property', icon: Calculator, color: 'rgba(53, 139, 139, 1)', route: ROUTES.ANALYSIS },
+  { id: '6', title: 'Manage Your Portfolio', icon: Users, color: '#ec4899', route: ROUTES.MANAGER },
   { id: '7', title: 'Learn', icon: BookOpen, color: '#06b6d4', route: ROUTES.LEARN },
-  { id: '8', title: 'Trends', icon: BarChart3, color: '#84cc16', route: ROUTES.TRENDS },
-  { id: '9', title: 'Settings', icon: Settings, color: '#6b7280', route: ROUTES.SETTINGS },
+  { id: '8', title: 'Market Trends & Info', icon: BarChart3, color: '#84cc16', route: ROUTES.TRENDS },
+  { id: '9', title: 'Manage Your Listings', icon: CircleDollarSign, color: 'rgba(53, 139, 139, 1)', route: ROUTES.LISTINGS },
 ];
 
 export default function HomeScreen() {
@@ -84,7 +86,7 @@ export default function HomeScreen() {
               <item.icon size={32} color="#ffffff" />
             </View>
             <Text style={styles.primaryNavText}>{item.title}</Text>
-            <Text style={styles.primaryNavSubtext}>Manage your investments</Text>
+            <Text style={styles.primaryNavSubtext}>{item.subtitle}</Text>
           </TouchableOpacity>
         ))}
       </View>

@@ -56,6 +56,7 @@ export default {
     plugins: [
       "expo-router",
       "expo-font",
+      "expo-sqlite",
       "expo-local-authentication",
       "react-native-video",
       "expo-image-picker",

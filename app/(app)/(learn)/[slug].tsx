@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
     View,
     Text,
@@ -16,79 +16,97 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { learnContentData, type LearnContent } from '@/data/learnContent';
+import { useLearnVideos, LearnVideo } from '@/hooks/learn/useLearnVideos';
+import { addWatchedVideo, removeWatchedVideo, getAllWatchedVideos } from '@/src/database/watchedVideosDB';
+
+
+
 
 export default function LearnDetail() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const router = useRouter();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const { slug } = useLocalSearchParams<{ slug: string }>();
     const { width } = Dimensions.get('window');
 
-    const [content, setContent] = useState<LearnContent | null>(null);
-    const [relatedVideos, setRelatedVideos] = useState<LearnContent[]>([]);
+    const [content, setContent] = useState<LearnVideo | null>(null);
+    const [relatedVideos, setRelatedVideos] = useState<LearnVideo[]>([]);
     const [isWatched, setIsWatched] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const { videos } = useLearnVideos()
+
+    const [watchedIds, setWatchedIds] = useState<string[]>([]);
+    // const watchedVideos = videos.filter((v) => watchedIds.includes(v.id));
+
+    const watchedVideos = useMemo(() => {
+        return videos.filter((v) => watchedIds.includes(v.id));
+    }, [videos, watchedIds]);
+
+    console.log('Watched Videos:', watchedVideos);
+
     useEffect(() => {
-        if (id) {
+        if (slug) {
             loadContentDetail();
         }
-    }, [id]);
+    }, [slug]);
 
-    const loadContentDetail = async () => {
-        try {
-            setError(null);
-
-            const foundContent = learnContentData.find((item) => item.id === id);
-
-            if (!foundContent) {
-                setError('Content not found');
-                setLoading(false);
-                return;
-            }
-
-            setContent(foundContent);
-
-            const watchedData = await AsyncStorage.getItem('watchedVideos');
-            if (watchedData) {
-                const watched = JSON.parse(watchedData);
-                setIsWatched(watched.includes(id));
-            }
-
-            const related = learnContentData
-                .filter((item) => item.category === foundContent.category && item.id !== id)
+    useEffect(() => {
+        if (videos.length > 0 && content) {
+            const related = videos
+                .filter(
+                    (item) => item.category === content.category && item.slug !== content.slug
+                )
                 .slice(0, 3);
 
             setRelatedVideos(related);
+        }
+    }, [videos, content]);
+
+
+    const loadContentDetail = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await fetch(`https://www.realvistamanagement.com/learn/${slug}/`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch video detail');
+            }
+
+            const data = await response.json();
+            setContent(data);
+
+            // Increment backend view count
+            await fetch(`https://www.realvistamanagement.com/learn/${slug}/increment-view/`, {
+                method: 'POST',
+            });
         } catch (err: any) {
             console.error('Error loading content:', err);
-            setError('Failed to load content. Please try again.');
+            setError(err.message || 'Failed to load content');
         } finally {
             setLoading(false);
         }
     };
 
+
     const toggleWatchedStatus = async () => {
         if (!content) return;
 
         try {
-            const watchedData = await AsyncStorage.getItem('watchedVideos');
-            let watched: string[] = watchedData ? JSON.parse(watchedData) : [];
-
             if (isWatched) {
-                watched = watched.filter((videoId) => videoId !== content.id);
+                await removeWatchedVideo(content.id);
                 setIsWatched(false);
             } else {
-                watched.push(content.id);
+                await addWatchedVideo(content.id);
                 setIsWatched(true);
             }
-
-            await AsyncStorage.setItem('watchedVideos', JSON.stringify(watched));
         } catch (error) {
             console.error('Error toggling watched status:', error);
         }
     };
+
 
     const handleShare = async () => {
         if (!content) return;
@@ -168,13 +186,6 @@ export default function LearnDetail() {
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
             <View style={styles.header}>
-                <TouchableOpacity
-                    style={[styles.headerButton, isDark && styles.headerButtonDark]}
-                    onPress={() => router.back()}
-                >
-                    <Ionicons name="arrow-back" size={24} color={isDark ? '#F9FAFB' : '#111827'} />
-                </TouchableOpacity>
-
                 <TouchableOpacity
                     style={[styles.headerButton, isDark && styles.headerButtonDark]}
                     onPress={handleShare}

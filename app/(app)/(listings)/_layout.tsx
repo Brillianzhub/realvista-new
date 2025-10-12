@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { useTheme } from "@/context/ThemeContext";
 import { initWatchedTable } from "@/src/database/watchedVideosDB";
 
-const LearnLayout = () => {
+const ListingsLayout = () => {
 
     useEffect(() => {
         initWatchedTable();
@@ -37,7 +37,7 @@ const LearnLayout = () => {
                     presentation: "card",
                     animation: "slide_from_right",
                     headerTitleAlign: "center",
-                    title: "Expert Learn",
+                    title: "Manage Listings",
                     headerLeft: () => (
                         <TouchableOpacity onPress={() => router.replace("/(app)/(tabs)")}>
                             <Ionicons name="arrow-back" size={24} color="#358B8B" />
@@ -47,12 +47,12 @@ const LearnLayout = () => {
             />
 
             <Stack.Screen
-                name="[slug]"
+                name="listing-workflow"
                 options={{
                     presentation: "card",
                     animation: "slide_from_right",
                     headerTitleAlign: "center",
-                    title: "Expert Learn",
+                    title: "Listing Workflow",
                     headerLeft: () => (
                         <TouchableOpacity onPress={() => router.back()}>
                             <Ionicons name="arrow-back" size={24} color="#358B8B" />
@@ -70,4 +70,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default LearnLayout;
+export default ListingsLayout;

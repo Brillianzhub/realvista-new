@@ -7,7 +7,6 @@ import {
     TouchableOpacity,
     RefreshControl,
     useColorScheme,
-    TextInput,
     ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -15,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import VideoCard from '@/components/learn/VideoCard';
+import { useLearnVideos, LearnVideo } from '@/hooks/learn/useLearnVideos';
 import { learnContentData, type LearnContent } from '@/data/learnContent';
 
 type Category = 'All' | 'Real Estate' | 'Finance' | 'Investment';
@@ -26,41 +26,19 @@ export default function Learn() {
     const isDark = colorScheme === 'dark';
     const router = useRouter();
 
-    const [contents, setContents] = useState<LearnContent[]>([]);
-    const [filteredContents, setFilteredContents] = useState<LearnContent[]>([]);
-    const [watchedVideos, setWatchedVideos] = useState<Set<string>>(new Set());
+    const { videos, loading, error, refetch } = useLearnVideos(); // fetch all
+    const [filteredContents, setFilteredContents] = useState<LearnVideo[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<Category>('All');
     const [searchQuery, setSearchQuery] = useState('');
-    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-
-    useEffect(() => {
-        loadData();
-    }, []);
+    const [watchedVideos, setWatchedVideos] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         filterContent();
-    }, [selectedCategory, searchQuery, contents]);
-
-    const loadData = async () => {
-        try {
-            setContents(learnContentData);
-
-            const watchedData = await AsyncStorage.getItem('watchedVideos');
-            if (watchedData) {
-                const watched = JSON.parse(watchedData);
-                setWatchedVideos(new Set(watched));
-            }
-        } catch (error) {
-            console.error('Error loading data:', error);
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
+    }, [videos, selectedCategory, searchQuery]);
 
     const filterContent = () => {
-        let filtered = contents;
+        let filtered = videos;
 
         if (selectedCategory !== 'All') {
             filtered = filtered.filter((item) => item.category === selectedCategory);
@@ -103,17 +81,16 @@ export default function Learn() {
         }
     };
 
-    const onRefresh = useCallback(() => {
+    const onRefresh = async () => {
         setRefreshing(true);
-        loadData();
-    }, []);
+        await refetch();
+        setRefreshing(false);
+    };
 
-
-
-    const handleVideoPress = (content: LearnContent) => {
+    const handleVideoPress = (item: LearnVideo) => {
         router.push({
-            pathname: '/(app)/(learn)/[id]',
-            params: { id: String(content.id) }, // 👈 must match the dynamic segment name
+            pathname: '/(app)/(learn)/[slug]',
+            params: { slug: String(item.slug) },
         });
     };
 
@@ -166,7 +143,6 @@ export default function Learn() {
         <View style={[styles.container, isDark && styles.containerDark]}>
             <LinearGradient
                 colors={['#efa968', '#358B8B']}
-                // colors={['#FB902E', '#F97316']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.header}
@@ -218,6 +194,7 @@ export default function Learn() {
                 ) : (
                     <FlatList
                         data={filteredContents}
+                        keyExtractor={(item) => item.id.toString()}
                         renderItem={({ item }) => (
                             <VideoCard
                                 id={item.id}
@@ -231,7 +208,7 @@ export default function Learn() {
                                 onToggleWatched={() => toggleWatchedStatus(item.id)}
                             />
                         )}
-                        keyExtractor={(item) => item.id}
+
                         contentContainerStyle={styles.listContent}
                         showsVerticalScrollIndicator={false}
                         refreshControl={

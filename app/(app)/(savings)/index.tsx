@@ -16,7 +16,6 @@ import AddTargetModal from '@/components/modals/AddTargetModal';
 import EditTargetModal from '@/components/modals/EditTargetModal';
 import AddContributionModal from '@/components/modals/AddContributionModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
 
 
 interface SavingsTarget {
@@ -81,7 +80,6 @@ export default function SavingsTab() {
             }
 
             const data = await response.json();
-            console.log('Fetched targets:', data);
 
             setTargets(data || []);
         } catch (error) {

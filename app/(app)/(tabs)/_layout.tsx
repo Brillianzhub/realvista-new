@@ -1,7 +1,7 @@
-import { Tabs } from 'expo-router';
+import { router, Tabs } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { Home, Briefcase, TrendingUp } from 'lucide-react-native';
+import { Home, Briefcase, CircleDollarSign, User } from 'lucide-react-native';
 import { Menu } from 'lucide-react-native';
 
 export default function TabLayout() {
@@ -26,7 +26,6 @@ export default function TabLayout() {
           shadowOpacity: 0.1,
           shadowRadius: 4,
           height: 65,
-          // paddingBottom: 8,
         },
         headerTitleAlign: "center",
         headerTitleStyle: {
@@ -50,8 +49,22 @@ export default function TabLayout() {
             <Menu size={24} color="#374151" />
           </TouchableOpacity>
         ),
-        tabBarActiveTintColor: '#2563eb',
-        tabBarInactiveTintColor: '#6b7280',
+        headerRight: () => (
+          <TouchableOpacity
+            onPress={() => { router.push('/(app)/(profile)'); }}
+            style={{
+              marginRight: 16,
+              padding: 8,
+              borderRadius: 8,
+              backgroundColor: '#f3f4f6',
+            }}
+            activeOpacity={0.7}
+          >
+            <User size={24} color="#374151" />
+          </TouchableOpacity>
+        ),
+        tabBarActiveTintColor: '#FB902E',
+        tabBarInactiveTintColor: '#358B8B',
         tabBarStyle: {
           backgroundColor: '#ffffff',
           borderTopWidth: 1,
@@ -63,17 +76,20 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: '600',
-          color: '#358B8B',
+          // color: '#358B8B',
         },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          headerTitle: 'RealVista',
-          tabBarIcon: ({ size, color }) => (
-            <Home size={size} color='#358B8B' />
-          ),
+          headerTitle: 'Realvista',
+          headerTitleStyle: {
+            color: '#358B8B',
+            fontSize: 20,
+            fontWeight: '600',
+          },
+          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -81,19 +97,25 @@ export default function TabLayout() {
         options={{
           title: 'Portfolio',
           headerTitle: 'Portfolio',
-          tabBarIcon: ({ size, color }) => (
-            <Briefcase size={size} color='#358B8B' />
-          ),
+          headerTitleStyle: {
+            color: '#358B8B',
+            fontSize: 20,
+            fontWeight: '600',
+          },
+          tabBarIcon: ({ color, size }) => <Briefcase size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="market"
         options={{
           title: 'Market',
-          headerTitle: 'Market Analysis',
-          tabBarIcon: ({ size, color }) => (
-            <TrendingUp size={size} color='#358B8B' />
-          ),
+          headerTitle: 'Market Listings',
+          headerTitleStyle: {
+            color: '#358B8B',
+            fontSize: 20,
+            fontWeight: '600',
+          },
+          tabBarIcon: ({ color, size }) => <CircleDollarSign size={size} color={color} />,
         }}
       />
     </Tabs>
