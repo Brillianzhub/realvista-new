@@ -1,15 +1,12 @@
 export type PropertyFeatures = {
-    negotiable: string;
-    furnished: boolean;
-    pet_friendly: boolean;
-    parking_available: boolean;
-    swimming_pool: boolean;
-    garden: boolean;
-    electricity_proximity: string;
-    road_network: string;
-    development_level: string;
-    water_supply: boolean;
-    security: boolean;
+    hasElectricity: boolean;
+    hasWaterSupply: boolean;
+    hasGarden: boolean;
+    hasSecurity: boolean;
+    hasParking: boolean;
+    isFenced: boolean;
+    proximityToRoad: 'Close' | 'Moderate' | 'Far' | '';
+    nearbyAmenities: string[];
 };
 
 export type MarketplaceListing = {
@@ -20,8 +17,8 @@ export type MarketplaceListing = {
     property_name: string;
     property_type: string;
     location: string;
-    state: string;
-    city: string;
+    city?: string;
+    state?: string;
     description: string;
     property_value: number;
     market_type?: 'Sale' | 'Rent';
@@ -39,25 +36,26 @@ export type MarketplaceListing = {
     created_at: string;
     updated_at: string;
     published_at?: string;
+    backendData?: any;
 };
 
-export const marketplaceListingsData: MarketplaceListing[] = [
+// export const marketplaceListingsData: MarketplaceListing[] = [
 
 
-];
+// ];
 
-export const getListingById = (id: string): MarketplaceListing | undefined => {
-    return marketplaceListingsData.find((listing) => listing.id === id);
-};
+// export const getListingById = (id: string): MarketplaceListing | undefined => {
+//     return marketplaceListingsData.find((listing) => listing.id === id);
+// };
 
-export const getListingsByType = (type: 'Corporate' | 'P2P' | 'All'): MarketplaceListing[] => {
-    if (type === 'All') return marketplaceListingsData;
-    return marketplaceListingsData.filter((listing) => listing.listing_type === type);
-};
+// export const getListingsByType = (type: 'Corporate' | 'P2P' | 'All'): MarketplaceListing[] => {
+//     if (type === 'All') return marketplaceListingsData;
+//     return marketplaceListingsData.filter((listing) => listing.listing_type === type);
+// };
 
-export const getListingsByStatus = (
-    status: 'Draft' | 'Published' | 'Removed' | 'All'
-): MarketplaceListing[] => {
-    if (status === 'All') return marketplaceListingsData;
-    return marketplaceListingsData.filter((listing) => listing.status === status);
-};
+// export const getListingsByStatus = (
+//     status: 'Draft' | 'Published' | 'Removed' | 'All'
+// ): MarketplaceListing[] => {
+//     if (status === 'All') return marketplaceListingsData;
+//     return marketplaceListingsData.filter((listing) => listing.status === status);
+// };

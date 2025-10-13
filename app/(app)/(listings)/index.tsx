@@ -41,9 +41,11 @@ export default function ManageListings() {
 
     const { user } = useGlobalContext();
 
-    console.log('User in ManageListings:', user);
+    // console.log('User in ManageListings:', user?.email);
 
-    // const { properties } = useFetchVendorProperties()
+    const { properties } = useFetchVendorProperties(user?.email || null);
+    console.log('Fetched properties:', JSON.stringify(properties, null, 2));
+
 
     const [listings, setListings] = useState<MarketplaceListing[]>([]);
     const [filteredListings, setFilteredListings] = useState<MarketplaceListing[]>([]);
