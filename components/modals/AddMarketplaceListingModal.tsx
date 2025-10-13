@@ -138,7 +138,9 @@ export default function AddMarketplaceListingModal({
         <Modal
             visible={visible}
             animationType="slide"
-            presentationStyle="pageSheet"
+            presentationStyle='formSheet'
+            // transparent={true}
+            // presentationStyle="pageSheet"
             onRequestClose={onClose}
         >
             <View style={[styles.container, isDark && styles.containerDark]}>

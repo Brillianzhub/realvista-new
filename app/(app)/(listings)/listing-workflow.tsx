@@ -222,7 +222,7 @@ export default function ListingWorkflowScreen() {
                         <Text style={[styles.progressTitle, isDark && styles.progressTitleDark]}>
                             Overall Progress
                         </Text>
-                        <View style={[styles.progressBadge, { backgroundColor: progressPercentage === 100 ? '#10B981' : '#FB902E' }]}>
+                        <View style={[styles.progressBadge, { backgroundColor: progressPercentage === 100 ? '#358B8B' : '#FB902E' }]}>
                             <Text style={styles.progressBadgeText}>
                                 {completedSteps}/{steps.length}
                             </Text>
@@ -299,7 +299,7 @@ export default function ListingWorkflowScreen() {
                         <Ionicons
                             name={step.completed ? 'checkmark-circle' : 'chevron-forward'}
                             size={24}
-                            color={step.completed ? '#10B981' : isDark ? '#6B7280' : '#9CA3AF'}
+                            color={step.completed ? '#358B8B' : isDark ? '#6B7280' : '#9CA3AF'}
                         />
                     </TouchableOpacity>
                 ))}
@@ -500,7 +500,7 @@ const styles = StyleSheet.create({
     },
     stepCardCompleted: {
         borderWidth: 2,
-        borderColor: '#10B981',
+        borderColor: '#358B8B',
     },
     stepNumber: {
         width: 48,
@@ -514,7 +514,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#374151',
     },
     stepNumberCompleted: {
-        backgroundColor: '#10B981',
+        backgroundColor: '#358B8B',
     },
     stepNumberText: {
         fontSize: 18,
@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
     completedBadgeText: {
         fontSize: 11,
         fontWeight: '600',
-        color: '#059669',
+        color: '#358B8B',
     },
     stepDescription: {
         fontSize: 13,

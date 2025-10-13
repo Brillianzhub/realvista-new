@@ -19,6 +19,9 @@ import ProgressTracker from '@/components/marketplace/ProgressTracker';
 import ListingCard from '@/components/marketplace/ListingCard';
 import RemovePropertyModal from '@/components/modals/RemovePropertyModal';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
+import useFetchVendorProperties from '@/hooks/market/useVendorListing';
+import { useGlobalContext } from '@/context/GlobalProvider';
+
 
 type ListingType = 'All' | 'Corporate' | 'P2P';
 type StatusFilter = 'All' | 'Draft' | 'Published' | 'Removed';
@@ -35,6 +38,12 @@ export default function ManageListings() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const router = useRouter();
+
+    const { user } = useGlobalContext();
+
+    console.log('User in ManageListings:', user);
+
+    // const { properties } = useFetchVendorProperties()
 
     const [listings, setListings] = useState<MarketplaceListing[]>([]);
     const [filteredListings, setFilteredListings] = useState<MarketplaceListing[]>([]);
@@ -58,7 +67,7 @@ export default function ManageListings() {
     const loadListings = async () => {
 
         try {
-            await AsyncStorage.removeItem('marketplaceListings');
+            // await AsyncStorage.removeItem('marketplaceListings');
 
             const storedListings = await AsyncStorage.getItem('marketplaceListings');
 

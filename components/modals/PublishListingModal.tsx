@@ -32,7 +32,6 @@ export default function PublishListingModal({
     const [loading, setLoading] = useState(false);
     const [listing, setListing] = useState<MarketplaceListing | null>(null);
 
-    // console.log('Listing in PublishListingModal:', listing);
 
     useEffect(() => {
         if (visible && listingId) {
