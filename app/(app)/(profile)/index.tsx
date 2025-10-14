@@ -241,7 +241,9 @@ export default function Profile() {
                         </Text>
                     </View>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem}
+                        onPress={() => router.push('/(auth)/update-profile')}
+                    >
                         <Ionicons
                             name="person-outline"
                             size={20}
@@ -257,7 +259,10 @@ export default function Profile() {
                         />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity
+                        style={styles.menuItem}
+                        onPress={() => router.push('/(auth)/change-password')}
+                    >
                         <Ionicons
                             name="lock-closed-outline"
                             size={20}
@@ -273,7 +278,9 @@ export default function Profile() {
                         />
                     </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}>
+                    <TouchableOpacity style={styles.menuItem}
+                        onPress={() => router.push('/(app)/(settings)')}
+                    >
                         <Ionicons
                             name="cash-outline"
                             size={20}
@@ -382,7 +389,7 @@ export default function Profile() {
                         Realvista Properties
                     </Text>
                     <Text style={[styles.footerText, isDark && styles.footerTextDark]}>
-                        Version 1.0.0
+                        Version 1.0.1
                     </Text>
                 </View>
             </View>

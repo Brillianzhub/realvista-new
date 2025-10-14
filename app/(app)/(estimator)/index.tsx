@@ -151,9 +151,9 @@ export default function PropertyValueEstimatorScreen() {
 
     const handleContactMethod = (method: 'email' | 'phone') => {
         if (method === 'email') {
-            Linking.openURL('mailto:info@realvistamanagement.com');
+            Linking.openURL('mailto:contact@realvistaproperties.com');
         } else {
-            Linking.openURL('tel:+2348123456789');
+            Linking.openURL('tel:+2347043065222');
         }
     };
 
@@ -161,7 +161,7 @@ export default function PropertyValueEstimatorScreen() {
         <ScrollView style={styles.container}>
             <View style={styles.content}>
                 <View style={styles.infoCard}>
-                    <Ionicons name="information-circle" size={24} color="#14B8A6" />
+                    <Ionicons name="information-circle" size={24} color="#358B8B" />
                     <Text style={styles.infoText}>
                         Get an instant AI-powered estimate of your property's market value in Nigeria
                     </Text>
@@ -200,7 +200,7 @@ export default function PropertyValueEstimatorScreen() {
                                     >
                                         <Text style={styles.dropdownItemText}>{type}</Text>
                                         {formData.propertyType === type && (
-                                            <Ionicons name="checkmark" size={20} color="#14B8A6" />
+                                            <Ionicons name="checkmark" size={20} color="#358B8B" />
                                         )}
                                     </TouchableOpacity>
                                 ))}
@@ -283,7 +283,7 @@ export default function PropertyValueEstimatorScreen() {
                                     >
                                         <Text style={styles.dropdownItemText}>{condition}</Text>
                                         {formData.condition === condition && (
-                                            <Ionicons name="checkmark" size={20} color="#14B8A6" />
+                                            <Ionicons name="checkmark" size={20} color="#358B8B" />
                                         )}
                                     </TouchableOpacity>
                                 ))}
@@ -327,7 +327,7 @@ export default function PropertyValueEstimatorScreen() {
                 {estimateResult && (
                     <View style={styles.resultSection}>
                         <View style={styles.resultHeader}>
-                            <Ionicons name="checkmark-circle" size={48} color="#10B981" />
+                            <Ionicons name="checkmark-circle" size={48} color="#358B8B" />
                             <Text style={styles.resultTitle}>Estimated Market Value</Text>
                         </View>
                         <View style={styles.resultCard}>
@@ -362,7 +362,7 @@ export default function PropertyValueEstimatorScreen() {
 
                 <View style={styles.consultationSection}>
                     <View style={styles.consultationHeader}>
-                        <Ionicons name="people" size={28} color="#14B8A6" />
+                        <Ionicons name="people" size={28} color="#358B8B" />
                         <Text style={styles.consultationTitle}>Need Professional Valuation?</Text>
                     </View>
                     <Text style={styles.consultationText}>
@@ -373,20 +373,20 @@ export default function PropertyValueEstimatorScreen() {
                             style={styles.contactButton}
                             onPress={() => handleContactMethod('email')}
                         >
-                            <Ionicons name="mail" size={20} color="#14B8A6" />
+                            <Ionicons name="mail" size={20} color="#358B8B" />
                             <View style={styles.contactButtonContent}>
                                 <Text style={styles.contactButtonLabel}>Email</Text>
-                                <Text style={styles.contactButtonValue}>info@realvistamanagement.com</Text>
+                                <Text style={styles.contactButtonValue}>contact@realvistaproperties.com</Text>
                             </View>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={styles.contactButton}
                             onPress={() => handleContactMethod('phone')}
                         >
-                            <Ionicons name="call" size={20} color="#14B8A6" />
+                            <Ionicons name="call" size={20} color="#358B8B" />
                             <View style={styles.contactButtonContent}>
                                 <Text style={styles.contactButtonLabel}>Phone</Text>
-                                <Text style={styles.contactButtonValue}>+234 812 345 6789</Text>
+                                <Text style={styles.contactButtonValue}>+234 704 306 5222</Text>
                             </View>
                         </TouchableOpacity>
                     </View>
@@ -532,7 +532,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#14B8A6',
+        backgroundColor: '#358B8B',
         paddingVertical: 16,
         borderRadius: 12,
         gap: 8,
@@ -577,13 +577,13 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 20,
         borderWidth: 2,
-        borderColor: '#14B8A6',
+        borderColor: '#358B8B',
         marginBottom: 16,
     },
     resultRange: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#14B8A6',
+        color: '#358B8B',
         textAlign: 'center',
         marginBottom: 20,
     },

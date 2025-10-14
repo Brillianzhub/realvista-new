@@ -7,6 +7,7 @@ import {
     StyleSheet,
     Dimensions,
     Platform,
+    Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -14,6 +15,9 @@ import { LineChart } from 'react-native-chart-kit';
 import MapView, { Marker } from 'react-native-maps';
 import { Property } from './index';
 import { formatCurrency } from '@/utils/general/formatCurrency';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useGlobalContext } from '@/context/GlobalProvider';
+import { MarketplaceListing } from '@/data/marketplaceListings';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -33,6 +37,8 @@ const formatROI = (initial_cost: string | number, current_value: string | number
 export default function PropertyDetailScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
+
+    const user = useGlobalContext().user;
 
     const property = JSON.parse(params.propertyData as string);
 
@@ -69,11 +75,45 @@ export default function PropertyDetailScreen() {
     };
 
 
-    const handleListForSale = () => {
-        router.push({
-            pathname: '/market',
-            params: { propertyData: JSON.stringify(property) },
-        });
+    const handleListForSale = async () => {
+        try {
+            const storedListings = await AsyncStorage.getItem('marketplaceListings');
+            let listings: MarketplaceListing[] = storedListings
+                ? JSON.parse(storedListings)
+                : [];
+
+            const newListingId = Date.now().toString();
+            const newListing: MarketplaceListing = {
+                id: newListingId,
+                user_id: user?.email || 'user-1',
+                listing_type: 'Corporate',
+                property_name: '',
+                property_type: '',
+                location: '',
+                city: '',
+                state: '',
+                description: '',
+                property_value: 0,
+                roi_percentage: 0,
+                estimated_yield: 0,
+                completion_percentage: 0,
+                current_step: 0,
+                status: 'Draft',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+
+            listings.push(newListing);
+            await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
+
+            router.push({
+                pathname: '/(app)/(listings)/listing-workflow',
+                params: { id: newListingId, new: 'true' },
+            });
+        } catch (error) {
+            console.error('Error creating listing:', error);
+            Alert.alert('Error', 'Failed to create listing');
+        }
     };
 
     const capitalize = (text?: string) => {

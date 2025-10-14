@@ -1,9 +1,7 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
-import { useEffect, useState } from "react";
+import { useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Define types for a bookmark
-export interface Bookmark {
+export type Bookmark = {
     bookmark_id: number;
     property_id: number;
     title: string;
@@ -14,46 +12,52 @@ export interface Bookmark {
     currency: string;
     property_type: string;
     listing_purpose: string;
-}
+    images: string[];
+    bookmarked_at: string;
+};
 
-
-// Define the hook return type
-interface UseUserBookmarkReturn {
+export type UseUserBookmarkReturn = {
     bookmarks: Bookmark[];
     loading: boolean;
-    setLoading: React.Dispatch<React.SetStateAction<boolean>>;
-    fetchBookmarks: () => Promise<void>;
     error: string | null;
-}
+    refetch: () => Promise<void>;
+};
 
-const useUserBookmarks = (): UseUserBookmarkReturn => {
+export default function useUserBookmark(): UseUserBookmarkReturn {
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
 
     const fetchBookmarks = async () => {
-        try {
-            setLoading(true);
-            setError(null);
+        setLoading(true);
+        setError(null);
 
-            const token = await AsyncStorage.getItem("authToken");
+        try {
+            const token = await AsyncStorage.getItem('authToken');
+
             if (!token) {
-                throw new Error("Authentication token is missing!");
+                setError('No authentication token found');
+                setLoading(false);
+                return;
             }
 
-            const response = await axios.get<Bookmark[]>(
-                `https://www.realvistamanagement.com/market/user-bookmarks/`,
-                {
-                    headers: {
-                        Authorization: `Token ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                }
-            );
+            const response = await fetch('https://www.realvistamanagement.com/market/user-bookmarks/', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Token ${token}`,
+                    'Content-Type': 'application/json',
+                },
+            });
 
-            setBookmarks(response.data);
-        } catch (error: any) {
-            setError(error.response?.data?.detail || error.message || "Unknown error");
+            if (!response.ok) {
+                throw new Error(`Failed to fetch bookmarks: ${response.status}`);
+            }
+
+            const data = await response.json();
+            setBookmarks(data);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
+            console.error('Error fetching bookmarks:', err);
         } finally {
             setLoading(false);
         }
@@ -63,7 +67,10 @@ const useUserBookmarks = (): UseUserBookmarkReturn => {
         fetchBookmarks();
     }, []);
 
-    return { bookmarks, loading, error, setLoading, fetchBookmarks };
-};
-
-export default useUserBookmarks;
+    return {
+        bookmarks,
+        loading,
+        error,
+        refetch: fetchBookmarks,
+    };
+}

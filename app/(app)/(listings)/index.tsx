@@ -17,14 +17,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import ProgressTracker from '@/components/marketplace/ProgressTracker';
 import ListingCard from '@/components/marketplace/ListingCard';
-import RemovePropertyModal from '@/components/modals/RemovePropertyModal';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
+import RemoveListingModal from '@/components/modals/RemoveListingModal';
 import useFetchVendorProperties from '@/hooks/market/useVendorListing';
 import { useGlobalContext } from '@/context/GlobalProvider';
+import { mapBackendToFrontend, isBackendListing } from '@/utils/market/marketplaceMapper';
 
 
 type ListingType = 'All' | 'Corporate' | 'P2P';
-type StatusFilter = 'All' | 'Draft' | 'Published' | 'Removed';
+type StatusFilter = 'All' | 'Draft' | 'Published';
 
 const listingSteps = [
     { id: 1, label: 'Add Property', completed: false },
@@ -41,11 +42,7 @@ export default function ManageListings() {
 
     const { user } = useGlobalContext();
 
-    // console.log('User in ManageListings:', user?.email);
-
-    const { properties } = useFetchVendorProperties(user?.email || null);
-    console.log('Fetched properties:', JSON.stringify(properties, null, 2));
-
+    const { properties, loading: backendLoading, refetch } = useFetchVendorProperties(user?.email || null);
 
     const [listings, setListings] = useState<MarketplaceListing[]>([]);
     const [filteredListings, setFilteredListings] = useState<MarketplaceListing[]>([]);
@@ -60,26 +57,24 @@ export default function ManageListings() {
 
     useEffect(() => {
         loadListings();
-    }, []);
+    }, [properties]);
 
     useEffect(() => {
         filterListings();
     }, [searchQuery, selectedListingType, selectedStatus, listings]);
 
     const loadListings = async () => {
-
         try {
-            // await AsyncStorage.removeItem('marketplaceListings');
-
             const storedListings = await AsyncStorage.getItem('marketplaceListings');
+            let draftListings: MarketplaceListing[] = storedListings ? JSON.parse(storedListings) : [];
 
-            if (storedListings) {
-                const parsed = JSON.parse(storedListings);
-                setListings(parsed);
-            };
+            const backendListings = properties ? properties.map(mapBackendToFrontend) : [];
+
+            const combinedListings = [...draftListings, ...backendListings];
+
+            setListings(combinedListings);
         } catch (error) {
             console.error('Error loading listings:', error);
-            // setListings(marketplaceListingsData);
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -109,9 +104,10 @@ export default function ManageListings() {
         setFilteredListings(filtered);
     };
 
-    const onRefresh = () => {
+    const onRefresh = async () => {
         setRefreshing(true);
-        loadListings();
+        await refetch();
+        await loadListings();
     };
 
     const handleAddProperty = async () => {
@@ -124,7 +120,7 @@ export default function ManageListings() {
             const newListingId = Date.now().toString();
             const newListing: MarketplaceListing = {
                 id: newListingId,
-                user_id: 'user-1',
+                user_id: user?.email || 'user-1',
                 listing_type: 'Corporate',
                 property_name: '',
                 property_type: '',
@@ -146,8 +142,8 @@ export default function ManageListings() {
             await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
 
             router.push({
-                pathname: "/(app)/(listings)/listing-workflow",
-                params: { id: newListingId, new: "true" },
+                pathname: '/(app)/(listings)/listing-workflow',
+                params: { id: newListingId, new: 'true' },
             });
         } catch (error) {
             console.error('Error creating listing:', error);
@@ -157,7 +153,7 @@ export default function ManageListings() {
 
     const handleUpdateListing = (listingId: string) => {
         router.push({
-            pathname: "/(app)/(listings)/listing-workflow",
+            pathname: '/(app)/(listings)/listing-workflow',
             params: { id: listingId },
         });
     };
@@ -170,9 +166,9 @@ export default function ManageListings() {
     const calculateSteps = (listing: MarketplaceListing) => {
         const steps = [...listingSteps];
         steps[0].completed = !!listing.property_name;
-        steps[1].completed = !!listing.thumbnail_url;
+        steps[1].completed = !!listing.thumbnail_url || !!(listing.images && listing.images.length > 0);
         steps[2].completed = !!listing.latitude && !!listing.longitude;
-        steps[3].completed = !!listing.market_type && listing.property_value > 0;
+        steps[3].completed = !!listing.features;
         steps[4].completed = listing.status === 'Published';
         return steps;
     };
@@ -229,13 +225,13 @@ export default function ManageListings() {
                     />
                 }
             >
-                {selectedListingId && selectedListing && (
+                {/* {selectedListingId && selectedListing && (
                     <ProgressTracker
                         steps={currentSteps}
                         currentStep={currentSteps.findIndex((s) => !s.completed)}
                         completionPercentage={selectedListing.completion_percentage}
                     />
-                )}
+                )} */}
 
                 <View style={styles.filters}>
                     <ScrollView
@@ -271,7 +267,7 @@ export default function ManageListings() {
                         showsHorizontalScrollIndicator={false}
                         contentContainerStyle={styles.filterList}
                     >
-                        {(['All', 'Draft', 'Published', 'Removed'] as StatusFilter[]).map((status) => (
+                        {(['All', 'Draft', 'Published'] as StatusFilter[]).map((status) => (
                             <TouchableOpacity
                                 key={status}
                                 style={[
@@ -296,7 +292,7 @@ export default function ManageListings() {
                 </View>
 
                 <View style={styles.listingsContainer}>
-                    {loading ? (
+                    {loading || backendLoading ? (
                         <ActivityIndicator size="large" color="#FB902E" style={{ marginTop: 40 }} />
                     ) : filteredListings.length === 0 ? (
                         renderEmptyState()
@@ -329,15 +325,15 @@ export default function ManageListings() {
                 <Ionicons name="add" size={28} color="#FFFFFF" />
             </TouchableOpacity>
 
-            {/* <RemovePropertyModal
+            <RemoveListingModal
                 visible={showRemoveModal}
-                propertyId={selectedListingId}
+                listingId={selectedListingId}
                 onClose={() => {
                     setShowRemoveModal(false);
                     setSelectedListingId(null);
                     loadListings();
                 }}
-            /> */}
+            />
         </View>
     );
 }

@@ -4,8 +4,6 @@ import { useCurrency } from "@/context/CurrencyContext";
 import CurrencyData from "@/assets/data/CurrencyData";
 import SelectCurrencyModal from "./SelectCurrencyModal";
 
-// Define the expected currency type
-// type CurrencyKey = keyof typeof CurrencyData.symbols;
 type CurrencyKey = Extract<keyof typeof CurrencyData.symbols, string>;
 
 const CurrencySettings: React.FC = () => {

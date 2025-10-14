@@ -5,6 +5,7 @@ import {
     ScrollView,
     TouchableOpacity,
     useColorScheme,
+    Alert,
 } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,9 +14,13 @@ import AddIncomeModal from '@/components/modals/AddIncomeModal';
 import AddExpensesModal from '@/components/modals/AddExpensesModal';
 import RemovePropertyModal from '@/components/modals/RemovePropertyModal';
 import UpdatePropertyModal from '@/components/modals/UpdatePropertyModal';
-import ListToMarketModal from '@/components/modals/ListToMarketModal';
 import AddCoordinatesModal from '@/components/modals/AddCoordinatesModal';
 import AddFilesModal from '@/components/modals/AddFilesModal';
+import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MarketplaceListing } from '@/data/marketplaceListings';
+import { useGlobalContext } from '@/context/GlobalProvider';
+   
 
 type ManagementOption = {
     title: string;
@@ -79,6 +84,10 @@ export default function ManagePropertyPage() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
+    const { user } = useGlobalContext();
+
+    const router = useRouter();
+
     const [addPropertyVisible, setAddPropertyVisible] = useState(false);
     const [addIncomeVisible, setAddIncomeVisible] = useState(false);
     const [addExpensesVisible, setAddExpensesVisible] = useState(false);
@@ -87,6 +96,47 @@ export default function ManagePropertyPage() {
     const [listToMarketVisible, setListToMarketVisible] = useState(false);
     const [addCoordinatesVisible, setAddCoordinatesVisible] = useState(false);
     const [addFilesVisible, setAddFilesVisible] = useState(false);
+
+    const handleAddProperty = async () => {
+        try {
+            const storedListings = await AsyncStorage.getItem('marketplaceListings');
+            let listings: MarketplaceListing[] = storedListings
+                ? JSON.parse(storedListings)
+                : [];
+
+            const newListingId = Date.now().toString();
+            const newListing: MarketplaceListing = {
+                id: newListingId,
+                user_id: user?.email || 'user-1',
+                listing_type: 'Corporate',
+                property_name: '',
+                property_type: '',
+                location: '',
+                city: '',
+                state: '',
+                description: '',
+                property_value: 0,
+                roi_percentage: 0,
+                estimated_yield: 0,
+                completion_percentage: 0,
+                current_step: 0,
+                status: 'Draft',
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+
+            listings.push(newListing);
+            await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
+
+            router.push({
+                pathname: '/(app)/(listings)/listing-workflow',
+                params: { id: newListingId, new: 'true' },
+            });
+        } catch (error) {
+            console.error('Error creating listing:', error);
+            Alert.alert('Error', 'Failed to create listing');
+        }
+    };
 
     const handleOptionPress = (action: string) => {
         switch (action) {
@@ -106,7 +156,7 @@ export default function ManagePropertyPage() {
                 setUpdatePropertyVisible(true);
                 break;
             case 'listToMarket':
-                setListToMarketVisible(true);
+                handleAddProperty();
                 break;
             case 'addCoordinates':
                 setAddCoordinatesVisible(true);
@@ -181,10 +231,7 @@ export default function ManagePropertyPage() {
                 visible={updatePropertyVisible}
                 onClose={() => setUpdatePropertyVisible(false)}
             />
-            <ListToMarketModal
-                visible={listToMarketVisible}
-                onClose={() => setListToMarketVisible(false)}
-            />
+
             <AddCoordinatesModal
                 visible={addCoordinatesVisible}
                 onClose={() => setAddCoordinatesVisible(false)}

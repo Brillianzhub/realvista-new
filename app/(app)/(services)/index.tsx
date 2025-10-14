@@ -123,13 +123,13 @@ export default function PropertyManagementServicesScreen() {
   const handleContactMethod = (method: 'email' | 'whatsapp' | 'website') => {
     switch (method) {
       case 'email':
-        Linking.openURL('mailto:info@realvistamanagement.com');
+        Linking.openURL('mailto:contact@realvistaproperties.com');
         break;
       case 'whatsapp':
         Linking.openURL('https://wa.me/2348123456789');
         break;
       case 'website':
-        Linking.openURL('https://www.realvistamanagement.com');
+        Linking.openURL('https://www.realvistaproperties.com');
         break;
     }
   };
@@ -168,7 +168,7 @@ export default function PropertyManagementServicesScreen() {
           {services.map((service) => (
             <View key={service.id} style={styles.serviceCard}>
               <View style={styles.serviceIconContainer}>
-                <Ionicons name={service.icon as any} size={32} color="#14B8A6" />
+                <Ionicons name={service.icon as any} size={32} color="#358B8B" />
               </View>
               <Text style={styles.serviceTitle}>{service.title}</Text>
               <Text style={styles.serviceDescription}>{service.description}</Text>
@@ -185,13 +185,13 @@ export default function PropertyManagementServicesScreen() {
         <View style={styles.whyChooseList}>
           {whyChooseUs.map((item) => (
             <View key={item.id} style={styles.whyChooseItem}>
-              <Ionicons name={item.icon as any} size={24} color="#14B8A6" />
+              <Ionicons name={item.icon as any} size={24} color="#358B8B" />
               <Text style={styles.whyChooseText}>{item.text}</Text>
             </View>
           ))}
         </View>
         <View style={styles.trustBadge}>
-          <Ionicons name="shield-checkmark" size={48} color="#14B8A6" />
+          <Ionicons name="shield-checkmark" size={48} color="#358B8B" />
           <Text style={styles.trustBadgeText}>
             Verified & Licensed Property Management Services
           </Text>
@@ -284,9 +284,9 @@ export default function PropertyManagementServicesScreen() {
             style={styles.contactMethodCard}
             onPress={() => handleContactMethod('email')}
           >
-            <Ionicons name="mail" size={28} color="#14B8A6" />
+            <Ionicons name="mail" size={28} color="#358B8B" />
             <Text style={styles.contactMethodLabel}>Email</Text>
-            <Text style={styles.contactMethodValue}>info@realvistamanagement.com</Text>
+            <Text style={styles.contactMethodValue}>contact@realvistaproperties.com</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -295,17 +295,17 @@ export default function PropertyManagementServicesScreen() {
           >
             <Ionicons name="logo-whatsapp" size={28} color="#25D366" />
             <Text style={styles.contactMethodLabel}>WhatsApp</Text>
-            <Text style={styles.contactMethodValue}>+234 812 345 6789</Text>
+            <Text style={styles.contactMethodValue}>+234 704 306 5222</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.contactMethodCard}
             onPress={() => handleContactMethod('website')}
           >
-            <Ionicons name="globe" size={28} color="#14B8A6" />
+            <Ionicons name="globe" size={28} color="#358B8B" />
             <Text style={styles.contactMethodLabel}>Website</Text>
             <Text style={styles.contactMethodValue} numberOfLines={1}>
-              realvistamanagement.com
+              realvistaproperties.com
             </Text>
           </TouchableOpacity>
         </View>
@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#14B8A6',
+    backgroundColor: '#358B8B',
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 12,
@@ -467,7 +467,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     borderWidth: 2,
-    borderColor: '#14B8A6',
+    borderColor: '#358B8B',
   },
   trustBadgeText: {
     fontSize: 16,
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#14B8A6',
+    backgroundColor: '#358B8B',
     paddingVertical: 16,
     borderRadius: 12,
     gap: 8,

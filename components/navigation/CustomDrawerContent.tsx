@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,9 +8,11 @@ import {
   Image
 } from 'react-native';
 import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
-import { UserIcon, UserPen, GlobeLock, NotepadText, Handshake, Save, Settings, CircleHelp as HelpCircle, LogOut, Briefcase, FileQuestion, Calculator } from 'lucide-react-native';
+import { UserIcon, UserPen, GlobeLock, NotepadText, Handshake, Save, Settings, CircleHelp as HelpCircle, Briefcase, FileQuestion, Calculator } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/context/GlobalProvider';
+import HelpSupportModal from './HelpSupportModal';
+import SocialMediaLinks from './SocialMediaLinks';
 
 interface DrawerItem {
   id: string;
@@ -20,8 +22,8 @@ interface DrawerItem {
 }
 
 export default function CustomDrawerContent(props: DrawerContentComponentProps) {
-
   const { user } = useGlobalContext();
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   const name = user?.name || user?.first_name || "Unnamed User";
   const email = user?.email || user?.agent?.user || "No email";
@@ -30,6 +32,13 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
     user?.agent?.avatar ||
     "https://via.placeholder.com/150";
   const agencyName = user?.agent?.agency_name || null;
+
+  const handleHelpSupportPress = () => {
+    props.navigation.closeDrawer();
+    setTimeout(() => {
+      setShowHelpModal(true);
+    }, 300);
+  };
 
   const drawerItems: DrawerItem[] = [
     {
@@ -42,7 +51,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       id: '2',
       title: 'Saved Properties',
       icon: Save,
-      onPress: () => console.log('MutualInvest pressed'),
+      onPress: () => router.push('/(app)/(favorites)'),
     },
     {
       id: '3',
@@ -96,13 +105,7 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       id: '10',
       title: 'Help & Support',
       icon: HelpCircle,
-      onPress: () => console.log('Help pressed'),
-    },
-    {
-      id: '11',
-      title: 'Sign Out',
-      icon: LogOut,
-      onPress: () => console.log('Sign out pressed'),
+      onPress: handleHelpSupportPress,
     },
   ];
 
@@ -142,7 +145,6 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
         </View>
 
         <View style={styles.menuSection}>
-          {/* <Text style={styles.sectionTitle}>Investment Tools</Text> */}
           {drawerItems.map((item) => renderDrawerItem(item))}
         </View>
 
@@ -152,6 +154,13 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
           {bottomItems.map((item) => renderDrawerItem(item, true))}
         </View>
       </DrawerContentScrollView>
+
+      <SocialMediaLinks />
+
+      <HelpSupportModal
+        visible={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
     </View>
   );
 }

@@ -156,7 +156,8 @@ export default function AddMarketplaceListingModal({
                         />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
-                        {listingId ? 'Update Listing' : 'Create Listing'}
+                        {/* {listingId ? 'Update Listing' : 'Create Listing'} */}
+                        Basic Information
                     </Text>
                     <View style={{ width: 40 }} />
                 </View>

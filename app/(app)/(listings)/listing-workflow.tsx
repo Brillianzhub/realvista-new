@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
     },
     header: {
         paddingTop: 20,
-        paddingBottom: 24,
+        paddingBottom: 16,
         paddingHorizontal: 20,
     },
     headerTop: {
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
     progressCard: {
         backgroundColor: 'rgba(255, 255, 255, 0.8)',
         borderRadius: 16,
-        padding: 16,
+        paddingHorizontal: 16,
     },
     progressCardDark: {
         backgroundColor: 'rgba(31, 41, 55, 0.8)',

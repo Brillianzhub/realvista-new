@@ -1,30 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
-import axios, { AxiosError } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useState, useEffect } from 'react';
 
-export interface VendorProperty {
-    id: string;
-    name: string;
-    description: string;
-    value: number;
-    // Add more fields depending on your backend model
-}
-
-interface UseFetchVendorPropertiesResult {
-    properties: VendorProperty[];
-    loading: boolean;
-    setLoading: React.Dispatch<React.SetStateAction<boolean>>;
-    error: string | null;
-    refetch: () => Promise<void>;
-}
-
-export const useFetchVendorProperties = (email: string | null): UseFetchVendorPropertiesResult => {
-    const [properties, setProperties] = useState<VendorProperty[]>([]);
-    const [loading, setLoading] = useState<boolean>(false);
+export default function useFetchVendorProperties(email: string | null) {
+    const [properties, setProperties] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const fetchProperties = useCallback(async () => {
-        if (!email) return;
+    const fetchProperties = async () => {
+        if (!email) {
+            setProperties([]);
+            setLoading(false);
+            return;
+        }
 
         setLoading(true);
         setError(null);
@@ -35,31 +22,41 @@ export const useFetchVendorProperties = (email: string | null): UseFetchVendorPr
                 throw new Error('Authentication token not found');
             }
 
-            const response = await axios.get<VendorProperty[]>(
+            const response = await fetch(
                 `https://www.realvistamanagement.com/market/fetch-properties-by-email/?email=${email}`,
                 {
                     headers: { Authorization: `Token ${token}` },
                 }
             );
 
-            setProperties(response.data);
-        } catch (err: unknown) {
-            const axiosError = err as AxiosError<any>;
-            if (axiosError.response?.data) {
-                setError(JSON.stringify(axiosError.response.data));
-            } else {
-                setError(axiosError.message || 'An error occurred');
+            if (!response.ok) {
+                throw new Error('Failed to fetch properties');
             }
+
+            const data = await response.json();
+            setProperties(data);
+        } catch (err: any) {
+            console.error('Error fetching vendor properties:', err);
+            setError(err.message || 'Failed to fetch properties');
+            setProperties([]);
         } finally {
             setLoading(false);
         }
-    }, [email]);
+    };
 
     useEffect(() => {
         fetchProperties();
-    }, [fetchProperties]);
+    }, [email]);
 
-    return { properties, loading, setLoading, error, refetch: fetchProperties };
-};
+    const refetch = async () => {
+        await fetchProperties();
+    };
 
-export default useFetchVendorProperties;
+    return {
+        properties,
+        loading,
+        error,
+        refetch,
+    };
+}
+
