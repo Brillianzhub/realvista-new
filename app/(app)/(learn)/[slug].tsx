@@ -12,13 +12,9 @@ import {
     Dimensions,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
-import { learnContentData, type LearnContent } from '@/data/learnContent';
 import { useLearnVideos, LearnVideo } from '@/hooks/learn/useLearnVideos';
-import { addWatchedVideo, removeWatchedVideo, getAllWatchedVideos } from '@/src/database/watchedVideosDB';
-
 
 
 
@@ -37,14 +33,6 @@ export default function LearnDetail() {
 
     const { videos } = useLearnVideos()
 
-    const [watchedIds, setWatchedIds] = useState<string[]>([]);
-    // const watchedVideos = videos.filter((v) => watchedIds.includes(v.id));
-
-    const watchedVideos = useMemo(() => {
-        return videos.filter((v) => watchedIds.includes(v.id));
-    }, [videos, watchedIds]);
-
-    console.log('Watched Videos:', watchedVideos);
 
     useEffect(() => {
         if (slug) {
@@ -94,17 +82,6 @@ export default function LearnDetail() {
     const toggleWatchedStatus = async () => {
         if (!content) return;
 
-        try {
-            if (isWatched) {
-                await removeWatchedVideo(content.id);
-                setIsWatched(false);
-            } else {
-                await addWatchedVideo(content.id);
-                setIsWatched(true);
-            }
-        } catch (error) {
-            console.error('Error toggling watched status:', error);
-        }
     };
 
 
@@ -280,7 +257,7 @@ export default function LearnDetail() {
                                     isDark && !isWatched && styles.actionButtonTextDark,
                                 ]}
                             >
-                                {isWatched ? 'Watched' : 'Mark as Watched'}
+                                {isWatched ? 'Liked' : 'Mark as Liked'}
                             </Text>
                         </TouchableOpacity>
 

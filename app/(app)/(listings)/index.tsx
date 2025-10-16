@@ -16,6 +16,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import ProgressTracker from '@/components/marketplace/ProgressTracker';
+import ListingPerformanceModal from '@/components/modals/ListingPerformanceModal';
 import ListingCard from '@/components/marketplace/ListingCard';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
 import RemoveListingModal from '@/components/modals/RemoveListingModal';
@@ -54,6 +55,14 @@ export default function ManageListings() {
 
     const [showRemoveModal, setShowRemoveModal] = useState(false);
     const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
+    const [showPerformanceModal, setShowPerformanceModal] = useState(false);
+    const [performanceData, setPerformanceData] = useState<{
+        propertyName: string;
+        dateListed: string;
+        totalViews: number;
+        totalEnquiries: number;
+        totalBookmarks: number;
+    } | null>(null);
 
     useEffect(() => {
         loadListings();
@@ -161,6 +170,29 @@ export default function ManageListings() {
     const handleRemoveListing = (listingId: string) => {
         setSelectedListingId(listingId);
         setShowRemoveModal(true);
+    };
+
+    const handleViewPerformance = (listing: MarketplaceListing) => {
+        const backendListing = properties?.find(p => String(p.id) === listing.id);
+
+        if (backendListing) {
+            setPerformanceData({
+                propertyName: backendListing.title || listing.property_name,
+                dateListed: backendListing.listed_date || listing.created_at,
+                totalViews: backendListing.views || 0,
+                totalEnquiries: backendListing.inquiries || 0,
+                totalBookmarks: backendListing.bookmarked || 0,
+            });
+        } else {
+            setPerformanceData({
+                propertyName: listing.property_name,
+                dateListed: listing.created_at,
+                totalViews: 0,
+                totalEnquiries: 0,
+                totalBookmarks: 0,
+            });
+        }
+        setShowPerformanceModal(true);
     };
 
     const calculateSteps = (listing: MarketplaceListing) => {
@@ -311,6 +343,11 @@ export default function ManageListings() {
                                 onUpdate={() => handleUpdateListing(listing.id)}
                                 onRemove={() => handleRemoveListing(listing.id)}
                                 onPress={() => handleUpdateListing(listing.id)}
+                                onViewPerformance={
+                                    listing.status === 'Published'
+                                        ? () => handleViewPerformance(listing)
+                                        : undefined
+                                }
                             />
                         ))
                     )}
@@ -332,6 +369,15 @@ export default function ManageListings() {
                     setShowRemoveModal(false);
                     setSelectedListingId(null);
                     loadListings();
+                }}
+            />
+
+            <ListingPerformanceModal
+                visible={showPerformanceModal}
+                performanceData={performanceData}
+                onClose={() => {
+                    setShowPerformanceModal(false);
+                    setPerformanceData(null);
                 }}
             />
         </View>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -12,6 +12,7 @@ import {
     Platform,
     ActivityIndicator,
     Image,
+    RefreshControl
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,8 +22,8 @@ import { router } from 'expo-router';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import axios from 'axios';
 import { formatCurrency } from '@/utils/general/formatCurrency';
-// import usePortfolioDetail from '@/hooks/usePortfolioDetail';
-
+import usePortfolioDetail from '@/hooks/portfolio/usePortfolioDetail';
+import SubmitReferralModal from '@/components/modals/SubmitReferralModal';
 
 type UserProfile = {
     id: string;
@@ -35,40 +36,22 @@ type UserProfile = {
     total_referral_earnings: number;
 };
 
-type PortfolioSummary = {
-    totalCurrentValue: number;
-    totalIncome: number;
-    totalExpenses: number;
-};
+
 
 export default function Profile() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
+    const { result, refreshing, refreshPortfolioDetails, currency } = usePortfolioDetail();
+
     const [loading, setLoading] = useState(false);
+    const [showReferralModal, setShowReferralModal] = useState(false);
     const { user, setUser, setIsLogged } = useGlobalContext();
-    const [portfolioSummary, setPortfolioSummary] = useState<PortfolioSummary>({
-        totalCurrentValue: 0,
-        totalIncome: 0,
-        totalExpenses: 0,
-    });
 
-
-
-    // const formatCurrency = (amount: number): string => {
-    //     return new Intl.NumberFormat('en-NG', {
-    //         style: 'currency',
-    //         currency: 'NGN',
-    //         minimumFractionDigits: 0,
-    //         maximumFractionDigits: 0,
-    //     }).format(amount);
-    // };
-
-    const netWorth =
-        portfolioSummary.totalCurrentValue +
-        portfolioSummary.totalIncome -
-        portfolioSummary.totalExpenses;
-
+    const netWorth = result?.personal_summary
+        ? result.personal_summary.totalCurrentValue +
+        (result.personal_summary.totalIncome - result.personal_summary.totalExpenses)
+        : 0;
 
     const handleShare = async () => {
         try {
@@ -153,11 +136,16 @@ export default function Profile() {
         <ScrollView
             style={[styles.container, isDark && styles.containerDark]}
             showsVerticalScrollIndicator={false}
+            refreshControl={
+                <RefreshControl
+                    refreshing={refreshing}
+                    onRefresh={refreshPortfolioDetails}
+                    tintColor="#358B8B"
+                />
+            }
         >
             <LinearGradient
-                // colors={['#70a9a9', '#358B8B']}
                 colors={['#efa968', '#358B8B']}
-
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.header}
@@ -186,13 +174,12 @@ export default function Profile() {
                         </Text>
                     </View>
                     <Text style={[styles.netWorthAmount, isDark && styles.netWorthAmountDark]}>
-                        {formatCurrency(netWorth, 'NGN')}
+                        {formatCurrency(netWorth, currency)}
                     </Text>
                     <Text style={[styles.netWorthSubtext, isDark && styles.netWorthSubtextDark]}>
                         Total Value + Income - Expenses
                     </Text>
                 </View>
-
                 <View style={[styles.card, isDark && styles.cardDark]}>
                     <View style={styles.cardHeader}>
                         <Ionicons name="people-outline" size={24} color="#358B8B" />
@@ -200,6 +187,17 @@ export default function Profile() {
                             Referral Details
                         </Text>
                     </View>
+
+                    {user?.referrer && (
+                        <View style={styles.referralRow}>
+                            <Text style={[styles.referralLabel, isDark && styles.referralLabelDark]}>
+                                Referrer
+                            </Text>
+                            <Text style={[styles.referralValue, isDark && styles.referralValueDark]}>
+                                {user?.referrer}
+                            </Text>
+                        </View>
+                    )}
 
                     <View style={styles.referralRow}>
                         <Text style={[styles.referralLabel, isDark && styles.referralLabelDark]}>
@@ -231,168 +229,183 @@ export default function Profile() {
                             {formatCurrency(user?.total_referral_earnings || 0, 'NGN')}
                         </Text>
                     </View>
+
+                    {!user?.referrer && (
+                        <TouchableOpacity
+                            style={[styles.referralButton, isDark && styles.referralButtonDark]}
+                            onPress={() => setShowReferralModal(true)}
+                            activeOpacity={0.8}
+                        >
+                            <Ionicons name="gift" size={20} color="#FFFFFF" />
+                            <Text style={styles.referralButtonText}>Enter Referral Code</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
+            </View>
+
+            <View style={[styles.card, isDark && styles.cardDark]}>
+                <View style={styles.cardHeader}>
+                    <Ionicons name="settings-outline" size={24} color="#358B8B" />
+                    <Text style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
+                        Settings
+                    </Text>
                 </View>
 
-                <View style={[styles.card, isDark && styles.cardDark]}>
-                    <View style={styles.cardHeader}>
-                        <Ionicons name="settings-outline" size={24} color="#358B8B" />
-                        <Text style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
-                            Settings
-                        </Text>
-                    </View>
+                <TouchableOpacity style={styles.menuItem}
+                    onPress={() => router.push('/(auth)/update-profile')}
+                >
+                    <Ionicons
+                        name="person-outline"
+                        size={20}
+                        color={isDark ? '#E5E7EB' : '#6B7280'}
+                    />
+                    <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
+                        Update Profile
+                    </Text>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                    />
+                </TouchableOpacity>
 
-                    <TouchableOpacity style={styles.menuItem}
-                        onPress={() => router.push('/(auth)/update-profile')}
-                    >
-                        <Ionicons
-                            name="person-outline"
-                            size={20}
-                            color={isDark ? '#E5E7EB' : '#6B7280'}
-                        />
-                        <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
-                            Update Profile
-                        </Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color={isDark ? '#9CA3AF' : '#D1D5DB'}
-                        />
-                    </TouchableOpacity>
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => router.push('/(auth)/change-password')}
+                >
+                    <Ionicons
+                        name="lock-closed-outline"
+                        size={20}
+                        color={isDark ? '#E5E7EB' : '#6B7280'}
+                    />
+                    <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
+                        Change Password
+                    </Text>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                    />
+                </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => router.push('/(auth)/change-password')}
-                    >
-                        <Ionicons
-                            name="lock-closed-outline"
-                            size={20}
-                            color={isDark ? '#E5E7EB' : '#6B7280'}
-                        />
-                        <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
-                            Change Password
-                        </Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color={isDark ? '#9CA3AF' : '#D1D5DB'}
-                        />
-                    </TouchableOpacity>
+                <TouchableOpacity style={styles.menuItem}
+                    onPress={() => router.push('/(app)/(settings)')}
+                >
+                    <Ionicons
+                        name="cash-outline"
+                        size={20}
+                        color={isDark ? '#E5E7EB' : '#6B7280'}
+                    />
+                    <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
+                        Set Currency
+                    </Text>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                    />
+                </TouchableOpacity>
+            </View>
 
-                    <TouchableOpacity style={styles.menuItem}
-                        onPress={() => router.push('/(app)/(settings)')}
-                    >
-                        <Ionicons
-                            name="cash-outline"
-                            size={20}
-                            color={isDark ? '#E5E7EB' : '#6B7280'}
-                        />
-                        <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
-                            Set Currency
-                        </Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color={isDark ? '#9CA3AF' : '#D1D5DB'}
-                        />
-                    </TouchableOpacity>
-                </View>
-
-                <View style={[styles.card, isDark && styles.cardDark]}>
-                    <View style={styles.cardHeader}>
-                        <Ionicons name="information-circle-outline" size={24} color="#358B8B" />
-                        <Text style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
-                            About
-                        </Text>
-                    </View>
-
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => Linking.openURL('https://www.realvistaproperties.com/about')}
-                    >
-                        <Ionicons
-                            name="business-outline"
-                            size={20}
-                            color={isDark ? '#E5E7EB' : '#6B7280'}
-                        />
-                        <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
-                            About Us
-                        </Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color={isDark ? '#9CA3AF' : '#D1D5DB'}
-                        />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={styles.menuItem}
-                        onPress={() => Linking.openURL('mailto:contact@realvistaproperties.com')}
-                    >
-                        <Ionicons
-                            name="mail-outline"
-                            size={20}
-                            color={isDark ? '#E5E7EB' : '#6B7280'}
-                        />
-                        <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
-                            Contact Us
-                        </Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color={isDark ? '#9CA3AF' : '#D1D5DB'}
-                        />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem} onPress={handleShare}>
-                        <Ionicons
-                            name="share-social-outline"
-                            size={20}
-                            color={isDark ? '#E5E7EB' : '#6B7280'}
-                        />
-                        <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
-                            Share App
-                        </Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color={isDark ? '#9CA3AF' : '#D1D5DB'}
-                        />
-                    </TouchableOpacity>
-
-                    <TouchableOpacity style={styles.menuItem} onPress={handleRateUs}>
-                        <Ionicons
-                            name="star-outline"
-                            size={20}
-                            color={isDark ? '#E5E7EB' : '#6B7280'}
-                        />
-                        <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
-                            Rate Us
-                        </Text>
-                        <Ionicons
-                            name="chevron-forward"
-                            size={20}
-                            color={isDark ? '#9CA3AF' : '#D1D5DB'}
-                        />
-                    </TouchableOpacity>
+            <View style={[styles.card, isDark && styles.cardDark]}>
+                <View style={styles.cardHeader}>
+                    <Ionicons name="information-circle-outline" size={24} color="#358B8B" />
+                    <Text style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
+                        About
+                    </Text>
                 </View>
 
                 <TouchableOpacity
-                    style={[styles.signOutButton, isDark && styles.signOutButtonDark]}
-                    onPress={logout}
+                    style={styles.menuItem}
+                    onPress={() => Linking.openURL('https://www.realvistaproperties.com/about')}
                 >
-                    <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-                    <Text style={styles.signOutText}>Sign Out</Text>
+                    <Ionicons
+                        name="business-outline"
+                        size={20}
+                        color={isDark ? '#E5E7EB' : '#6B7280'}
+                    />
+                    <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
+                        About Us
+                    </Text>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                    />
                 </TouchableOpacity>
 
-                <View style={styles.footer}>
-                    <Text style={[styles.footerText, isDark && styles.footerTextDark]}>
-                        Realvista Properties
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => Linking.openURL('mailto:contact@realvistaproperties.com')}
+                >
+                    <Ionicons
+                        name="mail-outline"
+                        size={20}
+                        color={isDark ? '#E5E7EB' : '#6B7280'}
+                    />
+                    <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
+                        Contact Us
                     </Text>
-                    <Text style={[styles.footerText, isDark && styles.footerTextDark]}>
-                        Version 1.0.1
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                    />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem} onPress={handleShare}>
+                    <Ionicons
+                        name="share-social-outline"
+                        size={20}
+                        color={isDark ? '#E5E7EB' : '#6B7280'}
+                    />
+                    <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
+                        Share App
                     </Text>
-                </View>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                    />
+                </TouchableOpacity>
+
+                <TouchableOpacity style={styles.menuItem} onPress={handleRateUs}>
+                    <Ionicons
+                        name="star-outline"
+                        size={20}
+                        color={isDark ? '#E5E7EB' : '#6B7280'}
+                    />
+                    <Text style={[styles.menuItemText, isDark && styles.menuItemTextDark]}>
+                        Rate Us
+                    </Text>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                    />
+                </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+                style={[styles.signOutButton, isDark && styles.signOutButtonDark]}
+                onPress={logout}
+            >
+                <Ionicons name="log-out-outline" size={20} color="#EF4444" />
+                <Text style={styles.signOutText}>Sign Out</Text>
+            </TouchableOpacity>
+
+            <View style={styles.footer}>
+                <Text style={[styles.footerText, isDark && styles.footerTextDark]}>
+                    Realvista Properties
+                </Text>
+                <Text style={[styles.footerText, isDark && styles.footerTextDark]}>
+                    Version 1.0.1
+                </Text>
+            </View>
+            <SubmitReferralModal
+                visible={showReferralModal}
+                onClose={() => setShowReferralModal(false)}
+            />
         </ScrollView>
     );
 }
@@ -491,7 +504,7 @@ const styles = StyleSheet.create({
         color: '#F9FAFB',
     },
     netWorthAmount: {
-        fontSize: 32,
+        fontSize: 24,
         fontWeight: '700',
         color: '#FB902E',
         marginBottom: 4,
@@ -589,5 +602,30 @@ const styles = StyleSheet.create({
     },
     footerTextDark: {
         color: '#6B7280',
+    },
+
+    referralButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#FB902E',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 12,
+        marginTop: 16,
+        gap: 8,
+        shadowColor: '#FB902E',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 4,
+    },
+    referralButtonDark: {
+        backgroundColor: '#EA580C',
+    },
+    referralButtonText: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
 });

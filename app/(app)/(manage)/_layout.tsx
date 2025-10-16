@@ -46,69 +46,8 @@ const LearnLayout = () => {
                 }}
             />
 
-            <Stack.Screen
-                name="add-property"
-                options={{
-                    headerShown: true,
-                    title: "Add Property",
-                    headerTitleAlign: "center",
 
-                    headerTintColor: colors.tint,
-                    headerLeft: () => (
-                        <TouchableOpacity onPress={handleBackPress}>
-                            <Ionicons name="arrow-back" size={24} color="#358B8B" />
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
 
-            <Stack.Screen
-                name="add-coordinates"
-                options={{
-                    headerShown: true,
-                    title: "Add Coordinates",
-                    headerTitleAlign: "center",
-
-                    headerTintColor: colors.tint,
-                    headerLeft: () => (
-                        <TouchableOpacity onPress={handleBackPress}>
-                            <Ionicons name="arrow-back" size={24} color="#358B8B" />
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
-
-            <Stack.Screen
-                name="update-property"
-                options={{
-                    headerShown: true,
-                    title: "Update Property",
-                    headerTitleAlign: "center",
-
-                    headerTintColor: colors.tint,
-                    headerLeft: () => (
-                        <TouchableOpacity onPress={handleBackPress}>
-                            <Ionicons name="arrow-back" size={24} color="#358B8B" />
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
-
-            <Stack.Screen
-                name="add-files"
-                options={{
-                    headerShown: true,
-                    title: "Add Files",
-                    headerTitleAlign: "center",
-
-                    headerTintColor: colors.tint,
-                    headerLeft: () => (
-                        <TouchableOpacity onPress={handleBackPress}>
-                            <Ionicons name="arrow-back" size={24} color="#358B8B" />
-                        </TouchableOpacity>
-                    ),
-                }}
-            />
         </Stack>
     );
 };

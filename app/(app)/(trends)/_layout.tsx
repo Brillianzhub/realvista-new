@@ -48,7 +48,7 @@ const TrendLayout = () => {
                     headerTitleAlign: "center",
                     title: "Trends & Market Insights",
                     headerLeft: () => (
-                        <TouchableOpacity onPress={() => router.replace("/(app)/(tabs)")}>
+                        <TouchableOpacity onPress={() => router.back()}>
                             <Ionicons name="arrow-back" size={24} color="#358B8B" />
                         </TouchableOpacity>
                     ),

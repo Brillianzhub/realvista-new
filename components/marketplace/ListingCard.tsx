@@ -14,6 +14,7 @@ type ListingCardProps = {
     onUpdate: () => void;
     onRemove: () => void;
     onPress: () => void;
+    onViewPerformance?: () => void;
 };
 
 export default function ListingCard({
@@ -27,6 +28,7 @@ export default function ListingCard({
     onUpdate,
     onRemove,
     onPress,
+    onViewPerformance,
 }: ListingCardProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
@@ -72,23 +74,36 @@ export default function ListingCard({
                 )}
 
                 <View style={styles.badges}>
-                    <View
-                        style={[
-                            styles.typeBadge,
-                            { backgroundColor: getListingTypeColor(listingType) },
-                        ]}
-                    >
-                        <Text style={styles.typeBadgeText}>{listingType}</Text>
+                    <View style={styles.badgeGroup}>
+                        <View
+                            style={[
+                                styles.typeBadge,
+                                { backgroundColor: getListingTypeColor(listingType) },
+                            ]}
+                        >
+                            <Text style={styles.typeBadgeText}>{listingType}</Text>
+                        </View>
+
+                        <View
+                            style={[
+                                styles.statusBadge,
+                                { backgroundColor: getStatusColor(status) },
+                            ]}
+                        >
+                            <Text style={styles.statusBadgeText}>{status}</Text>
+                        </View>
                     </View>
 
-                    <View
-                        style={[
-                            styles.statusBadge,
-                            { backgroundColor: getStatusColor(status) },
-                        ]}
+                    <TouchableOpacity
+                        style={[styles.deleteIconButton, isDark && styles.deleteIconButtonDark]}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            onRemove();
+                        }}
+                        activeOpacity={0.7}
                     >
-                        <Text style={styles.statusBadgeText}>{status}</Text>
-                    </View>
+                        <Ionicons name="trash-outline" size={20} color={isDark ? '#F87171' : '#EF4444'} />
+                    </TouchableOpacity>
                 </View>
 
                 {completionPercentage < 100 && (
@@ -107,9 +122,11 @@ export default function ListingCard({
             </View>
 
             <View style={styles.content}>
-                <Text style={[styles.propertyName, isDark && styles.propertyNameDark]} numberOfLines={1}>
-                    {propertyName}
-                </Text>
+                <View style={styles.headerRow}>
+                    <Text style={[styles.propertyName, isDark && styles.propertyNameDark]} numberOfLines={1}>
+                        {propertyName}
+                    </Text>
+                </View>
 
                 {location && (
                     <View style={styles.infoRow}>
@@ -138,22 +155,28 @@ export default function ListingCard({
                 )}
 
                 <View style={styles.actions}>
+                    {status === 'Published' && onViewPerformance && (
+                        <TouchableOpacity
+                            style={[styles.actionButton, styles.performanceButton]}
+                            onPress={(e) => {
+                                e.stopPropagation();
+                                onViewPerformance();
+                            }}
+                        >
+                            <Ionicons name="analytics-outline" size={18} color="#FFFFFF" />
+                            <Text style={styles.performanceButtonText}>Performance</Text>
+                        </TouchableOpacity>
+                    )}
+
                     <TouchableOpacity
                         style={[styles.actionButton, styles.updateButton]}
-                        onPress={onUpdate}
+                        onPress={(e) => {
+                            e.stopPropagation();
+                            onUpdate();
+                        }}
                     >
                         <Ionicons name="create-outline" size={18} color="#FFFFFF" />
                         <Text style={styles.actionButtonText}>Update</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                        style={[styles.actionButton, styles.removeButton, isDark && styles.removeButtonDark]}
-                        onPress={onRemove}
-                    >
-                        <Ionicons name="trash-outline" size={18} color={isDark ? '#F87171' : '#EF4444'} />
-                        <Text style={[styles.removeButtonText, isDark && styles.removeButtonTextDark]}>
-                            Remove
-                        </Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -202,6 +225,11 @@ const styles = StyleSheet.create({
         right: 12,
         flexDirection: 'row',
         justifyContent: 'space-between',
+        alignItems: 'flex-start',
+    },
+    badgeGroup: {
+        flexDirection: 'row',
+        gap: 8,
     },
     typeBadge: {
         paddingHorizontal: 10,
@@ -251,11 +279,17 @@ const styles = StyleSheet.create({
     content: {
         padding: 16,
     },
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: 12,
+    },
     propertyName: {
         fontSize: 18,
         fontWeight: '700',
         color: '#111827',
-        marginBottom: 12,
+        flex: 1,
     },
     propertyNameDark: {
         color: '#F9FAFB',
@@ -276,7 +310,7 @@ const styles = StyleSheet.create({
     },
     actions: {
         flexDirection: 'row',
-        gap: 12,
+        gap: 10,
         marginTop: 12,
     },
     actionButton: {
@@ -284,30 +318,41 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 10,
+        paddingVertical: 11,
+        paddingHorizontal: 16,
         borderRadius: 10,
         gap: 6,
     },
     updateButton: {
-        backgroundColor: '#FB902E',
+        backgroundColor: '#358B8B',
     },
     actionButtonText: {
         fontSize: 14,
         fontWeight: '600',
         color: '#FFFFFF',
     },
-    removeButton: {
-        backgroundColor: '#FEE2E2',
+    deleteIconButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 4,
+        elevation: 3,
     },
-    removeButtonDark: {
-        backgroundColor: '#7F1D1D',
+    deleteIconButtonDark: {
+        backgroundColor: 'rgba(31, 41, 55, 0.95)',
     },
-    removeButtonText: {
+    performanceButton: {
+        backgroundColor: '#FB902E',
+    },
+    performanceButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#EF4444',
-    },
-    removeButtonTextDark: {
-        color: '#F87171',
+        color: '#FFFFFF',
     },
 });

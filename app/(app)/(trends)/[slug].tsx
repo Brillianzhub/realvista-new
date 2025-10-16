@@ -38,12 +38,23 @@ export default function PostDetail() {
     const [post, setPost] = useState<PostDetail | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [webViewHeight, setWebViewHeight] = useState(400);
+    const [heightStabilized, setHeightStabilized] = useState(false);
 
     useEffect(() => {
         if (slug) {
             fetchPostDetail();
         }
     }, [slug]);
+
+    useEffect(() => {
+        if (webViewHeight > 400) {
+            const timer = setTimeout(() => {
+                setHeightStabilized(true);
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [webViewHeight]);
 
     const fetchPostDetail = async () => {
         try {
@@ -125,9 +136,10 @@ export default function PostDetail() {
               margin: 0;
             }
             h1, h2, h3, h4, h5, h6 {
+              font-size: 24px;
               color: ${headingColor};
               font-weight: 700;
-              margin-top: 24px;
+              margin-top: 0px;
               margin-bottom: 12px;
               line-height: 1.3;
             }
@@ -252,12 +264,12 @@ export default function PostDetail() {
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
             <View style={styles.header}>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     style={[styles.headerButton, isDark && styles.headerButtonDark]}
                     onPress={() => router.back()}
                 >
                     <Ionicons name="arrow-back" size={24} color={isDark ? '#F9FAFB' : '#111827'} />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <TouchableOpacity
                     style={[styles.headerButton, isDark && styles.headerButtonDark]}
@@ -328,7 +340,7 @@ export default function PostDetail() {
 
                     <View style={styles.divider} />
 
-                    <View style={styles.webViewContainer}>
+                    <View style={[styles.webViewContainer, { height: webViewHeight }]}>
                         <WebView
                             originWhitelist={['*']}
                             source={{ html: getHtmlContent(post.body) }}
@@ -336,6 +348,47 @@ export default function PostDetail() {
                             scrollEnabled={false}
                             showsVerticalScrollIndicator={false}
                             showsHorizontalScrollIndicator={false}
+                            onMessage={(event) => {
+                                if (heightStabilized) return;
+
+                                const height = Number(event.nativeEvent.data);
+                                if (height && height > 0 && height !== webViewHeight - 50) {
+                                    setWebViewHeight(height + 50);
+                                }
+                            }}
+                            injectedJavaScript={`
+                (function() {
+                  let lastHeight = 0;
+                  let stableCount = 0;
+
+                  function sendHeight() {
+                    const height = Math.max(
+                      document.documentElement.scrollHeight,
+                      document.body.scrollHeight,
+                      document.documentElement.offsetHeight,
+                      document.body.offsetHeight
+                    );
+
+                    if (height === lastHeight) {
+                      stableCount++;
+                      if (stableCount >= 3) {
+                        return;
+                      }
+                    } else {
+                      stableCount = 0;
+                      lastHeight = height;
+                    }
+
+                    window.ReactNativeWebView.postMessage(String(height));
+                  }
+
+                  sendHeight();
+                  setTimeout(sendHeight, 300);
+                  setTimeout(sendHeight, 800);
+                  setTimeout(sendHeight, 1500);
+                })();
+                true;
+              `}
                             onShouldStartLoadWithRequest={(request) => {
                                 return true;
                             }}
@@ -488,6 +541,7 @@ const styles = StyleSheet.create({
     },
     webViewContainer: {
         minHeight: 400,
+        overflow: 'hidden',
     },
     webView: {
         backgroundColor: 'transparent',

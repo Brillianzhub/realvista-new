@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-// Define the shape of a property (update fields as needed)
 interface Property {
     id: number;
     title: string;
@@ -10,12 +9,18 @@ interface Property {
     [key: string]: any;
 }
 
+interface UseUserPropertiesResult {
+    properties: Property[];
+    loading: boolean;
+    setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+    refetch: () => Promise<void>;
+}
 
-const useUserProperties = () => {
+const useUserProperties = (): UseUserPropertiesResult => {
     const [loading, setLoading] = useState<boolean>(false);
     const [properties, setProperties] = useState<Property[]>([]);
 
-    const fetchUserProperties = async (): Promise<void> => {
+    const fetchUserProperties = useCallback(async (): Promise<void> => {
         setLoading(true);
         try {
             const token = await AsyncStorage.getItem('authToken');
@@ -43,13 +48,17 @@ const useUserProperties = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    useEffect(() => {
-        fetchUserProperties();
     }, []);
 
-    return { properties, setLoading, loading, fetchUserProperties };
+    // Run once on mount
+    useEffect(() => {
+        fetchUserProperties();
+    }, [fetchUserProperties]);
+
+    // Alias for clarity in consuming components
+    const refetch = fetchUserProperties;
+
+    return { properties, loading, setLoading, refetch };
 };
 
 export default useUserProperties;

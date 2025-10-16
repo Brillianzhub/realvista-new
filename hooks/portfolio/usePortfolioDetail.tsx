@@ -5,7 +5,6 @@ import { useCurrency } from "@/context/CurrencyContext";
 
 // ---- Types ----
 
-// API response structure (adjust fields if backend returns more)
 interface Summary {
     total_initial_cost: number;
     total_current_value: number;
@@ -20,7 +19,6 @@ export interface PortfolioData {
     overall_summary?: Summary;
 }
 
-// Calculated metrics type
 interface Metrics {
     totalInitialCost: number;
     totalCurrentValue: number;
@@ -39,14 +37,15 @@ export interface PortfolioResult {
     overall_summary?: Metrics;
 }
 
-// Hook return type
 interface UsePortfolioDetailReturn {
     result: PortfolioResult | null;
     portfolioData: PortfolioData | null;
     loading: boolean;
+    refreshing: boolean;
     setLoading: React.Dispatch<React.SetStateAction<boolean>>;
     currency: string;
     fetchPortfolioDetails: () => Promise<void>;
+    refreshPortfolioDetails: () => Promise<void>;
 }
 
 // ---- Hook ----
@@ -80,27 +79,27 @@ const usePortfolioDetail = (): UsePortfolioDetailReturn => {
 
             setPortfolioData(response.data);
         } catch (error: any) {
-            console.error("Error fetching user properties:", error.response?.data || error.message);
+            console.error(
+                "Error fetching user properties:",
+                error.response?.data || error.message
+            );
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
-    function calculateMetrics(data: PortfolioData): PortfolioResult {
-        if (!data) {
-            throw new Error("Input data is missing.");
-        }
-
-        const categories: (keyof PortfolioData)[] = ["group_summary", "personal_summary", "overall_summary"];
+    const calculateMetrics = (data: PortfolioData): PortfolioResult => {
+        const categories: (keyof PortfolioData)[] = [
+            "group_summary",
+            "personal_summary",
+            "overall_summary",
+        ];
         const results: PortfolioResult = {};
 
         categories.forEach((category) => {
             const summary = data[category];
-
-            if (!summary) {
-                return;
-            }
+            if (!summary) return;
 
             const {
                 total_initial_cost,
@@ -135,7 +134,7 @@ const usePortfolioDetail = (): UsePortfolioDetailReturn => {
         });
 
         return results;
-    }
+    };
 
     useEffect(() => {
         if (portfolioData) {
@@ -146,9 +145,24 @@ const usePortfolioDetail = (): UsePortfolioDetailReturn => {
 
     useEffect(() => {
         fetchPortfolioDetails();
-    }, []);
+    }, [currency]); // re-fetch if user changes currency
 
-    return { result, portfolioData, loading, setLoading, currency, fetchPortfolioDetails };
+    // --- REFRESH HANDLER ---
+    const refreshPortfolioDetails = async (): Promise<void> => {
+        setRefreshing(true);
+        await fetchPortfolioDetails();
+    };
+
+    return {
+        result,
+        portfolioData,
+        loading,
+        refreshing,
+        setLoading,
+        currency,
+        fetchPortfolioDetails,
+        refreshPortfolioDetails,
+    };
 };
 
 export default usePortfolioDetail;

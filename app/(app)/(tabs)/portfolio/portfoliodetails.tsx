@@ -42,6 +42,8 @@ export default function PropertyDetailScreen() {
 
     const property = JSON.parse(params.propertyData as string);
 
+    // console.log(JSON.stringify(property))
+
     const incomes = property.incomes || [];
     const expenses = property.expenses || [];
 
@@ -173,34 +175,40 @@ export default function PropertyDetailScreen() {
                 <Text style={styles.insightText}>{getAppreciationInsight()}</Text>
             </View>
 
-            {/* <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Graphical Performance</Text>
-                <View style={styles.chartContainer}>
-                    <LineChart
-                        data={property.performanceData}
-                        width={screenWidth - 48}
-                        height={220}
-                        chartConfig={{
-                            backgroundColor: '#FFFFFF',
-                            backgroundGradientFrom: '#FFFFFF',
-                            backgroundGradientTo: '#FFFFFF',
-                            decimalPlaces: 0,
-                            color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
-                            labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
-                            style: {
-                                borderRadius: 16,
-                            },
-                            propsForDots: {
-                                r: '4',
-                                strokeWidth: '2',
-                                stroke: '#3B82F6',
-                            },
-                        }}
-                        bezier
-                        style={styles.chart}
-                    />
+            {property?.performance_data && (
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Graphical Performance</Text>
+                    <View style={styles.chartContainer}>
+                        <LineChart
+                            data={property.performance_data}
+                            width={screenWidth - 48}
+                            height={220}
+                            chartConfig={{
+                                backgroundColor: '#FFFFFF',
+                                backgroundGradientFrom: '#FFFFFF',
+                                backgroundGradientTo: '#FFFFFF',
+                                decimalPlaces: 2,
+                                color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
+                                labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
+                                style: {
+                                    borderRadius: 16,
+                                },
+                                propsForDots: {
+                                    r: '4',
+                                    strokeWidth: '2',
+                                    stroke: '#358B8B',
+                                },
+                            }}
+                            bezier
+                            style={styles.chart}
+                        />
+                        <Text style={{ textAlign: 'right', color: '#6B7280', fontSize: 12 }}>
+                            Values in {property.currency} Millions
+                        </Text>
+
+                    </View>
                 </View>
-            </View> */}
+            )}
 
             <View style={styles.section}>
                 <Text style={styles.sectionTitle}>Income & Expenses</Text>
