@@ -15,6 +15,9 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
 import { submitListingToServer } from '@/hooks/market/submitListingToServer';
+import { formatCurrency } from '@/utils/general/formatCurrency';
+import { useGlobalContext } from '@/context/GlobalProvider';
+import { router } from 'expo-router';
 
 type PublishListingModalProps = {
     visible: boolean;
@@ -31,6 +34,10 @@ export default function PublishListingModal({
     const isDark = colorScheme === 'dark';
     const [loading, setLoading] = useState(false);
     const [listing, setListing] = useState<MarketplaceListing | null>(null);
+
+    const { user } = useGlobalContext();
+
+    console.log(user)
 
 
     useEffect(() => {
@@ -58,9 +65,59 @@ export default function PublishListingModal({
         return `₦${value.toLocaleString()}`;
     };
 
+
+    const checkMandatoryProfileFields = () => {
+        if (!user?.profile) {
+            Alert.alert(
+                'Profile Incomplete',
+                'Before you can list a property, please complete your profile information.',
+                [
+                    {
+                        text: 'Go to Profile',
+                        onPress: () => router.push('/(auth)/update-profile'),
+                    },
+                    {
+                        text: 'Cancel',
+                        onPress: () => router.push('/(app)/(listings)'),
+                    },
+                ]
+            );
+            return false;
+        }
+
+        const mandatoryFields = ['city', 'country_of_residence', 'phone_number', 'street'];
+        const missingFields = mandatoryFields.filter(field => !user.profile[field]);
+
+        if (missingFields.length > 0) {
+            Alert.alert(
+                'Profile Incomplete',
+                'Before you can list a property, please complete the mandatory fields in your profile. This information is essential for potential buyers or renters to contact you.',
+                [
+                    {
+                        text: 'Go to Profile',
+                        onPress: () => router.push('/(auth)/update-profile'),
+                    },
+                    {
+                        text: 'Cancel',
+                        onPress: () => router.push('/(tabs)/HomeScreen'),
+                    },
+                ]
+            );
+            return false;
+        }
+
+        return true;
+    };
+
+
     const handlePublish = async () => {
         if (!listingId || !listing) return;
 
+        // ✅ Step 1: Check user profile completeness
+        const profileOk = checkMandatoryProfileFields();
+        if (!profileOk) return; // stop publishing if profile is incomplete
+
+        // ✅ Step 2: Check listing completeness
         if (listing.completion_percentage < 80) {
             Alert.alert(
                 "Incomplete Listing",
@@ -71,6 +128,7 @@ export default function PublishListingModal({
         }
 
         setLoading(true);
+
         try {
             const storedListings = await AsyncStorage.getItem("marketplaceListings");
             if (!storedListings) {
@@ -86,29 +144,24 @@ export default function PublishListingModal({
                 return;
             }
 
-            // ✅ Get auth token (you can adjust based on your auth logic)
+            // ✅ Get auth token
             const token = await AsyncStorage.getItem("authToken");
             if (!token) {
-                Alert.alert("Authentication Error", "Please log in again to publish your listing.");
+                Alert.alert(
+                    "Authentication Error",
+                    "Please log in again to publish your listing."
+                );
                 return;
             }
 
-            // 🚀 Send data to the backend
-            const propertyId = await submitListingToServer(listingId, token);
+            // 🚀 Send data to backend
+            await submitListingToServer(listingId, token);
 
-            // ✅ Update AsyncStorage after successful upload
-            listings[index] = {
-                ...listings[index],
-                status: "Published",
-                current_step: 5,
-                completion_percentage: 100,
-                published_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-                property_id: propertyId, // store backend property ID
-            };
+            // 🗑️ Remove the local draft listing
+            const updatedListings = listings.filter((l) => l.id !== listingId);
+            await AsyncStorage.setItem("marketplaceListings", JSON.stringify(updatedListings));
 
-            await AsyncStorage.setItem("marketplaceListings", JSON.stringify(listings));
-
+            // ✅ Done
             Alert.alert("✅ Success", "Listing published successfully!", [
                 { text: "OK", onPress: onClose },
             ]);
@@ -116,12 +169,15 @@ export default function PublishListingModal({
             console.error("❌ Error publishing listing:", error);
             Alert.alert(
                 "Error",
-                error.response?.data?.detail || error.message || "Failed to publish listing."
+                error.response?.data?.detail ||
+                error.message ||
+                "Failed to publish listing."
             );
         } finally {
             setLoading(false);
         }
     };
+
 
     if (!listing) {
         return (

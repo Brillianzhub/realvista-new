@@ -1,8 +1,9 @@
 import { router, Tabs } from 'expo-router';
 import { TouchableOpacity } from 'react-native';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
-import { Home, Briefcase, CircleDollarSign, User } from 'lucide-react-native';
+import { Home, Briefcase, User } from 'lucide-react-native';
 import { Menu } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const navigation = useNavigation();
@@ -115,7 +116,10 @@ export default function TabLayout() {
             fontSize: 20,
             fontWeight: '600',
           },
-          tabBarIcon: ({ color, size }) => <CircleDollarSign size={size} color={color} />,
+          // ✅ Replaced with Ionicons
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="business" size={size} color={color} />
+          ),
         }}
       />
     </Tabs>

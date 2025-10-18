@@ -24,18 +24,7 @@ import axios from 'axios';
 import { formatCurrency } from '@/utils/general/formatCurrency';
 import usePortfolioDetail from '@/hooks/portfolio/usePortfolioDetail';
 import SubmitReferralModal from '@/components/modals/SubmitReferralModal';
-
-type UserProfile = {
-    id: string;
-    email: string;
-    full_name?: string;
-    avatar_url?: string;
-    referral_code?: string;
-    referrer?: string;
-    referred_users_count: number;
-    total_referral_earnings: number;
-};
-
+import DeleteAccountModal from '@/components/modals/DeleteAccountModal';
 
 
 export default function Profile() {
@@ -47,6 +36,7 @@ export default function Profile() {
     const [loading, setLoading] = useState(false);
     const [showReferralModal, setShowReferralModal] = useState(false);
     const { user, setUser, setIsLogged } = useGlobalContext();
+    const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
 
     const netWorth = result?.personal_summary
         ? result.personal_summary.totalCurrentValue +
@@ -305,6 +295,25 @@ export default function Profile() {
                         color={isDark ? '#9CA3AF' : '#D1D5DB'}
                     />
                 </TouchableOpacity>
+
+                <TouchableOpacity
+                    style={styles.menuItem}
+                    onPress={() => setShowDeleteAccountModal(true)}
+                >
+                    <Ionicons
+                        name="trash-outline"
+                        size={20}
+                        color="#EF4444"
+                    />
+                    <Text style={[styles.menuItemText, styles.deleteAccountText]}>
+                        Delete Account
+                    </Text>
+                    <Ionicons
+                        name="chevron-forward"
+                        size={20}
+                        color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                    />
+                </TouchableOpacity>
             </View>
 
             <View style={[styles.card, isDark && styles.cardDark]}>
@@ -406,6 +415,11 @@ export default function Profile() {
                 visible={showReferralModal}
                 onClose={() => setShowReferralModal(false)}
             />
+
+            <DeleteAccountModal
+                visible={showDeleteAccountModal}
+                onClose={() => setShowDeleteAccountModal(false)}
+            />
         </ScrollView>
     );
 }
@@ -474,6 +488,9 @@ const styles = StyleSheet.create({
     content: {
         padding: 16,
         marginTop: -20,
+    },
+    deleteAccountText: {
+        color: '#EF4444',
     },
     card: {
         backgroundColor: '#FFFFFF',

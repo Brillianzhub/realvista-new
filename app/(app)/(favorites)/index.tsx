@@ -10,13 +10,13 @@ import {
     RefreshControl,
     Alert,
     Image,
-    Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import useUserBookmark, { type Bookmark } from '@/hooks/market/useUserBookmark';
+import { formatCurrency } from '@/utils/general/formatCurrency';
 
 export default function BookmarksScreen() {
     const router = useRouter();
@@ -26,14 +26,6 @@ export default function BookmarksScreen() {
     const { bookmarks, loading, error, refetch } = useUserBookmark();
     const [refreshing, setRefreshing] = useState(false);
     const [removingId, setRemovingId] = useState<number | null>(null);
-
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('en-NG', {
-            style: 'currency',
-            currency: 'NGN',
-            minimumFractionDigits: 0,
-        }).format(value);
-    };
 
     const handleRefresh = async () => {
         setRefreshing(true);
@@ -186,7 +178,7 @@ export default function BookmarksScreen() {
                         </View>
 
                         <View style={styles.priceRow}>
-                            <Text style={styles.price}>{formatCurrency(item.price)}</Text>
+                            <Text style={styles.price}>{formatCurrency(item.price, item.currency)}</Text>
 
                             <TouchableOpacity
                                 style={[styles.removeButton, isDark && styles.removeButtonDark]}
@@ -199,7 +191,7 @@ export default function BookmarksScreen() {
                                 {isRemoving ? (
                                     <ActivityIndicator size="small" color="#EF4444" />
                                 ) : (
-                                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                                    <Ionicons name="trash-outline" size={14} color="#EF4444" />
                                 )}
                             </TouchableOpacity>
                         </View>
@@ -262,7 +254,7 @@ export default function BookmarksScreen() {
             <View style={[styles.container, styles.centerContent, isDark && styles.containerDark]}>
                 <ActivityIndicator size="large" color="#358B8B" />
                 <Text style={[styles.loadingText, isDark && styles.loadingTextDark]}>
-                    Loading bookmarks...
+                    Loading saved properties...
                 </Text>
             </View>
         );
@@ -277,7 +269,7 @@ export default function BookmarksScreen() {
                 <View style={styles.headerContent}>
                     <View style={styles.headerTextContainer}>
                         <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
-                            My Bookmarked Properties
+                            My Saved Properties
                         </Text>
                         <Text style={[styles.headerSubtitle, isDark && styles.headerSubtitleDark]}>
                             {bookmarks.length} {bookmarks.length === 1 ? 'property' : 'properties'} saved
@@ -490,8 +482,8 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     removeButton: {
-        width: 32,
-        height: 32,
+        width: 24,
+        height: 24,
         borderRadius: 16,
         backgroundColor: '#FEE2E2',
         justifyContent: 'center',

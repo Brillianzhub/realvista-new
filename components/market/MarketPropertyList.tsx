@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
     View,
     ScrollView,
@@ -12,6 +12,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { Listing } from "@/hooks/market/useAgentListings";
 import { formatCurrency } from "@/utils/general/formatCurrency";
+import { handleAddBookmark } from '@/utils/market/handleAddBookmarks';
+import useUserBookmark, { type Bookmark } from '@/hooks/market/useUserBookmark';
+import { handleViewProperty } from "@/utils/market/handleViewProperty";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -27,13 +30,32 @@ const MarketPropertyList: React.FC<MarketPropertyListProps> = ({
 }) => {
     const router = useRouter();
     const [activeImageIndex, setActiveImageIndex] = useState<Record<number, number>>({});
+    const { bookmarks, refetch } = useUserBookmark();
 
-    const handlePropertyPress = (property: Listing) => {
+    const isPropertyBookmarked = (propertyId: number) => {
+        return bookmarks?.some((b) => b.property_id === propertyId)
+    };
+
+    // 💖 Toggle bookmark
+    const onAddBookmark = async (propertyId: number) => {
+        if (!propertyId) return;
+
+        try {
+            const status = await handleAddBookmark(propertyId);
+            await refetch();
+        } catch (error) {
+            console.error("Bookmark update failed:", error);
+        };
+    };
+
+    const handlePropertyPress = async (property: Listing) => {
+        await handleViewProperty(property.id);
         router.push({
             pathname: "/market/marketdetails",
             params: { selectedItemId: property.id.toString() },
         });
     };
+
 
     return (
         <View style={styles.container}>
@@ -42,82 +64,90 @@ const MarketPropertyList: React.FC<MarketPropertyListProps> = ({
                 nestedScrollEnabled
                 showsVerticalScrollIndicator={false}
             >
-                {properties.map((property) => (
-                    <View key={property.id} style={styles.propertyCard}>
-                        {/* Image Carousel */}
-                        <View style={styles.carouselContainer}>
-                            <ScrollView
-                                horizontal
-                                pagingEnabled
-                                showsHorizontalScrollIndicator={false}
-                                onScroll={(event) => {
-                                    const x = event.nativeEvent.contentOffset.x;
-                                    const index = Math.round(x / (screenWidth - 32));
-                                    setActiveImageIndex((prev) => ({
-                                        ...prev,
-                                        [property.id]: index,
-                                    }));
-                                }}
-                                scrollEventThrottle={16}
-                            >
-                                {(property.preview_images?.length
-                                    ? property.preview_images.slice(0, 3)
-                                    : [
-                                        "https://via.placeholder.com/400x250.png?text=No+Image",
-                                    ]
-                                ).map((img, index) => (
-                                    <Image
-                                        key={index}
-                                        source={{ uri: img }}
-                                        style={styles.propertyImage}
-                                    />
-                                ))}
-                            </ScrollView>
+                {properties.map((property) => {
+                    const bookmarked = isPropertyBookmarked(property.id);
 
-                            {/* Pagination dots */}
-                            <View style={styles.dotsContainer}>
-                                {(property.preview_images?.slice(0, 3) || [0, 1, 2]).map(
-                                    (_, index) => (
+                    return (
+                        <View key={property.id} style={styles.propertyCard}>
+                            {/* Image Carousel */}
+                            <View style={styles.carouselContainer}>
+                                <ScrollView
+                                    horizontal
+                                    pagingEnabled
+                                    showsHorizontalScrollIndicator={false}
+                                    onScroll={(event) => {
+                                        const x = event.nativeEvent.contentOffset.x;
+                                        const index = Math.round(x / (screenWidth - 32));
+                                        setActiveImageIndex((prev) => ({
+                                            ...prev,
+                                            [property.id]: index,
+                                        }));
+                                    }}
+                                    scrollEventThrottle={16}
+                                >
+                                    {(property.preview_images?.length
+                                        ? property.preview_images.slice(0, 3)
+                                        : ["https://via.placeholder.com/400x250.png?text=No+Image"]
+                                    ).map((img, index) => (
+                                        <Image
+                                            key={index}
+                                            source={{ uri: img }}
+                                            style={styles.propertyImage}
+                                        />
+                                    ))}
+                                </ScrollView>
+
+                                {/* Pagination dots */}
+                                <View style={styles.dotsContainer}>
+                                    {(property.preview_images?.slice(0, 3) || [0, 1, 2]).map((_, index) => (
                                         <View
                                             key={index}
                                             style={[
                                                 styles.dot,
-                                                activeImageIndex[property.id] === index &&
-                                                styles.activeDot,
+                                                activeImageIndex[property.id] === index && styles.activeDot,
                                             ]}
                                         />
-                                    )
-                                )}
+                                    ))}
+                                </View>
                             </View>
+
+                            {/* Property Info */}
+                            <TouchableOpacity
+                                style={styles.propertyInfo}
+                                onPress={() => handlePropertyPress(property)}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={styles.propertyName}>{property.title}</Text>
+
+                                <View style={styles.locationRow}>
+                                    <Ionicons name="location-outline" size={14} color="#6B7280" />
+                                    <Text style={styles.locationText}>
+                                        {property.city}, {property.state}
+                                    </Text>
+                                </View>
+
+                                <View style={styles.statsRow}>
+                                    <Text style={styles.valueText}>
+                                        {formatCurrency(property.price, property.currency)}
+                                    </Text>
+
+                                    {/* ❤️ Bookmark toggle */}
+                                    <TouchableOpacity onPress={() => onAddBookmark(property.id)}>
+                                        <Ionicons
+                                            name={bookmarked ? "heart" : "heart-outline"}
+                                            size={26}
+                                            color={bookmarked ? "#e63946" : "#9CA3AF"}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <Text style={styles.description} numberOfLines={3}>
+                                    {property.short_description}
+                                </Text>
+                            </TouchableOpacity>
                         </View>
-
-                        {/* Property Info Section */}
-                        <TouchableOpacity
-                            style={styles.propertyInfo}
-                            onPress={() => handlePropertyPress(property)}
-                            activeOpacity={0.8}
-                        >
-                            <Text style={styles.propertyName}>{property.title}</Text>
-
-                            <View style={styles.locationRow}>
-                                <Ionicons name="location-outline" size={14} color="#6B7280" />
-                                <Text style={styles.locationText}>
-                                    {property.city}, {property.state}
-                                </Text>
-                            </View>
-
-                            <View style={styles.statsRow}>
-                                <Text style={styles.valueText}>
-                                    {formatCurrency(property.price, property.currency)}
-                                </Text>
-                            </View>
-
-                            <Text style={styles.description} numberOfLines={3}>
-                                {property.short_description}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                ))}
+                    );
+                })}
             </ScrollView>
 
             {/* Floating Add Button */}

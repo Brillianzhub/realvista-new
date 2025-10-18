@@ -76,26 +76,41 @@ const AppleLogin: React.FC<AppleLoginProps> = ({ setUser, setIsLogged }) => {
 
             // Step 4: Store token + user
             await AsyncStorage.setItem("authToken", token);
-            await AsyncStorage.setItem("user_profile", JSON.stringify(user));
 
-            axios.defaults.headers.common["Authorization"] = `Token ${token}`;
+            const userResponse = await fetch(
+                "https://www.realvistamanagement.com/accounts/current-user/",
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Token ${token}`,
+                    },
+                }
+            );
+
+            if (!userResponse.ok) {
+                const errorData = await userResponse.json();
+                throw new Error(errorData.error || "Failed to fetch user details");
+            }
+
+            const userData = await userResponse.json();
 
             // Step 5: Map user & update state
             const mappedUser: User = {
-                id: user.id,
-                email: user.email,
-                name: user.name,
+                id: userData.id,
+                email: userData.email,
+                name: userData.name,
                 authProvider: "apple",
-                isActive: user.is_active,
-                isStaff: user.is_staff,
-                profile: user.profile,
-                groups: user.groups,
-                preference: user.preference,
-                subscription: user.subscription,
-                referral_code: user.referral_code,
-                referrer: user.referrer,
-                referred_users_count: user.referred_users_count,
-                total_referral_earnings: user.total_referral_earnings,
+                isActive: userData.is_active,
+                isStaff: userData.is_staff,
+                profile: userData.profile,
+                groups: userData.groups,
+                preference: userData.preference,
+                subscription: userData.subscription,
+                referral_code: userData.referral_code,
+                referrer: userData.referrer,
+                referred_users_count: userData.referred_users_count,
+                total_referral_earnings: userData.total_referral_earnings,
             };
 
             setUser(mappedUser);

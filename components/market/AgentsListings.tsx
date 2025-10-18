@@ -13,12 +13,12 @@ import { useAgentListings } from "@/hooks/market/useAgentListings";
 
 const AgentsListings = () => {
     const { properties, loading, error, loadMore, hasMore, refresh, refreshing } = useAgentListings();
+    
+    const corporateProperties = properties.filter(
+        (property) => property.category === "corporate"
+    )
 
-    const handleListProperty = () => {
-        console.log("Agent: List Property pressed");
-    };
-
-    if (loading && properties.length === 0) {
+    if (loading && corporateProperties.length === 0) {
         return <ActivityIndicator size="large" style={{ marginTop: 40 }} />;
     }
 
@@ -35,7 +35,7 @@ const AgentsListings = () => {
             style={styles.container}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} />}
         >
-            <MarketPropertyList properties={properties as any} />
+            <MarketPropertyList properties={corporateProperties as any} />
 
             {/* Load More Button */}
             {hasMore && !loading && (

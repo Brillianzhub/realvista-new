@@ -15,7 +15,6 @@ import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import ProgressTracker from '@/components/marketplace/ProgressTracker';
 import ListingPerformanceModal from '@/components/modals/ListingPerformanceModal';
 import ListingCard from '@/components/marketplace/ListingCard';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
@@ -67,6 +66,7 @@ export default function ManageListings() {
     useEffect(() => {
         loadListings();
     }, [properties]);
+
 
     useEffect(() => {
         filterListings();
@@ -173,15 +173,23 @@ export default function ManageListings() {
     };
 
     const handleViewPerformance = (listing: MarketplaceListing) => {
-        const backendListing = properties?.find(p => String(p.id) === listing.id);
+        let backendListing = null;
 
+        // ✅ Detect backend listing
+        if (typeof listing.id === "string" && listing.id.startsWith("backend_")) {
+            const numericId = listing.id.split("_")[1]; // "123" from "backend_123"
+            backendListing = properties?.find(p => String(p.id) === numericId);
+        } else {
+            backendListing = properties?.find(p => String(p.id) === String(listing.id));
+        }
+        // ✅ If property exists in backend, use its live metrics
         if (backendListing) {
             setPerformanceData({
                 propertyName: backendListing.title || listing.property_name,
                 dateListed: backendListing.listed_date || listing.created_at,
-                totalViews: backendListing.views || 0,
-                totalEnquiries: backendListing.inquiries || 0,
-                totalBookmarks: backendListing.bookmarked || 0,
+                totalViews: backendListing.views ?? 0,
+                totalEnquiries: backendListing.inquiries ?? 0,
+                totalBookmarks: backendListing.bookmarked ?? 0,
             });
         } else {
             setPerformanceData({
@@ -194,6 +202,7 @@ export default function ManageListings() {
         }
         setShowPerformanceModal(true);
     };
+
 
     const calculateSteps = (listing: MarketplaceListing) => {
         const steps = [...listingSteps];
@@ -257,14 +266,6 @@ export default function ManageListings() {
                     />
                 }
             >
-                {/* {selectedListingId && selectedListing && (
-                    <ProgressTracker
-                        steps={currentSteps}
-                        currentStep={currentSteps.findIndex((s) => !s.completed)}
-                        completionPercentage={selectedListing.completion_percentage}
-                    />
-                )} */}
-
                 <View style={styles.filters}>
                     <ScrollView
                         horizontal

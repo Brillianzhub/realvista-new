@@ -16,7 +16,6 @@ import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
-import { isBackendListing, getBackendId } from '@/utils/market/marketplaceMapper';
 
 type RemoveListingModalProps = {
     visible: boolean;
@@ -37,11 +36,19 @@ export default function RemoveListingModal({
     const [reason, setReason] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
+    const [isBackendListing, setIsBackendListing] = useState(false);
+
+    // 🧠 Detect if the listingId belongs to backend
     useEffect(() => {
         if (visible && listingId) {
+            const backend = typeof listingId === 'string' && listingId.startsWith('backend_');
             loadListing();
+            setIsBackendListing(backend);
+        } else {
+            setIsBackendListing(false);
         }
     }, [visible, listingId]);
+
 
     const loadListing = async () => {
         if (!listingId) return;
@@ -75,6 +82,7 @@ export default function RemoveListingModal({
             // Filter out the listing with the given ID
             const updatedListings = listings.filter((l) => l.id !== listingId);
 
+
             // If the array length didn’t change, the listing wasn’t found
             if (updatedListings.length === listings.length) {
                 Alert.alert('Error', 'Listing not found');
@@ -102,53 +110,88 @@ export default function RemoveListingModal({
         }
     };
 
+    // console.log(getBackendId);
 
     const handleRemoveBackendListing = async () => {
         if (!listingId) return;
 
         try {
             setIsLoading(true);
-            const token = await AsyncStorage.getItem('authToken')
-            if (!token) { return }
+            const token = await AsyncStorage.getItem('authToken');
+            if (!token) {
+                Alert.alert('Error', 'Authentication token is missing.');
+                return;
+            }
 
-            const response = await fetch(`https://www.realvistamanagement.com/market/delete-property/${listingId}/`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Token ${token}`,
-                    'Content-Type': 'application/json',
-                },
-            });
+            // ✅ Extract numeric ID (ensure it's a number)
+            const numericId = parseInt(
+                (typeof listingId === 'string' && listingId.startsWith('backend_'))
+                    ? listingId.replace('backend_', '')
+                    : String(listingId),
+                10
+            );
 
-            const data = await response.json();
+            if (isNaN(numericId)) {
+                Alert.alert('Error', 'Invalid backend property ID.');
+                return;
+            }
 
+            // ✅ Perform DELETE request
+            const response = await fetch(
+                `https://www.realvistamanagement.com/market/delete-property/${numericId}/`,
+                {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Token ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                }
+            );
+
+            // ✅ Handle response properly
             if (response.ok) {
-                Alert.alert('Success', 'Property deleted successfully');
+                Alert.alert('✅ Success', 'Property deleted successfully.', [
+                    { text: 'OK', onPress: onClose },
+                ]);
             } else {
-                Alert.alert('Error', data.error || 'Something went wrong');
+                let errorText = '';
+                try {
+                    const data = await response.json();
+                    errorText = data?.error || data?.detail || JSON.stringify(data);
+                } catch {
+                    errorText = await response.text();
+                }
+
+                console.log('❌ Backend delete failed:', errorText);
+                Alert.alert('Error', errorText || 'Failed to delete property.');
             }
         } catch (error) {
-            console.error('Error deleting property:', error);
-            Alert.alert('Error', 'An error occurred while deleting the property');
+            console.error('❌ Error deleting backend property:', error);
+            Alert.alert('Error', 'An unexpected error occurred while deleting the property.');
         } finally {
             setIsLoading(false);
-        };
+        }
     };
 
     const handleSubmit = () => {
-        if (!listing) return;
+        if (!listingId) return;
+
+        const backend = typeof listingId === 'string' && listingId.startsWith('backend_');
 
         if (confirmationText.toLowerCase() === 'remove') {
-            if (isBackendListing(listing)) {
+            if (backend) {
                 handleRemoveBackendListing();
             } else {
                 handleRemoveDraftListing();
             }
+        } else {
+            Alert.alert('Invalid Input', 'Please type REMOVE to confirm.');
         }
     };
 
     const isValid = confirmationText.toLowerCase() === 'remove' && listingId;
     const isPublished = listing?.status === 'Published';
-    const isBackend = listing ? isBackendListing(listing) : false;
+    const isBackend = listing ? isBackendListing : false;
 
     return (
         <Modal

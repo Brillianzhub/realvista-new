@@ -31,6 +31,7 @@ export default function ListingPerformanceModal({
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
+
     const formatDate = (dateString: string | null): string => {
         if (!dateString) return 'N/A';
 
@@ -149,13 +150,13 @@ export default function ListingPerformanceModal({
                                         <Text style={[styles.metricValue, isDark && styles.metricValueDark]}>
                                             {performanceData.totalViews.toLocaleString()}
                                         </Text>
-                                        <Text style={[styles.metricSubtext, isDark && styles.metricSubtextDark]}>
+                                        {/* <Text style={[styles.metricSubtext, isDark && styles.metricSubtextDark]}>
                                             {getAverageViewsPerDay(
                                                 performanceData.totalViews,
                                                 getDaysSinceListed(performanceData.dateListed)
                                             )}{' '}
-                                            per day
-                                        </Text>
+                                            since listing
+                                        </Text> */}
                                     </View>
 
                                     <View style={[styles.metricCard, isDark && styles.metricCardDark]}>

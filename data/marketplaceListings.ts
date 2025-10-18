@@ -38,24 +38,3 @@ export type MarketplaceListing = {
     published_at?: string;
     backendData?: any;
 };
-
-// export const marketplaceListingsData: MarketplaceListing[] = [
-
-
-// ];
-
-// export const getListingById = (id: string): MarketplaceListing | undefined => {
-//     return marketplaceListingsData.find((listing) => listing.id === id);
-// };
-
-// export const getListingsByType = (type: 'Corporate' | 'P2P' | 'All'): MarketplaceListing[] => {
-//     if (type === 'All') return marketplaceListingsData;
-//     return marketplaceListingsData.filter((listing) => listing.listing_type === type);
-// };
-
-// export const getListingsByStatus = (
-//     status: 'Draft' | 'Published' | 'Removed' | 'All'
-// ): MarketplaceListing[] => {
-//     if (status === 'All') return marketplaceListingsData;
-//     return marketplaceListingsData.filter((listing) => listing.status === status);
-// };

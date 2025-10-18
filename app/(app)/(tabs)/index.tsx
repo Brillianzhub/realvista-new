@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Alert
 } from 'react-native';
 import {
   Briefcase,
@@ -15,7 +16,6 @@ import {
   Users,
   BookOpen,
   BarChart3,
-  Settings,
   NotebookPen,
   CircleDollarSign
 } from 'lucide-react-native';
@@ -66,9 +66,17 @@ export default function HomeScreen() {
 
   const { user } = useGlobalContext();
 
-  // console.log('User in HomeScreen:', user);
   const handleNavigationPress = (item: NavigationItem) => {
-    router.push(item.route);
+    if (item.id === '3') {
+      Alert.alert(
+        "Coming Soon",
+        "Thank you for your interest! The MutualInvest feature is not yet available - stay tuned for updates.",
+        [{ text: "OK", style: "default" }]
+      )
+    } else {
+      router.push(item.route);
+    };
+
   };
 
   const renderPrimaryNavigation = () => (
@@ -205,7 +213,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   primaryNavText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#1f2937',
     textAlign: 'center',

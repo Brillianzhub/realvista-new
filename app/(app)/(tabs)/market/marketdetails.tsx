@@ -21,13 +21,12 @@ import { usePropertyDetails } from "@/hooks/market/usePropertyDetails";
 import { formatCurrency } from '@/utils/general/formatCurrency';
 import MapViewer from '@/components/general/MapViewer';
 import ContactOwnerModal from '@/components/modals/ContactOwnerModal';
+import { handleAddBookmark } from '@/utils/market/handleAddBookmarks';
+import useUserBookmark, { type Bookmark } from '@/hooks/market/useUserBookmark';
+import { handleRecordInquiry } from '@/utils/market/handleRecordInquiry';
+
 
 const screenWidth = Dimensions.get('window').width;
-
-
-const formatROI = (roi: number): string => {
-    return `${roi > 0 ? '+' : ''}${roi.toFixed(1)}%`;
-};
 
 const getInitials = (name: string): string => {
     return name
@@ -84,6 +83,7 @@ const getAmenityIcon = (amenity: string): string => {
     return iconMap[amenity] || 'checkmark-circle';
 };
 
+
 export default function MarketDetailScreen() {
     const router = useRouter();
     const [activeSlide, setActiveSlide] = useState(0);
@@ -91,34 +91,13 @@ export default function MarketDetailScreen() {
     const [descriptionExpanded, setDescriptionExpanded] = useState(false);
     const { selectedItemId } = useLocalSearchParams<{ selectedItemId: string }>();
     const { property, loading, error } = usePropertyDetails(selectedItemId);
+    const { bookmarks, refetch } = useUserBookmark();
+
+
+    const [isBookmarked, setIsBookmarked] = useState(false)
 
     const slideAnim = useRef(new Animated.Value(0)).current;
 
-
-    const panResponder = useRef(
-        PanResponder.create({
-            onStartShouldSetPanResponder: () => true,
-            onMoveShouldSetPanResponder: (_, gestureState) => {
-                return Math.abs(gestureState.dy) > 5;
-            },
-            onPanResponderMove: (_, gestureState) => {
-                if (gestureState.dy > 0) {
-                    slideAnim.setValue(gestureState.dy);
-                }
-            },
-            onPanResponderRelease: (_, gestureState) => {
-                if (gestureState.dy > 100) {
-                    closeModal();
-                } else {
-                    Animated.spring(slideAnim, {
-                        toValue: 0,
-                        useNativeDriver: true,
-                        tension: 100,
-                    }).start();
-                }
-            },
-        })
-    ).current;
 
     useEffect(() => {
         if (contactModalVisible) {
@@ -142,7 +121,8 @@ export default function MarketDetailScreen() {
         });
     };
 
-    const handleContactOwner = () => {
+    const handleContactOwner = async (propertyId: number) => {
+        await handleRecordInquiry(propertyId);
         slideAnim.setValue(500);
         setContactModalVisible(true);
     };
@@ -156,6 +136,32 @@ export default function MarketDetailScreen() {
         });
     };
 
+
+    // 🧭 Set initial bookmark state for this property
+    useEffect(() => {
+        if (property?.id && bookmarks.length > 0) {
+            const found = bookmarks.some(
+                (b) => b.property_id === property.id
+            );
+            setIsBookmarked(found);
+        }
+    }, [bookmarks, property]);
+
+    // 💖 Toggle bookmark
+    const onAddBookmark = async () => {
+        if (!property || !property.id) {
+            console.warn("No property available to bookmark");
+            return;
+        };
+
+        try {
+            const bookmarkStatus = await handleAddBookmark(property.id);
+            setIsBookmarked(bookmarkStatus);
+            await refetch();
+        } catch (error) {
+            console.error("Bookmark update failed:", error);
+        };
+    };
 
 
     if (loading) return <ActivityIndicator size="large" />;
@@ -188,11 +194,6 @@ export default function MarketDetailScreen() {
         }, 300);
     };
 
-
-
-    const handleBuyNow = () => {
-        console.log('Buy now pressed');
-    };
 
     const renderCarouselItem = ({ item }: { item: string }) => (
         <View style={styles.carouselItem}>
@@ -244,21 +245,16 @@ export default function MarketDetailScreen() {
                 <Text style={styles.propertyName}>{property?.title}</Text>
                 <View style={styles.headerStats}>
                     <Text style={styles.currentValue}>{formatCurrency(property.price, property.currency)}</Text>
-                    {/* <View style={styles.roiContainer}>
+                    <TouchableOpacity
+                        style={styles.roiContainer}
+                        onPress={onAddBookmark}
+                    >
                         <Ionicons
-                            name={property.roi > 0 ? 'arrow-up-outline' : 'arrow-down-outline'}
-                            size={18}
-                            color={property.roi > 0 ? '#10B981' : '#EF4444'}
+                            name={'heart'}
+                            size={24}
+                            color={isBookmarked ? '#e63946' : '#ccc'}
                         />
-                        <Text
-                            style={[
-                                styles.roiText,
-                                { color: property.roi > 0 ? '#10B981' : '#EF4444' },
-                            ]}
-                        >
-                            {formatROI(property.roi)}
-                        </Text>
-                    </View> */}
+                    </TouchableOpacity>
                 </View>
 
                 <View style={styles.locationRow}>
@@ -375,7 +371,7 @@ export default function MarketDetailScreen() {
                 )}
             </View>
             <View style={styles.ctaSection}>
-                <TouchableOpacity style={styles.contactButton} onPress={handleContactOwner}>
+                <TouchableOpacity style={styles.contactButton} onPress={() => handleContactOwner(property.id)}>
                     <Ionicons name="mail-outline" size={20} color="#358B8B" />
                     <Text style={styles.contactButtonText}>Contact Owner</Text>
                 </TouchableOpacity>
@@ -406,7 +402,7 @@ const styles = StyleSheet.create({
     },
     backButton: {
         position: 'absolute',
-        top: 50,
+        top: 20,
         left: 16,
         zIndex: 10,
     },
@@ -464,7 +460,7 @@ const styles = StyleSheet.create({
     headerStats: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        justifyContent: 'space-between',
         marginBottom: 12,
     },
     currentValue: {
@@ -511,7 +507,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#6B7280',
     },
-   
+
     sectionTitle: {
         fontSize: 20,
         fontWeight: '600',

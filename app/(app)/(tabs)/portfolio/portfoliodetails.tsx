@@ -42,8 +42,6 @@ export default function PropertyDetailScreen() {
 
     const property = JSON.parse(params.propertyData as string);
 
-    // console.log(JSON.stringify(property))
-
     const incomes = property.incomes || [];
     const expenses = property.expenses || [];
 

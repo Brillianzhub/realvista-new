@@ -41,7 +41,6 @@ export default function RemovePropertyModal({
     const [isLoading, setIsLoading] = useState(false);
 
 
-
     const handleDeleteProperty = async () => {
         if (!selectedPropertyId) {
             Alert.alert('Error', 'Please select a property to delete.');

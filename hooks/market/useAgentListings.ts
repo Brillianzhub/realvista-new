@@ -7,6 +7,7 @@ export interface Listing {
     city: string;
     state: string;
     currency: string;
+    category: string;
     price: number;
     short_description: string;
     preview_images: string[];
