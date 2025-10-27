@@ -13,12 +13,18 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
 import ListingForm from '@/components/forms/ListingForm';
+import { useListingLoader } from '@/utils/market/useListingLoader';
+import { useGlobalContext } from '@/context/GlobalProvider';
+import useFetchVendorProperties from '@/hooks/market/useVendorListing';
+import useUpdateListing from '@/hooks/market/useUpdateListing';
+
 
 type AddMarketplaceListingModalProps = {
     visible: boolean;
     listingId?: string | null;
     onClose: () => void;
     onSuccess?: (listingId: string) => void;
+    mode: 'create' | 'update';
 };
 
 export default function AddMarketplaceListingModal({
@@ -26,45 +32,40 @@ export default function AddMarketplaceListingModal({
     listingId,
     onClose,
     onSuccess,
+    mode
 }: AddMarketplaceListingModalProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const [loading, setLoading] = useState(false);
     const [initialData, setInitialData] = useState<any>(null);
 
-    useEffect(() => {
-        if (visible && listingId) {
-            loadListing();
-        } else if (visible && !listingId) {
-            setInitialData(null);
-        }
-    }, [visible, listingId]);
+    const { user } = useGlobalContext();
+    const { properties } = useFetchVendorProperties(user?.email || null);
 
-    const loadListing = async () => {
-        if (!listingId) return;
+    const { updateListing, isUpdating } = useUpdateListing();
 
-        setLoading(true);
-        try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            if (storedListings) {
-                const listings: MarketplaceListing[] = JSON.parse(storedListings);
-                const listing = listings.find((l) => l.id === listingId);
-
-                if (listing) {
-                    setInitialData(listing);
-                }
+    const { } = useListingLoader({
+        listingId: listingId ?? null,
+        properties,
+        onListingLoaded: (listing) => {
+            if (listing) {
+                setInitialData(listing);
             }
-        } catch (error) {
-            console.error('Error loading listing:', error);
-            Alert.alert('Error', 'Failed to load listing');
-        } finally {
-            setLoading(false);
-        }
-    };
+        },
+    });
 
     const handleSubmit = async (formData: any) => {
         setLoading(true);
         try {
+
+            if (mode === 'update') {
+                await updateListing({ id: listingId, ...formData });
+                Alert.alert('Success', 'Listing updated successfully');
+                onClose();
+                return;
+            }
+
+
             const storedListings = await AsyncStorage.getItem('marketplaceListings');
             let listings: MarketplaceListing[] = storedListings
                 ? JSON.parse(storedListings)
@@ -139,8 +140,6 @@ export default function AddMarketplaceListingModal({
             visible={visible}
             animationType="slide"
             presentationStyle='formSheet'
-            // transparent={true}
-            // presentationStyle="pageSheet"
             onRequestClose={onClose}
         >
             <View style={[styles.container, isDark && styles.containerDark]}>
@@ -156,7 +155,6 @@ export default function AddMarketplaceListingModal({
                         />
                     </TouchableOpacity>
                     <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
-                        {/* {listingId ? 'Update Listing' : 'Create Listing'} */}
                         Basic Information
                     </Text>
                     <View style={{ width: 40 }} />

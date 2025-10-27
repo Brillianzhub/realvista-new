@@ -15,8 +15,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
 import CustomPicker from '@/components/forms/CustomPicker';
 
+import { useListingLoader } from '@/utils/market/useListingLoader';
+import { useGlobalContext } from '@/context/GlobalProvider';
+import useFetchVendorProperties from '@/hooks/market/useVendorListing';
+
+import { useUpdateMarketFeatures } from '@/hooks/market/useUpdateMarketFeatures';
+
 type PropertyFeatures = {
-    negotiable: string;
+    negotiable: 'yes' | 'slightly' | 'no';
     furnished: boolean;
     pet_friendly: boolean;
     parking_available: boolean;
@@ -33,16 +39,23 @@ type AddFeaturesModalProps = {
     visible: boolean;
     listingId: string | null;
     onClose: () => void;
+    mode: 'create' | 'update';
 };
 
 export default function AddFeaturesModal({
     visible,
     listingId,
     onClose,
+    mode
 }: AddFeaturesModalProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const [loading, setLoading] = useState(false);
+
+    const { user } = useGlobalContext();
+    const { properties } = useFetchVendorProperties(user?.email || null);
+
+    const { updateMarketFeatures, isLoading: isSubmitting } = useUpdateMarketFeatures();
 
     const [formData, setFormData] = useState<PropertyFeatures>({
         negotiable: 'no',
@@ -58,31 +71,40 @@ export default function AddFeaturesModal({
         security: false,
     });
 
+
+    const { } = useListingLoader({
+        listingId: listingId ?? null,
+        properties,
+        onListingLoaded: (listing) => {
+            if (listing?.features) {
+                setFormData(listing.features as PropertyFeatures);
+            }
+        },
+    });
+
     useEffect(() => {
-        if (visible && listingId) {
-            loadFeatures();
-        } else if (visible && !listingId) {
+        if (visible && !listingId) {
             resetForm();
         }
     }, [visible, listingId]);
 
-    const loadFeatures = async () => {
-        if (!listingId) return;
+    // const loadFeatures = async () => {
+    //     if (!listingId) return;
 
-        try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            if (storedListings) {
-                const listings: MarketplaceListing[] = JSON.parse(storedListings);
-                const listing = listings.find((l) => l.id === listingId);
+    //     try {
+    //         const storedListings = await AsyncStorage.getItem('marketplaceListings');
+    //         if (storedListings) {
+    //             const listings: MarketplaceListing[] = JSON.parse(storedListings);
+    //             const listing = listings.find((l) => l.id === listingId);
 
-                if (listing?.features) {
-                    setFormData(listing.features as PropertyFeatures);
-                }
-            }
-        } catch (error) {
-            console.error('Error loading features:', error);
-        }
-    };
+    //             if (listing?.features) {
+    //                 setFormData(listing.features as PropertyFeatures);
+    //             }
+    //         }
+    //     } catch (error) {
+    //         console.error('Error loading features:', error);
+    //     }
+    // };
 
     const resetForm = () => {
         setFormData({
@@ -112,32 +134,67 @@ export default function AddFeaturesModal({
 
         setLoading(true);
         try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            if (!storedListings) {
-                Alert.alert('Error', 'Listing not found');
-                return;
+
+            if (mode === 'create') {
+
+                const storedListings = await AsyncStorage.getItem('marketplaceListings');
+                if (!storedListings) {
+                    Alert.alert('Error', 'Listing not found');
+                    return;
+                }
+
+                const listings: MarketplaceListing[] = JSON.parse(storedListings);
+                const index = listings.findIndex((l) => l.id === listingId);
+
+                if (index === -1) {
+                    Alert.alert('Error', 'Listing not found');
+                    return;
+                }
+
+                listings[index] = {
+                    ...listings[index],
+                    features: formData,
+                    current_step: Math.max(listings[index].current_step, 4),
+                    completion_percentage: calculateCompletion(listings[index]),
+                    updated_at: new Date().toISOString(),
+                };
+
+                await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
+
+                Alert.alert('Success', 'Features saved successfully');
+                onClose();
+
+            } else if (mode === 'update') {
+                let backendId = listingId;
+                if (typeof backendId === 'string' && backendId.startsWith('backend_')) {
+                    backendId = backendId.replace('backend_', '');
+                }
+
+                // Map negotiable and electricity_proximity to the API-accepted values
+                const mappedElectricity = ((): 'moderate' | 'close' | 'far' | undefined => {
+                    switch (formData.electricity_proximity) {
+                        case 'moderate':
+                            return 'moderate';
+                        case 'nearby':
+                        case 'available':
+                            return 'close';
+                        case 'far':
+                            return 'far';
+                        default:
+                            return undefined;
+                    }
+                })();
+
+                const payload = {
+                    ...formData,
+                    electricity_proximity: mappedElectricity,
+                };
+
+                // cast to any to satisfy the hook's expected type if needed
+                await updateMarketFeatures(backendId, payload as any);
+
+                Alert.alert('Success', 'Features updated successfully');
             }
-
-            const listings: MarketplaceListing[] = JSON.parse(storedListings);
-            const index = listings.findIndex((l) => l.id === listingId);
-
-            if (index === -1) {
-                Alert.alert('Error', 'Listing not found');
-                return;
-            }
-
-            listings[index] = {
-                ...listings[index],
-                features: formData,
-                current_step: Math.max(listings[index].current_step, 4),
-                completion_percentage: calculateCompletion(listings[index]),
-                updated_at: new Date().toISOString(),
-            };
-
-            await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
-
-            Alert.alert('Success', 'Features saved successfully');
-            onClose();
         } catch (error: any) {
             console.error('Error saving features:', error);
             Alert.alert('Error', error.message || 'Failed to save features');
@@ -151,7 +208,7 @@ export default function AddFeaturesModal({
             basicInfo: !!(listing.property_name && listing.property_type && listing.location && listing.city && listing.state),
             images: !!(listing.images && listing.images.length > 0),
             location: !!(listing.latitude && listing.longitude),
-            features: !!listing.features,
+            features: !!(listing.features && typeof listing.features === 'object'),
             published: listing.status === 'Published',
         };
 

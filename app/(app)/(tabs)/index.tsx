@@ -6,7 +6,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
-  Alert
+  Alert,
+  useColorScheme
 } from 'react-native';
 import {
   Briefcase,
@@ -64,6 +65,9 @@ const secondaryNavigationItems: NavigationItem[] = [
 export default function HomeScreen() {
   const router = useRouter();
 
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
   const { user } = useGlobalContext();
 
   const handleNavigationPress = (item: NavigationItem) => {
@@ -80,7 +84,9 @@ export default function HomeScreen() {
   };
 
   const renderPrimaryNavigation = () => (
-    <View style={styles.primaryNavContainer}>
+    <View
+      style={[styles.primaryNavContainer]}
+    >
       <Text style={styles.sectionTitle}>Quick Actions</Text>
       <View style={styles.primaryNavGrid}>
         {navigationItems.map((item) => (
@@ -123,7 +129,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, isDark && styles.containerDark]}>
       <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
         {renderPrimaryNavigation()}
         {renderSecondaryNavigation()}
@@ -138,6 +144,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f9fafb',
+  },
+  containerDark: {
+    backgroundColor: '#111827',
   },
   scrollContainer: {
     flex: 1,

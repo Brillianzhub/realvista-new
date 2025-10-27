@@ -12,6 +12,7 @@ import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import PostCard from '@/components/trends/PostCard';
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 
 
 
@@ -70,6 +71,21 @@ export default function Trends() {
         }
     };
 
+
+    // const handleReportPress = async (report) => {
+    //     try {
+
+
+    //         // 2️⃣ Increment views quietly in the background
+    //         await axios.post(
+    //             `https://www.realvistamanagement.com/api/reports/${report.slug}/increment-views/`
+    //         );
+
+    //     } catch (err) {
+    //         console.error('❌ Failed to update report views:', err);
+    //     }
+    // };
+
     const extractExcerpt = (html: string): string => {
         const text = html.replace(/<[^>]*>/g, '');
         return text.length > 150 ? text.substring(0, 150) + '...' : text;
@@ -84,11 +100,15 @@ export default function Trends() {
         fetchPosts();
     }, []);
 
-    const handlePostPress = (slug: string) => {
+    const handlePostPress = async (slug: string) => {
         router.push({
             pathname: '/(app)/(trends)/[slug]',
             params: { slug },
         });
+
+        await axios.post(
+            `https://www.realvistamanagement.com/trends/reports/${slug}/increment-views/`
+        );
     };
 
     const renderSkeleton = () => (

@@ -94,7 +94,8 @@ export default function ManageListings() {
         let filtered = listings;
 
         if (selectedListingType !== 'All') {
-            filtered = filtered.filter((item) => item.listing_type === selectedListingType);
+            const normalizedType = selectedListingType.toLowerCase();
+            filtered = filtered.filter((item) => (item.category || '').toLowerCase() === normalizedType);
         }
 
         if (selectedStatus !== 'All') {
@@ -119,50 +120,23 @@ export default function ManageListings() {
         await loadListings();
     };
 
-    const handleAddProperty = async () => {
-        try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            let listings: MarketplaceListing[] = storedListings
-                ? JSON.parse(storedListings)
-                : [];
-
-            const newListingId = Date.now().toString();
-            const newListing: MarketplaceListing = {
-                id: newListingId,
-                user_id: user?.email || 'user-1',
-                listing_type: 'Corporate',
-                property_name: '',
-                property_type: '',
-                location: '',
-                city: '',
-                state: '',
-                description: '',
-                property_value: 0,
-                roi_percentage: 0,
-                estimated_yield: 0,
-                completion_percentage: 0,
-                current_step: 0,
-                status: 'Draft',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            };
-
-            listings.push(newListing);
-            await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
-
-            router.push({
-                pathname: '/(app)/(listings)/listing-workflow',
-                params: { id: newListingId, new: 'true' },
-            });
-        } catch (error) {
-            console.error('Error creating listing:', error);
-            Alert.alert('Error', 'Failed to create listing');
-        }
-    };
-
-    const handleUpdateListing = (listingId: string) => {
+    const handleAddProperty = () => {
         router.push({
             pathname: '/(app)/(listings)/listing-workflow',
+            params: { new: 'true' },
+        });
+    };
+
+    const handleUpdateDraftListing = (listingId: string) => {
+        router.push({
+            pathname: '/(app)/(listings)/listing-workflow',
+            params: { id: listingId },
+        });
+    };
+
+    const handleUpdatePublishedListing = (listingId: string) => {
+        router.push({
+            pathname: '/(app)/(listings)/update-listing',
             params: { id: listingId },
         });
     };
@@ -175,14 +149,12 @@ export default function ManageListings() {
     const handleViewPerformance = (listing: MarketplaceListing) => {
         let backendListing = null;
 
-        // ✅ Detect backend listing
         if (typeof listing.id === "string" && listing.id.startsWith("backend_")) {
             const numericId = listing.id.split("_")[1]; // "123" from "backend_123"
             backendListing = properties?.find(p => String(p.id) === numericId);
         } else {
             backendListing = properties?.find(p => String(p.id) === String(listing.id));
         }
-        // ✅ If property exists in backend, use its live metrics
         if (backendListing) {
             setPerformanceData({
                 propertyName: backendListing.title || listing.property_name,
@@ -336,14 +308,15 @@ export default function ManageListings() {
                                 id={listing.id}
                                 thumbnailUrl={listing.thumbnail_url}
                                 propertyName={listing.property_name}
-                                listingType={listing.listing_type}
+                                listingType={(listing.category?.toLowerCase() === 'p2p' ? 'P2P' : 'Corporate') as 'Corporate' | 'P2P'}
                                 status={listing.status}
                                 completionPercentage={listing.completion_percentage}
                                 location={listing.location}
                                 propertyValue={listing.property_value}
-                                onUpdate={() => handleUpdateListing(listing.id)}
+                                propertyCurrency={listing.currency}
+                                onUpdate={() => listing.status === 'Draft' ? handleUpdateDraftListing(listing.id) : handleUpdatePublishedListing(listing.id)}
                                 onRemove={() => handleRemoveListing(listing.id)}
-                                onPress={() => handleUpdateListing(listing.id)}
+                                onPress={() => listing.status === 'Draft' ? handleUpdateDraftListing(listing.id) : handleUpdatePublishedListing(listing.id)}
                                 onViewPerformance={
                                     listing.status === 'Published'
                                         ? () => handleViewPerformance(listing)

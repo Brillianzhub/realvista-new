@@ -77,38 +77,9 @@ export default function PropertyDetailScreen() {
 
     const handleListForSale = async () => {
         try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            let listings: MarketplaceListing[] = storedListings
-                ? JSON.parse(storedListings)
-                : [];
-
-            const newListingId = Date.now().toString();
-            const newListing: MarketplaceListing = {
-                id: newListingId,
-                user_id: user?.email || 'user-1',
-                listing_type: 'Corporate',
-                property_name: '',
-                property_type: '',
-                location: '',
-                city: '',
-                state: '',
-                description: '',
-                property_value: 0,
-                roi_percentage: 0,
-                estimated_yield: 0,
-                completion_percentage: 0,
-                current_step: 0,
-                status: 'Draft',
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            };
-
-            listings.push(newListing);
-            await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
-
             router.push({
                 pathname: '/(app)/(listings)/listing-workflow',
-                params: { id: newListingId, new: 'true' },
+                params: { new: 'true', portfolioProperty: JSON.stringify(property) },
             });
         } catch (error) {
             console.error('Error creating listing:', error);

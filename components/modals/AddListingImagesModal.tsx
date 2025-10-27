@@ -15,46 +15,62 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
+import { useListingLoader } from '@/utils/market/useListingLoader';
+import { useGlobalContext } from '@/context/GlobalProvider';
+import useFetchVendorProperties from '@/hooks/market/useVendorListing';
+import { useImageUploader } from '@/hooks/market/useListingImageUploader';
+import { useDeleteImage } from '@/hooks/market/useDeleteImage';
+
 
 type AddListingImagesModalProps = {
     visible: boolean;
     listingId: string | null;
     onClose: () => void;
+    mode: 'create' | 'update';
 };
 
 export default function AddListingImagesModal({
     visible,
     listingId,
     onClose,
+    mode
 }: AddListingImagesModalProps) {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const [loading, setLoading] = useState(false);
     const [images, setImages] = useState<string[]>([]);
+    const [imageObjects, setImageObjects] = useState<{ id: number; url: string }[]>([]);
 
-    useEffect(() => {
-        if (visible && listingId) {
-            loadImages();
-        }
-    }, [visible, listingId]);
+    const { uploadImages, uploading, progress } = useImageUploader();
 
-    const loadImages = async () => {
-        if (!listingId) return;
+    const [pendingImages, setPendingImages] = useState<string[]>([]);
 
-        try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            if (storedListings) {
-                const listings: MarketplaceListing[] = JSON.parse(storedListings);
-                const listing = listings.find((l) => l.id === listingId);
-                if (listing && listing.images) {
-                    setImages(listing.images);
+    const { user } = useGlobalContext();
+    const { properties } = useFetchVendorProperties(user?.email || null);
+
+    const { } = useListingLoader({
+        listingId: listingId ?? null,
+        properties,
+        onListingLoaded: (listing) => {
+            if (listing && listing.images) {
+                setImages(listing.images);
+            };
+
+            if (listing.image_objects) {
+                const objs = listing.image_objects;
+                if (Array.isArray(objs)) {
+                    setImageObjects(objs as { id: number; url: string }[]);
+                } else if (objs && typeof objs === 'object') {
+                    setImageObjects(Object.values(objs) as { id: number; url: string }[]);
+                } else {
+                    setImageObjects([]);
                 }
-            }
-        } catch (error) {
-            console.error('Error loading images:', error);
-        }
-    };
+            };
+        },
+    });
 
+    const { deleteImage, error } = useDeleteImage();
+    
     const pickImages = async () => {
         if (!listingId) {
             Alert.alert('Error', 'No listing selected');
@@ -63,7 +79,7 @@ export default function AddListingImagesModal({
 
         try {
             const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                mediaTypes: ['images', 'videos'],
                 allowsMultipleSelection: true,
                 quality: 0.8,
             });
@@ -71,7 +87,7 @@ export default function AddListingImagesModal({
             if (!result.canceled && result.assets.length > 0) {
                 setLoading(true);
 
-                const allowedTypes = ['jpg', 'jpeg', 'png'];
+                const allowedTypes = ['jpg', 'jpeg', 'png', 'heic', 'heif'];
                 const maxFileSize = 10 * 1024 * 1024;
                 const validImages: string[] = [];
                 const errors: string[] = [];
@@ -101,9 +117,14 @@ export default function AddListingImagesModal({
 
                 if (validImages.length > 0) {
                     const allImages = [...images, ...validImages];
-                    await saveImages(allImages);
-                    setImages(allImages);
 
+                    if (mode === 'create') {
+                        await saveImages(allImages);
+                    } else {
+                        setPendingImages(allImages);
+                    };
+
+                    setImages(allImages);
                     Alert.alert('Success', `${validImages.length} image(s) added successfully`);
                 } else if (errors.length === 0) {
                     Alert.alert('Error', 'No valid images selected');
@@ -127,14 +148,59 @@ export default function AddListingImagesModal({
                     text: 'Remove',
                     style: 'destructive',
                     onPress: async () => {
-                        const updatedImages = images.filter((img) => img !== imageUri);
-                        await saveImages(updatedImages);
-                        setImages(updatedImages);
+                        try {
+                            if (mode === 'create') {
+                                // 🟢 CREATE MODE: remove and save immediately
+                                const updatedImages = images.filter((img) => img !== imageUri);
+                                await saveImages(updatedImages);
+                                setImages(updatedImages);
+                            } else {
+                                // 🔵 UPDATE MODE
+                                if (imageUri.startsWith('file://')) {
+                                    // Local pending image
+                                    const updatedPending = pendingImages.filter((img) => img !== imageUri);
+                                    setPendingImages(updatedPending);
+                                    console.log('🗑️ Removed local pending image:', imageUri);
+                                } else {
+                                    // Backend image → find its ID from imageObjects
+                                    const imageObj = imageObjects.find((obj) => obj.url === imageUri);
+
+                                    if (imageObj) {
+                                        const fileId = imageObj.id;
+                                        console.log(`🗑️ Deleting backend image (id=${fileId}):`, imageUri);
+
+                                        // ✅ Use the delete hook
+                                        const success = await deleteImage(fileId);
+
+                                        if (success) {
+                                            // Remove from local state only if deletion succeeded
+                                            const updatedImageObjects = imageObjects.filter((obj) => obj.id !== fileId);
+                                            setImageObjects(updatedImageObjects);
+
+                                            const updatedPending = pendingImages.filter((img) => img !== imageUri);
+                                            setPendingImages(updatedPending);
+
+                                            console.log("✅ Image deleted successfully and removed from state");
+                                        } else {
+                                            Alert.alert("Error", "Failed to delete image from server");
+                                        }
+                                    } else {
+                                        console.warn("⚠️ Image not found in imageObjects:", imageUri);
+                                    }
+                                }
+
+                            }
+                        } catch (error) {
+                            console.error('❌ Error removing image:', error);
+                            Alert.alert('Error', 'Failed to remove image');
+                        }
                     },
                 },
             ]
         );
     };
+
+
 
     const setAsThumbnail = async (imageUri: string) => {
         try {
@@ -191,6 +257,33 @@ export default function AddListingImagesModal({
         } catch (error) {
             throw error;
         }
+    };
+
+
+    const handleUpdateFiles = async () => {
+        if (pendingImages.length === 0) {
+            Alert.alert('No new images selected', 'Please add images before updating.')
+        };
+        setLoading(true);
+
+        try {
+
+            let backendId = listingId;
+
+            if (typeof backendId === 'string' && backendId.startsWith('backend_')) {
+                backendId = backendId.replace('backend_', '')
+            };
+
+            await uploadImages(Number(backendId), pendingImages)
+
+            Alert.alert('Success', 'Images updated succesfully');
+            setPendingImages([]);
+            onClose();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update images for the listing')
+        } finally {
+            setLoading(false);
+        };
     };
 
     const calculateCompletion = (listing: MarketplaceListing, images: string[]) => {
@@ -314,11 +407,19 @@ export default function AddListingImagesModal({
                     <View style={[styles.footer, isDark && styles.footerDark]}>
                         <TouchableOpacity
                             style={styles.doneButton}
-                            onPress={onClose}
+                            onPress={mode === 'update' ? handleUpdateFiles : onClose}
                         >
-                            <Text style={styles.doneButtonText}>Done</Text>
+                            <Text style={styles.doneButtonText}>
+                                {mode === 'update' ? 'Update Files' : 'Done'}
+                            </Text>
                         </TouchableOpacity>
                     </View>
+
+                    {loading && (
+                        <View style={styles.loadingOverlay}>
+                            <ActivityIndicator size="large" color="#FB902E" />
+                        </View>
+                    )}
                 </View>
             </View>
         </Modal>
@@ -496,5 +597,16 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#FFFFFF',
+    },
+    loadingOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
     },
 });

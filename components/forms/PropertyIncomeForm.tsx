@@ -96,7 +96,6 @@ const PropertyIncomeForm: React.FC<PropertyIncomeFormProps> = ({ onSubmit }) => 
 
     const handleSubmit = async () => {
 
-        console.log('Submitting form with data:', formData);
         if (!validateForm()) {
             Alert.alert('Validation Error', 'Please correct the highlighted fields.');
             return;

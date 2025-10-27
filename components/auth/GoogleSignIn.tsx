@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Button, ActivityIndicator, View } from "react-native";
+import { Alert, Button, ActivityIndicator, View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import Constants from 'expo-constants';
-
+import { FontAwesome } from "@expo/vector-icons";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -35,16 +35,17 @@ interface GoogleSignInProps {
 const GoogleSignIn: React.FC<GoogleSignInProps> = ({ setUser, setIsLogged }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-
+    const [loading, setLoading] = useState(false);
     const { googleWebClientId, googleIosClientId } = Constants.expoConfig?.extra || {};
 
     // Configure Google sign-in request
     const [request, response, promptAsync] = Google.useAuthRequest({
         // clientId: "YOUR_EXPO_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
         iosClientId: googleIosClientId,
-        // androidClientId: "YOUR_ANDROID_GOOGLE_CLIENT_ID.apps.googleusercontent.com",
+        androidClientId: "249644969622-ri71m1pf3hu11l625cldm1lq9b7p6lsn.apps.googleusercontent.com",
         webClientId: googleWebClientId,
     });
+
 
     useEffect(() => {
         const handleResponse = async () => {
@@ -123,18 +124,42 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ setUser, setIsLogged }) => 
     }, [response]);
 
     return (
-        <View style={{ marginVertical: 20 }}>
+        <View style={styles.container}>
             {isSubmitting ? (
                 <ActivityIndicator size="large" color="#000" />
             ) : (
-                <Button
-                    title="Sign in with Google"
-                    disabled={!request}
-                    onPress={() => promptAsync()}
-                />
+                <TouchableOpacity style={styles.appleButton} onPress={() => promptAsync()}>
+                    <FontAwesome name="apple" size={20} color="#000" style={{ marginRight: 10 }} />
+                    <Text style={styles.appleText}>Sign in with Google</Text>
+                </TouchableOpacity>
             )}
         </View>
     );
+
 };
 
 export default GoogleSignIn;
+
+const styles = StyleSheet.create({
+    container: {
+        marginVertical: 20,
+        alignItems: "center",
+        width: "100%",
+    },
+    appleButton: {
+        width: "100%",
+        height: 50,
+        backgroundColor: "transparent",
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        justifyContent: "center",
+        alignItems: "center",
+        flexDirection: "row",
+    },
+    appleText: {
+        fontSize: 16,
+        fontWeight: "600",
+        color: "#000",
+    },
+});

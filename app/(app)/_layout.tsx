@@ -3,14 +3,24 @@ import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import DrawerContent from '@/components/navigation/CustomDrawerContent';
 import { Book, Home } from 'lucide-react-native';
+import { TouchableOpacity, useColorScheme } from "react-native";
 
 export default function AppLayout() {
     // Temporary theme values until you add a real theme system
-    const isDark = false; // change to true if you want to simulate dark mode
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
+    // const colors = {
+    //     background: isDark ? '#111827' : '#FFFFFF', // dark gray vs white
+    //     drawerBackground: isDark ? '#1F2937' : '#F9FAFB', // darker gray vs light gray
+    //     text: isDark ? '#F3F4F6' : '#111827', // light vs dark
+    // };
+
     const colors = {
-        background: isDark ? '#111827' : '#FFFFFF', // dark gray vs white
-        drawerBackground: isDark ? '#1F2937' : '#F9FAFB', // darker gray vs light gray
-        text: isDark ? '#F3F4F6' : '#111827', // light vs dark
+        background: isDark ? "#FFFFFF" : "#FFFFFF",
+        drawerBackground: isDark ? '#1F2937' : '#F9FAFB',
+        tint: isDark ? "#F9FAFB" : "#111827",
+        text: isDark ? '#F3F4F6' : '#111827',
+        iconColor: isDark ? "#FB902E" : "#358B8B",
     };
 
     return (

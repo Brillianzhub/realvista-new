@@ -19,6 +19,8 @@ import { formatCurrency } from '@/utils/general/formatCurrency';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import { router } from 'expo-router';
 
+
+
 type PublishListingModalProps = {
     visible: boolean;
     listingId: string | null;
@@ -34,11 +36,9 @@ export default function PublishListingModal({
     const isDark = colorScheme === 'dark';
     const [loading, setLoading] = useState(false);
     const [listing, setListing] = useState<MarketplaceListing | null>(null);
-
     const { user } = useGlobalContext();
 
-    console.log(user)
-
+    // console.log(listing)
 
     useEffect(() => {
         if (visible && listingId) {
@@ -60,11 +60,6 @@ export default function PublishListingModal({
             console.error('Error loading listing:', error);
         }
     };
-
-    const formatCurrency = (value: number) => {
-        return `₦${value.toLocaleString()}`;
-    };
-
 
     const checkMandatoryProfileFields = () => {
         if (!user?.profile) {
@@ -99,13 +94,12 @@ export default function PublishListingModal({
                     },
                     {
                         text: 'Cancel',
-                        onPress: () => router.push('/(tabs)/HomeScreen'),
+                        onPress: () => router.push('/(app)/(listings)'),
                     },
                 ]
             );
             return false;
         }
-
         return true;
     };
 
@@ -277,14 +271,15 @@ export default function PublishListingModal({
                                             styles.typeBadge,
                                             {
                                                 backgroundColor:
-                                                    listing.listing_type === 'Corporate' ? '#3B82F6' : '#8B5CF6',
+                                                    listing.category === 'corporate' ? '#3B82F6' : '#8B5CF6',
                                             },
                                         ]}
                                     >
-                                        <Text style={styles.typeBadgeText}>{listing.listing_type}</Text>
+                                        <Text style={styles.typeBadgeText}>{listing.category}</Text>
                                     </View>
                                 </View>
                             </View>
+
 
                             {listing.location && (
                                 <View style={styles.row}>
@@ -313,7 +308,7 @@ export default function PublishListingModal({
                                         Property Value
                                     </Text>
                                     <Text style={[styles.value, styles.valuePrice]}>
-                                        {formatCurrency(listing.property_value)}
+                                        {formatCurrency(listing.price, listing.currency)}
                                     </Text>
                                 </View>
                             </View>

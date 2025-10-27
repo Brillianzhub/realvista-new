@@ -84,8 +84,8 @@ const listingPurposeChoices = [
 ];
 
 const listingCategoryChoices = [
-    { label: 'Corporate', value: 'Corporate' },
-    { label: 'P2P (Peer-to-Peer)', value: 'P2P' },
+    { label: 'Corporate', value: 'corporate' },
+    { label: 'P2P (Peer-to-Peer)', value: 'p2p' },
 ];
 
 type ListingFormProps = {
@@ -98,21 +98,21 @@ export default function ListingForm({ initialData, onSubmit }: ListingFormProps)
     const isDark = colorScheme === 'dark';
 
     const [formData, setFormData] = useState({
-        listing_type: initialData?.listing_type || 'Corporate',
-        title: initialData?.title || '',
+        category: initialData?.category || 'corporate',
+        title: initialData?.title || initialData?.property_name || '',
         description: initialData?.description || '',
-        property_type: initialData?.property_type || '',
+        property_type: initialData?.property_type.toLowerCase() || '',
         price: initialData?.property_value?.toString() || '',
         currency: initialData?.currency || 'NGN',
-        listing_purpose: initialData?.listing_purpose || '',
-        address: initialData?.address || '',
+        listing_purpose: initialData?.listing_purpose || initialData?.market_type.toLowerCase() || '',
+        address: initialData?.location || '',
         city: initialData?.city || '',
         state: initialData?.state || '',
         zip_code: initialData?.zip_code || '',
         bedrooms: initialData?.bedrooms?.toString() || '',
         bathrooms: initialData?.bathrooms?.toString() || '',
         square_feet: initialData?.square_feet?.toString() || '',
-        lot_size: initialData?.lot_size?.toString() || '',
+        lot_size: initialData?.lot_size?.toString() || initialData?._size?.toString() || '',
         year_built: initialData?.year_built?.toString() || '',
         availability: initialData?.availability || 'now',
         availability_date: initialData?.availability_date || '',
@@ -150,8 +150,8 @@ export default function ListingForm({ initialData, onSubmit }: ListingFormProps)
     const validateFormData = (data: typeof formData) => {
         const errors: { [key: string]: string } = {};
 
-        if (!data.listing_type) {
-            errors.listing_type = 'Listing category is required.';
+        if (!data.category) {
+            errors.category = 'Listing category is required.';
         }
 
         if (!data.title.trim()) {
@@ -246,11 +246,11 @@ export default function ListingForm({ initialData, onSubmit }: ListingFormProps)
         }
 
         const submissionData = {
-            listing_type: formData.listing_type,
+            category: formData.category,
             title: formData.title,
             description: formData.description,
             property_type: formData.property_type,
-            property_value: Number(removeCommas(formData.price)),
+            price: Number(removeCommas(formData.price)),
             currency: formData.currency,
             listing_purpose: formData.listing_purpose,
             address: formData.address,
@@ -283,21 +283,21 @@ export default function ListingForm({ initialData, onSubmit }: ListingFormProps)
                         key={item.value}
                         style={[
                             styles.radioButton,
-                            formData.listing_type === item.value && styles.selectedRadioButton,
+                            formData.category === item.value && styles.selectedRadioButton,
                             isDark && styles.radioButtonDark,
                         ]}
-                        onPress={() => handleInputChange('listing_type', item.value)}
+                        onPress={() => handleInputChange('category', item.value)}
                     >
                         <View
                             style={[
                                 styles.dot,
-                                formData.listing_type === item.value && styles.selectedDot,
+                                formData.category === item.value && styles.selectedDot,
                             ]}
                         />
                         <Text
                             style={[
                                 styles.radioButtonText,
-                                formData.listing_type === item.value && styles.selectedRadioButtonText,
+                                formData.category === item.value && styles.selectedRadioButtonText,
                                 isDark && styles.radioButtonTextDark,
                             ]}
                         >

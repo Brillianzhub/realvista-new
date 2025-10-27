@@ -8,6 +8,7 @@ import {
     useColorScheme,
     ActivityIndicator,
     Image,
+    Alert
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +20,10 @@ import AddListingImagesModal from '@/components/modals/AddListingImagesModal';
 import AddListingCoordinatesModal from '@/components/modals/AddListingCoordinatesModal';
 import AddFeaturesModal from '@/components/modals/AddFeaturesModal';
 import PublishListingModal from '@/components/modals/PublishListingModal';
+import { useGlobalContext } from '@/context/GlobalProvider';
+import useFetchVendorProperties from '@/hooks/market/useVendorListing';
+import { mapBackendToFrontend, isBackendListing } from '@/utils/market/marketplaceMapper';
+
 
 type Step = {
     id: number;
@@ -31,10 +36,14 @@ type Step = {
 export default function ListingWorkflowScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
+    const { portfolioProperty } = useLocalSearchParams();
     const listingId = params.id as string;
     const isNew = params.new === 'true';
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
+
+    const { user } = useGlobalContext();
+    const { properties } = useFetchVendorProperties(user?.email || null);
 
     const [loading, setLoading] = useState(true);
     const [listing, setListing] = useState<MarketplaceListing | null>(null);
@@ -47,29 +56,48 @@ export default function ListingWorkflowScreen() {
     const [showFeaturesModal, setShowFeaturesModal] = useState(false);
     const [showPublishModal, setShowPublishModal] = useState(false);
 
-    useEffect(() => {
-        loadListing();
-    }, [listingId]);
+    const property = portfolioProperty ? JSON.parse(portfolioProperty as string) : null;
 
     useEffect(() => {
-        if (isNew && listing && !hasAutoOpened && !loading) {
+        if (isNew && !hasAutoOpened) {
+            setLoading(false);
             setHasAutoOpened(true);
             setShowBasicInfoModal(true);
+        } else if (!isNew && listingId) {
+            loadListing();
         }
-    }, [isNew, listing, hasAutoOpened, loading]);
+    }, [isNew, listingId, properties]);
+
 
     const loadListing = async () => {
         setLoading(true);
-        try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            if (storedListings) {
-                const listings: MarketplaceListing[] = JSON.parse(storedListings);
-                const foundListing = listings.find((l) => l.id === listingId);
 
-                if (foundListing) {
-                    setListing(foundListing);
-                    updateSteps(foundListing);
+        try {
+            // 1️⃣ Load draft listings
+            const storedListings = await AsyncStorage.getItem('marketplaceListings');
+            const draftListings: MarketplaceListing[] = storedListings
+                ? JSON.parse(storedListings)
+                : [];
+
+            // 2️⃣ Try to find locally
+            let foundListing = draftListings.find((l) => l.id === listingId);
+
+            // 3️⃣ If not found, try backend listings
+            if (!foundListing && properties?.length) {
+                const backendListing = properties.find(
+                    (p) => `backend_${p.id}` === listingId
+                );
+
+                if (backendListing) {
+                    foundListing = mapBackendToFrontend(backendListing);
                 }
+            }
+
+            if (foundListing) {
+                setListing(foundListing);
+                updateSteps(foundListing);
+            } else {
+                console.warn('Listing not found:', listingId);
             }
         } catch (error) {
             console.error('Error loading listing:', error);
@@ -139,36 +167,63 @@ export default function ListingWorkflowScreen() {
         }
     };
 
-    const handleModalClose = () => {
+    const handleModalClose = async () => {
         setShowBasicInfoModal(false);
         setShowImagesModal(false);
         setShowCoordinatesModal(false);
         setShowFeaturesModal(false);
         setShowPublishModal(false);
-        loadListing();
+
+        if (isNew && !listingId) {
+            router.back();
+        } else if (listingId) {
+            await loadListing();
+        }
     };
 
     const formatCurrency = (value: number) => {
-        return `₦${value.toLocaleString()}`;
+        return new Intl.NumberFormat('en-NG', {
+            style: 'currency',
+            currency: 'NGN',
+            minimumFractionDigits: 0,
+        }).format(value);
     };
 
     if (loading) {
         return (
             <View style={[styles.container, isDark && styles.containerDark, styles.centerContent]}>
-                <ActivityIndicator size="large" color="#FB902E" />
+                <ActivityIndicator size="large" color="#358B8B" />
             </View>
         );
     }
 
-    if (!listing) {
+    if (!listing && !isNew) {
         return (
-            <View style={[styles.container, isDark && styles.containerDark, styles.centerContent]}>
+            <View style={[styles.container, styles.centerContent]}>
                 <Text style={[styles.errorText, isDark && styles.errorTextDark]}>
                     Listing not found
                 </Text>
             </View>
         );
-    }
+    };
+
+    if (!listing && isNew) {
+        return (
+            <View style={[styles.container, isDark && styles.containerDark]}>
+                <AddMarketplaceListingModal
+                    visible={showBasicInfoModal}
+                    onClose={handleModalClose}
+                    mode="create"
+                    onSuccess={(newListingId) => {
+                        router.replace({
+                            pathname: '/(app)/(listings)/listing-workflow',
+                            params: { id: newListingId },
+                        });
+                    }}
+                />
+            </View>
+        );
+    };
 
     const completedSteps = steps.filter((s) => s.completed).length;
     const progressPercentage = (completedSteps / steps.length) * 100;
@@ -179,36 +234,19 @@ export default function ListingWorkflowScreen() {
                 colors={isDark ? ['#1F2937', '#111827'] : ['#FFFFFF', '#F9FAFB']}
                 style={styles.header}
             >
-                {/* <View style={styles.headerTop}>
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        style={styles.backButton}
-                    >
-                        <Ionicons
-                            name="arrow-back"
-                            size={24}
-                            color={isDark ? '#F9FAFB' : '#111827'}
-                        />
-                    </TouchableOpacity>
-                    <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>
-                        Listing Workflow
-                    </Text>
-                    <View style={{ width: 40 }} />
-                </View> */}
-
-                {listing.thumbnail_url && (
+                {listing?.thumbnail_url && (
                     <View style={styles.propertyPreview}>
                         <Image
-                            source={{ uri: listing.thumbnail_url }}
+                            source={{ uri: listing?.thumbnail_url }}
                             style={styles.propertyImage}
                             resizeMode="cover"
                         />
                         <View style={styles.propertyInfo}>
                             <Text style={[styles.propertyName, isDark && styles.propertyNameDark]}>
-                                {listing.property_name}
+                                {listing?.property_name}
                             </Text>
                             <Text style={[styles.propertyLocation, isDark && styles.propertyLocationDark]}>
-                                {listing.location}
+                                {listing?.location}
                             </Text>
                             <Text style={styles.propertyPrice}>
                                 {formatCurrency(listing.property_value)}
@@ -222,7 +260,7 @@ export default function ListingWorkflowScreen() {
                         <Text style={[styles.progressTitle, isDark && styles.progressTitleDark]}>
                             Overall Progress
                         </Text>
-                        <View style={[styles.progressBadge, { backgroundColor: progressPercentage === 100 ? '#358B8B' : '#FB902E' }]}>
+                        <View style={[styles.progressBadge, { backgroundColor: progressPercentage === 100 ? '#10B981' : '#FB902E' }]}>
                             <Text style={styles.progressBadgeText}>
                                 {completedSteps}/{steps.length}
                             </Text>
@@ -299,7 +337,7 @@ export default function ListingWorkflowScreen() {
                         <Ionicons
                             name={step.completed ? 'checkmark-circle' : 'chevron-forward'}
                             size={24}
-                            color={step.completed ? '#358B8B' : isDark ? '#6B7280' : '#9CA3AF'}
+                            color={step.completed ? '#10B981' : isDark ? '#6B7280' : '#9CA3AF'}
                         />
                     </TouchableOpacity>
                 ))}
@@ -311,24 +349,28 @@ export default function ListingWorkflowScreen() {
                 visible={showBasicInfoModal}
                 listingId={listingId}
                 onClose={handleModalClose}
+                mode="create"
             />
 
             <AddListingImagesModal
                 visible={showImagesModal}
                 listingId={listingId}
                 onClose={handleModalClose}
+                mode="create"
             />
 
             <AddListingCoordinatesModal
                 visible={showCoordinatesModal}
                 listingId={listingId}
                 onClose={handleModalClose}
+                mode="create"
             />
 
             <AddFeaturesModal
                 visible={showFeaturesModal}
                 listingId={listingId}
                 onClose={handleModalClose}
+                mode="create"
             />
 
             <PublishListingModal
@@ -338,6 +380,7 @@ export default function ListingWorkflowScreen() {
             />
         </View>
     );
+
 }
 
 const styles = StyleSheet.create({

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, useColorScheme } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { formatCurrency } from '@/utils/general/formatCurrency';
 
 type ListingCardProps = {
     id: string;
@@ -11,6 +12,7 @@ type ListingCardProps = {
     completionPercentage: number;
     location?: string;
     propertyValue?: number;
+    propertyCurrency?: string;
     onUpdate: () => void;
     onRemove: () => void;
     onPress: () => void;
@@ -25,6 +27,7 @@ export default function ListingCard({
     completionPercentage,
     location,
     propertyValue,
+    propertyCurrency,
     onUpdate,
     onRemove,
     onPress,
@@ -48,10 +51,6 @@ export default function ListingCard({
 
     const getListingTypeColor = (type: string) => {
         return type === 'Corporate' ? '#3B82F6' : '#8B5CF6';
-    };
-
-    const formatCurrency = (value: number) => {
-        return `₦${value.toLocaleString()}`;
     };
 
     return (
@@ -149,7 +148,7 @@ export default function ListingCard({
                             color={isDark ? '#9CA3AF' : '#6B7280'}
                         />
                         <Text style={[styles.infoText, isDark && styles.infoTextDark]}>
-                            {formatCurrency(propertyValue)}
+                            {formatCurrency(propertyValue, propertyCurrency ?? 'NGN')}
                         </Text>
                     </View>
                 )}

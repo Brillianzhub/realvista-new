@@ -408,7 +408,7 @@ export default function Profile() {
                     Realvista Properties
                 </Text>
                 <Text style={[styles.footerText, isDark && styles.footerTextDark]}>
-                    Version 1.0.1
+                    Version 1.0.2
                 </Text>
             </View>
             <SubmitReferralModal

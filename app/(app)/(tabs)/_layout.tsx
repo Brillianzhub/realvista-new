@@ -1,5 +1,5 @@
 import { router, Tabs } from 'expo-router';
-import { TouchableOpacity } from 'react-native';
+import { TouchableOpacity, useColorScheme } from 'react-native';
 import { useNavigation, DrawerActions } from '@react-navigation/native';
 import { Home, Briefcase, User } from 'lucide-react-native';
 import { Menu } from 'lucide-react-native';
@@ -7,6 +7,16 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   const navigation = useNavigation();
+
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const colors = {
+    background: isDark ? "#111827" : "#FFFFFF",
+    tint: isDark ? "#F9FAFB" : "#111827",
+    text: isDark ? '#F3F4F6' : '#358B8B',
+    iconColor: isDark ? "#FB902E" : "#358B8B",
+  };
 
   const toggleDrawer = () => {
     navigation.dispatch(DrawerActions.toggleDrawer());
@@ -17,7 +27,7 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: true,
         headerStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.background,
           elevation: 4,
           shadowColor: '#000',
           shadowOffset: {
@@ -67,7 +77,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: '#FB902E',
         tabBarInactiveTintColor: '#358B8B',
         tabBarStyle: {
-          backgroundColor: '#ffffff',
+          backgroundColor: colors.background,
           borderTopWidth: 1,
           borderTopColor: '#e5e7eb',
           paddingBottom: 5,
@@ -86,7 +96,7 @@ export default function TabLayout() {
           title: 'Home',
           headerTitle: 'Realvista',
           headerTitleStyle: {
-            color: '#358B8B',
+            color: colors.text,
             fontSize: 20,
             fontWeight: '600',
           },
@@ -99,7 +109,7 @@ export default function TabLayout() {
           title: 'Portfolio',
           headerTitle: 'Portfolio',
           headerTitleStyle: {
-            color: '#358B8B',
+            color: colors.text,
             fontSize: 20,
             fontWeight: '600',
           },
@@ -112,11 +122,10 @@ export default function TabLayout() {
           title: 'Market',
           headerTitle: 'Market Listings',
           headerTitleStyle: {
-            color: '#358B8B',
+            color: colors.text,
             fontSize: 20,
             fontWeight: '600',
           },
-          // ✅ Replaced with Ionicons
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="business" size={size} color={color} />
           ),

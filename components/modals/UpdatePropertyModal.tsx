@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 24,
         padding: 24,
         maxHeight: '90%',
+        minHeight: '45%',
     },
     modalContentDark: {
         backgroundColor: '#1F2937',

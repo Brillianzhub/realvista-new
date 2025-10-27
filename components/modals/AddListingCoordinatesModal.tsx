@@ -15,12 +15,17 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
+import { useListingLoader } from '@/utils/market/useListingLoader';
+import { useGlobalContext } from '@/context/GlobalProvider';
+import useFetchVendorProperties from '@/hooks/market/useVendorListing';
+import { useUploadCoordinates } from '@/hooks/market/useUploadCoordinates';
 
 type AddCoordinatesModalProps = {
     visible: boolean;
     listingId?: string | null;
     propertyId?: string | null;
     onClose: () => void;
+    mode: 'create' | 'update';
 };
 
 type CoordinateMethod = 'latlong' | 'utm' | 'picker';
@@ -30,12 +35,18 @@ export default function AddCoordinatesModal({
     listingId,
     propertyId,
     onClose,
+    mode
 }: AddCoordinatesModalProps) {
     const finalId = listingId || propertyId;
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const [loading, setLoading] = useState(false);
     const [gettingLocation, setGettingLocation] = useState(false);
+
+    const { user } = useGlobalContext();
+    const { properties } = useFetchVendorProperties(user?.email || null);
+
+    const { uploadCoordinates, isLoading, error } = useUploadCoordinates();
 
     const [selectedMethod, setSelectedMethod] = useState<CoordinateMethod>('latlong');
     const [latitude, setLatitude] = useState('');
@@ -44,30 +55,16 @@ export default function AddCoordinatesModal({
     const [utmY, setUtmY] = useState('');
     const [utmZone, setUtmZone] = useState('32');
 
-    useEffect(() => {
-        if (visible && finalId) {
-            loadCoordinates();
-        }
-    }, [visible, finalId]);
-
-    const loadCoordinates = async () => {
-        if (!finalId) return;
-
-        try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            if (storedListings) {
-                const listings: MarketplaceListing[] = JSON.parse(storedListings);
-                const listing = listings.find((l) => l.id === finalId);
-
-                if (listing) {
-                    setLatitude(listing.latitude?.toString() || '');
-                    setLongitude(listing.longitude?.toString() || '');
-                }
+    const { } = useListingLoader({
+        listingId: listingId ?? null,
+        properties,
+        onListingLoaded: (listing) => {
+            if (listing) {
+                setLatitude(listing.latitude?.toString() || '');
+                setLongitude(listing.longitude?.toString() || '');
             }
-        } catch (error) {
-            console.error('Error loading coordinates:', error);
-        }
-    };
+        },
+    });
 
     const getCurrentLocation = async () => {
         setGettingLocation(true);
@@ -196,32 +193,47 @@ export default function AddCoordinatesModal({
 
         setLoading(true);
         try {
-            const storedListings = await AsyncStorage.getItem('marketplaceListings');
-            if (!storedListings) {
-                Alert.alert('Error', 'Listing not found');
-                return;
+
+            if (mode === 'create') {
+
+                const storedListings = await AsyncStorage.getItem('marketplaceListings');
+                if (!storedListings) {
+                    Alert.alert('Error', 'Listing not found');
+                    return;
+                }
+
+                const listings: MarketplaceListing[] = JSON.parse(storedListings);
+
+                const index = listings.findIndex((l) => l.id === finalId);
+
+                if (index === -1) {
+                    Alert.alert('Error', 'Listing not found');
+                    return;
+                }
+
+                listings[index] = {
+                    ...listings[index],
+                    latitude: lat,
+                    longitude: lng,
+                    current_step: Math.max(listings[index].current_step, 3),
+                    completion_percentage: calculateCompletion(listings[index]),
+                    updated_at: new Date().toISOString(),
+                };
+
+                await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
+
+                Alert.alert('Success', 'Coordinates saved successfully');
+
+            } else if (mode === 'update') {
+
+                const response = await uploadCoordinates(lat, lng, finalId);
+
+                if (response.success) {
+                    Alert.alert("Success", "Coordinates updated successfully")
+                } else {
+                    Alert.alert("Error", response.message);
+                }
             }
-
-            const listings: MarketplaceListing[] = JSON.parse(storedListings);
-            const index = listings.findIndex((l) => l.id === finalId);
-
-            if (index === -1) {
-                Alert.alert('Error', 'Listing not found');
-                return;
-            }
-
-            listings[index] = {
-                ...listings[index],
-                latitude: lat,
-                longitude: lng,
-                current_step: Math.max(listings[index].current_step, 3),
-                completion_percentage: calculateCompletion(listings[index]),
-                updated_at: new Date().toISOString(),
-            };
-
-            await AsyncStorage.setItem('marketplaceListings', JSON.stringify(listings));
-
-            Alert.alert('Success', 'Coordinates saved successfully');
             onClose();
         } catch (error: any) {
             console.error('Error saving coordinates:', error);
@@ -325,21 +337,22 @@ export default function AddCoordinatesModal({
                                 <Text style={[styles.label, isDark && styles.labelDark]}>Latitude</Text>
                                 <TextInput
                                     style={[styles.input, isDark && styles.inputDark]}
-                                    placeholder="e.g., 6.5244"
+                                    placeholder="e.g. 6.5244"
                                     placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
                                     value={latitude}
-                                    onChangeText={setLatitude}
-                                    keyboardType="numeric"
+                                    onChangeText={(text) => setLatitude(text.replace(',', '.'))}
+                                    keyboardType="decimal-pad"
+
                                 />
 
                                 <Text style={[styles.label, isDark && styles.labelDark]}>Longitude</Text>
                                 <TextInput
                                     style={[styles.input, isDark && styles.inputDark]}
-                                    placeholder="e.g., 3.3792"
+                                    placeholder="e.g. 3.3792"
                                     placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
                                     value={longitude}
-                                    onChangeText={setLongitude}
-                                    keyboardType="numeric"
+                                    onChangeText={(text) => setLongitude(text.replace(',', '.'))}
+                                    keyboardType="decimal-pad"
                                 />
                             </>
                         ) : (

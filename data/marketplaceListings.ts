@@ -1,22 +1,28 @@
 export type PropertyFeatures = {
-    hasElectricity: boolean;
-    hasWaterSupply: boolean;
-    hasGarden: boolean;
-    hasSecurity: boolean;
-    hasParking: boolean;
-    isFenced: boolean;
-    proximityToRoad: 'Close' | 'Moderate' | 'Far' | '';
-    nearbyAmenities: string[];
+    negotiable: string;
+    furnished: boolean;
+    pet_friendly: boolean;
+    parking_available: boolean;
+    swimming_pool: boolean;
+    garden: boolean;
+    electricity_proximity: string;
+    road_network: string;
+    development_level: string;
+    water_supply: boolean;
+    security: boolean;
 };
 
 export type MarketplaceListing = {
+    image_objects(image_objects: any): unknown;
     id: string;
     user_id: string;
     property_id?: string;
-    listing_type: 'Corporate' | 'P2P';
+    category: 'corporate' | 'p2p';
     property_name: string;
     property_type: string;
     location: string;
+    price: number;
+    currency: string;
     city?: string;
     state?: string;
     description: string;

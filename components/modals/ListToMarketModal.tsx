@@ -1,15 +1,17 @@
+import { useState } from 'react';
 import {
     View,
     Text,
     StyleSheet,
     Modal,
     TouchableOpacity,
-    TextInput,
-    ScrollView,
     useColorScheme,
+    Alert,
+    ActivityIndicator
 } from 'react-native';
-import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import useUserProperties from '@/hooks/portfolio/useUserProperty';
 
 type ListToMarketModalProps = {
     visible: boolean;
@@ -23,35 +25,44 @@ export default function ListToMarketModal({
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
-    const [property, setProperty] = useState('');
-    const [listingPrice, setListingPrice] = useState('');
-    const [listingType, setListingType] = useState('');
-    const [availableDate, setAvailableDate] = useState('');
-    const [description, setDescription] = useState('');
-    const [amenities, setAmenities] = useState('');
-    const [contactEmail, setContactEmail] = useState('');
-    const [contactPhone, setContactPhone] = useState('');
+    const { properties, loading: propertiesLoading } = useUserProperties();
+    const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+    const [selectedProperty, setSelectedProperty] = useState<any | null>(null);
+    const [showPropertyPicker, setShowPropertyPicker] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = () => {
-        console.log('Property listed to market:', {
-            property,
-            listingPrice,
-            listingType,
-            availableDate,
-            description,
-            amenities,
-            contactEmail,
-            contactPhone,
-        });
-        setProperty('');
-        setListingPrice('');
-        setListingType('');
-        setAvailableDate('');
-        setDescription('');
-        setAmenities('');
-        setContactEmail('');
-        setContactPhone('');
-        onClose();
+    const [formData, setFormData] = useState({
+        property: '',
+    });
+
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    const getSelectedPropertyTitle = () => {
+        const property = properties.find(
+            (p) => p.id === Number(selectedPropertyId)
+        );
+        return property ? property.title : 'Select a property';
+    };
+
+    const handleListForSale = async () => {
+        if (!selectedProperty) {
+            setErrors({ property: 'Please select a property' });
+            return;
+        }
+
+        try {
+            router.push({
+                pathname: '/(app)/(listings)/listing-workflow',
+                params: {
+                    new: 'true',
+                    portfolioProperty: JSON.stringify(selectedProperty),
+                },
+            });
+            onClose();
+        } catch (error) {
+            console.error('Error creating listing:', error);
+            Alert.alert('Error', 'Failed to create listing');
+        }
     };
 
     return (
@@ -63,6 +74,7 @@ export default function ListToMarketModal({
         >
             <View style={styles.modalOverlay}>
                 <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
+                    {/* HEADER */}
                     <View style={styles.modalHeader}>
                         <Text style={[styles.modalTitle, isDark && styles.modalTitleDark]}>
                             List to Market
@@ -76,126 +88,82 @@ export default function ListToMarketModal({
                         </TouchableOpacity>
                     </View>
 
-                    <ScrollView showsVerticalScrollIndicator={false}>
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, isDark && styles.labelDark]}>
-                                Property
-                            </Text>
-                            <TextInput
-                                style={[styles.input, isDark && styles.inputDark]}
-                                placeholder="Select property to list"
-                                placeholderTextColor="#9CA3AF"
-                                value={property}
-                                onChangeText={setProperty}
-                            />
-                        </View>
+                    {/* PROPERTY SELECT */}
+                    <Text style={[styles.label, isDark && styles.labelDark]}>
+                        Select Property <Text style={styles.required}>*</Text>
+                    </Text>
 
-                        <View style={styles.formRow}>
-                            <View style={[styles.formGroup, styles.formGroupHalf]}>
-                                <Text style={[styles.label, isDark && styles.labelDark]}>
-                                    Listing Price
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, isDark && styles.inputDark]}
-                                    placeholder="$2,500/mo"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={listingPrice}
-                                    onChangeText={setListingPrice}
-                                    keyboardType="numeric"
-                                />
-                            </View>
+                    <TouchableOpacity
+                        style={[styles.pickerButton, isDark && styles.pickerButtonDark]}
+                        onPress={() => setShowPropertyPicker(!showPropertyPicker)}
+                    >
+                        <Text
+                            style={[
+                                styles.pickerButtonText,
+                                isDark && styles.pickerButtonTextDark,
+                                !selectedPropertyId && styles.placeholderText,
+                            ]}
+                        >
+                            {getSelectedPropertyTitle()}
+                        </Text>
+                        <Ionicons
+                            name="chevron-down"
+                            size={20}
+                            color={isDark ? '#9CA3AF' : '#6B7280'}
+                        />
+                    </TouchableOpacity>
 
-                            <View style={[styles.formGroup, styles.formGroupHalf]}>
-                                <Text style={[styles.label, isDark && styles.labelDark]}>
-                                    Listing Type
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, isDark && styles.inputDark]}
-                                    placeholder="Rent/Sale"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={listingType}
-                                    onChangeText={setListingType}
-                                />
-                            </View>
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, isDark && styles.labelDark]}>
-                                Available Date
-                            </Text>
-                            <TextInput
-                                style={[styles.input, isDark && styles.inputDark]}
-                                placeholder="MM/DD/YYYY"
-                                placeholderTextColor="#9CA3AF"
-                                value={availableDate}
-                                onChangeText={setAvailableDate}
-                            />
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, isDark && styles.labelDark]}>
-                                Description
-                            </Text>
-                            <TextInput
-                                style={[styles.input, styles.textArea, isDark && styles.inputDark]}
-                                placeholder="Describe your property for potential tenants/buyers"
-                                placeholderTextColor="#9CA3AF"
-                                value={description}
-                                onChangeText={setDescription}
-                                multiline
-                                numberOfLines={4}
-                            />
-                        </View>
-
-                        <View style={styles.formGroup}>
-                            <Text style={[styles.label, isDark && styles.labelDark]}>
-                                Amenities
-                            </Text>
-                            <TextInput
-                                style={[styles.input, isDark && styles.inputDark]}
-                                placeholder="e.g., Pool, Parking, Gym, AC"
-                                placeholderTextColor="#9CA3AF"
-                                value={amenities}
-                                onChangeText={setAmenities}
-                            />
-                        </View>
-
-                        <View style={styles.formRow}>
-                            <View style={[styles.formGroup, styles.formGroupHalf]}>
-                                <Text style={[styles.label, isDark && styles.labelDark]}>
-                                    Contact Email
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, isDark && styles.inputDark]}
-                                    placeholder="email@example.com"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={contactEmail}
-                                    onChangeText={setContactEmail}
-                                    keyboardType="email-address"
-                                    autoCapitalize="none"
-                                />
-                            </View>
-
-                            <View style={[styles.formGroup, styles.formGroupHalf]}>
-                                <Text style={[styles.label, isDark && styles.labelDark]}>
-                                    Contact Phone
-                                </Text>
-                                <TextInput
-                                    style={[styles.input, isDark && styles.inputDark]}
-                                    placeholder="(555) 123-4567"
-                                    placeholderTextColor="#9CA3AF"
-                                    value={contactPhone}
-                                    onChangeText={setContactPhone}
-                                    keyboardType="phone-pad"
-                                />
+                    {showPropertyPicker && (
+                        <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
+                            <View style={styles.pickerScroll}>
+                                {properties.map((item) => (
+                                    <TouchableOpacity
+                                        key={item.id.toString()}
+                                        style={styles.pickerOption}
+                                        onPress={() => {
+                                            setSelectedPropertyId(item.id.toString());
+                                            setSelectedProperty(item);
+                                            setFormData((prev) => ({ ...prev, property: item.id.toString() }));
+                                            setShowPropertyPicker(false);
+                                            setErrors({});
+                                        }}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.pickerOptionText,
+                                                isDark && styles.pickerOptionTextDark,
+                                            ]}
+                                        >
+                                            {item.title}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
                         </View>
+                    )}
 
-                        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                            <Ionicons name="megaphone" size={20} color="#FFFFFF" />
-                            <Text style={styles.submitButtonText}>Publish Listing</Text>
-                        </TouchableOpacity>
-                    </ScrollView>
+                    {errors.property && (
+                        <Text style={styles.errorText}>{errors.property}</Text>
+                    )}
+
+                    {/* ACTION BUTTON */}
+                    <TouchableOpacity
+                        style={[
+                            styles.submitButton,
+                            (isSubmitting || !selectedPropertyId) && styles.submitButtonDisabled,
+                        ]}
+                        onPress={handleListForSale}
+                        disabled={isSubmitting || !selectedPropertyId}
+                    >
+                        {isSubmitting ? (
+                            <ActivityIndicator color="#FFFFFF" />
+                        ) : (
+                            <>
+                                <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
+                                <Text style={styles.submitButtonText}>Submit Expense</Text>
+                            </>
+                        )}
+                    </TouchableOpacity>
                 </View>
             </View>
         </Modal>
@@ -214,6 +182,8 @@ const styles = StyleSheet.create({
         borderTopRightRadius: 24,
         padding: 24,
         maxHeight: '90%',
+        minHeight: '45%',
+
     },
     modalContentDark: {
         backgroundColor: '#1F2937',
@@ -232,17 +202,7 @@ const styles = StyleSheet.create({
     modalTitleDark: {
         color: '#F9FAFB',
     },
-    formGroup: {
-        marginBottom: 20,
-    },
-    formRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        gap: 12,
-    },
-    formGroupHalf: {
-        flex: 1,
-    },
+
     label: {
         fontSize: 14,
         fontWeight: '600',
@@ -252,34 +212,78 @@ const styles = StyleSheet.create({
     labelDark: {
         color: '#E5E7EB',
     },
-    input: {
+    required: {
+        color: '#EF4444',
+    },
+    pickerButton: {
         backgroundColor: '#F9FAFB',
         borderWidth: 1,
         borderColor: '#E5E7EB',
         borderRadius: 12,
         padding: 16,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    pickerButtonDark: {
+        backgroundColor: '#374151',
+        borderColor: '#4B5563',
+    },
+    pickerButtonText: {
         fontSize: 16,
         color: '#111827',
     },
-    inputDark: {
-        backgroundColor: '#374151',
-        borderColor: '#4B5563',
+    pickerButtonTextDark: {
         color: '#F9FAFB',
     },
-    textArea: {
-        minHeight: 100,
-        textAlignVertical: 'top',
+    placeholderText: {
+        color: '#9CA3AF',
+    },
+    pickerContainer: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 12,
+        marginTop: 8,
+        maxHeight: 200,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+    },
+    pickerContainerDark: {
+        backgroundColor: '#374151',
+        borderColor: '#4B5563',
+    },
+    pickerScroll: {
+        maxHeight: 200,
+    },
+    pickerOption: {
+        padding: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#E5E7EB',
+    },
+    pickerOptionText: {
+        fontSize: 16,
+        color: '#111827',
+    },
+    pickerOptionTextDark: {
+        color: '#F9FAFB',
+    },
+    errorText: {
+        fontSize: 12,
+        color: '#EF4444',
+        marginTop: 4,
     },
     submitButton: {
-        backgroundColor: '#EC4899',
+        backgroundColor: '#FB902E',
         borderRadius: 12,
         padding: 16,
-        alignItems: 'center',
         flexDirection: 'row',
+        alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
         marginTop: 8,
-        marginBottom: 20,
+    },
+    submitButtonDisabled: {
+        backgroundColor: '#D1D5DB',
+        opacity: 0.6,
     },
     submitButtonText: {
         color: '#FFFFFF',

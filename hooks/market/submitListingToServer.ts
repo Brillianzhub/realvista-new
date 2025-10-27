@@ -26,8 +26,9 @@ export const submitListingToServer = async (listingId: string, token: string) =>
             title: listing.title,
             property_name: listing.property_name,
             description: listing.description,
+            category: listing.category,
             property_type: listing.property_type,
-            price: listing.property_value,
+            price: listing.price,
             address: listing.address,
             city: listing.city,
             state: listing.state,
@@ -37,7 +38,7 @@ export const submitListingToServer = async (listingId: string, token: string) =>
             listing_purpose: listing.listing_purpose,
             listing_type: listing.listing_type,
             market_type: listing.market_type,
-            property_value: listing.property_value,
+
             estimated_yield: listing.estimated_yield,
             roi_percentage: listing.roi_percentage,
             availability: listing.availability,
@@ -121,7 +122,7 @@ export const submitListingToServer = async (listingId: string, token: string) =>
         // 4️⃣ POST MEDIA FILES (IMAGES/VIDEOS)
         // ===============================
         if (listing.images && listing.images.length > 0) {
-            console.log("📤 Uploading media files...");
+            // console.log("📤 Uploading media files...");
 
             for (const fileUri of listing.images) {
                 const formData = new FormData();

@@ -8,6 +8,7 @@ export type BackendProperty = {
     price: string;
     currency: string;
     listing_purpose: string;
+    category: string;
     address: string;
     city: string;
     state: string;
@@ -26,6 +27,7 @@ export type BackendProperty = {
     updated_date: string;
     coordinate_url: string | null;
     images: any[];
+    image_objects: { id: number; url: string }[];
     image_files: Array<{
         id: number;
         name: string;
@@ -79,15 +81,23 @@ export function mapBackendToFrontend(backendProperty: BackendProperty): Marketpl
     const coordinates = backendProperty.market_coordinates[0];
 
     const mappedFeatures: PropertyFeatures = {
-        hasElectricity: features?.water_supply || false,
-        hasWaterSupply: features?.water_supply || false,
-        hasGarden: features?.garden || false,
-        hasSecurity: features?.security || false,
-        hasParking: features?.parking_available || false,
-        isFenced: false,
-        proximityToRoad: mapRoadNetwork(features?.road_network),
-        nearbyAmenities: [],
+        negotiable: features?.negotiable || 'no',
+        furnished: features?.furnished ?? false,
+        pet_friendly: features?.pet_friendly ?? false,
+        parking_available: features?.parking_available ?? false,
+        swimming_pool: features?.swimming_pool ?? false,
+        garden: features?.garden ?? false,
+        electricity_proximity: features?.electricity_proximity || '',
+        road_network: features?.road_network || '',
+        development_level: features?.development_level || '',
+        water_supply: features?.water_supply ?? false,
+        security: features?.security ?? false,
     };
+
+    const imageData = backendProperty.image_files.map(img => ({
+        id: img.id,
+        url: img.file,
+    }));
 
     const imageUrls = backendProperty.image_files.map(img => img.file);
     const thumbnailUrl = imageUrls.length > 0 ? imageUrls[0] : undefined;
@@ -97,14 +107,20 @@ export function mapBackendToFrontend(backendProperty: BackendProperty): Marketpl
     return {
         id: `backend_${backendProperty.id}`,
         user_id: backendProperty.owner.email,
-        listing_type: 'Corporate',
+        category: backendProperty.category,
         property_name: backendProperty.title,
         property_type: capitalizePropertyType(backendProperty.property_type),
         location: backendProperty.address,
         city: backendProperty.city,
         state: backendProperty.state,
+        currency: backendProperty.currency,
         description: backendProperty.description,
         property_value: propertyValue,
+        bedrooms: backendProperty.bedrooms,
+        bathrooms: backendProperty.bathrooms,
+        square_feet: backendProperty.square_feet,
+        lot_size: backendProperty.lot_size,
+        year_built: backendProperty.year_built,
         market_type: backendProperty.listing_purpose === 'sale' ? 'Sale' : 'Rent',
         roi_percentage: 0,
         estimated_yield: 0,
@@ -112,6 +128,7 @@ export function mapBackendToFrontend(backendProperty: BackendProperty): Marketpl
         longitude: coordinates?.longitude,
         thumbnail_url: thumbnailUrl,
         images: imageUrls,
+        image_objects: imageData,
         features: mappedFeatures,
         status: 'Published',
         completion_percentage: 100,
@@ -120,7 +137,7 @@ export function mapBackendToFrontend(backendProperty: BackendProperty): Marketpl
         updated_at: backendProperty.updated_date,
         published_at: backendProperty.listed_date,
         backendData: backendProperty,
-    } as MarketplaceListing & { backendData?: BackendProperty };
+    } as unknown as MarketplaceListing & { backendData?: BackendProperty; image_objects?: { id: number; url: string }[] };
 }
 
 function mapRoadNetwork(roadNetwork?: string): 'Close' | 'Moderate' | 'Far' | '' {
