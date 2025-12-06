@@ -129,7 +129,7 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ setUser, setIsLogged }) => 
                 <ActivityIndicator size="large" color="#000" />
             ) : (
                 <TouchableOpacity style={styles.appleButton} onPress={() => promptAsync()}>
-                    <FontAwesome name="apple" size={20} color="#000" style={{ marginRight: 10 }} />
+                    <FontAwesome name="google" size={20} color="#000" style={{ marginRight: 10 }} />
                     <Text style={styles.appleText}>Sign in with Google</Text>
                 </TouchableOpacity>
             )}
