@@ -6,18 +6,16 @@ import {
     TouchableOpacity,
     StyleSheet,
     Dimensions,
-    Platform,
     Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
 import MapView, { Marker } from 'react-native-maps';
-import { Property } from './index';
 import { formatCurrency } from '@/utils/general/formatCurrency';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useGlobalContext } from '@/context/GlobalProvider';
-import { MarketplaceListing } from '@/data/marketplaceListings';
+import PropertyMediaGallery from '@/components/portfolio/PortfolioMediaGallery';
+import PropertyMapView from '@/components/portfolio/PropertyMapView';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -94,7 +92,10 @@ export default function PropertyDetailScreen() {
 
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        >
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back-outline" size={24} color="#111827" />
@@ -257,35 +258,18 @@ export default function PropertyDetailScreen() {
                 </View>
             </View>
 
-            <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Location</Text>
-                <View style={styles.mapContainer}>
-                    {property.coordinates && property.coordinates.length > 0 ? (
-                        <MapView
-                            style={styles.map}
-                            initialRegion={{
-                                latitude: property.coordinates[0].latitude,
-                                longitude: property.coordinates[0].longitude,
-                                latitudeDelta: 0.0922,
-                                longitudeDelta: 0.0421,
-                            }}
-                        >
-                            <Marker
-                                coordinate={{
-                                    latitude: property.coordinates[0].latitude,
-                                    longitude: property.coordinates[0].longitude,
-                                }}
-                                title={property.title || property.name}
-                                description={`${property.city || ''}, ${property.location || ''}`}
-                            />
-                        </MapView>
-                    ) : (
-                        <Text style={{ color: '#888', textAlign: 'center', marginTop: 10 }}>
-                            No location data available
-                        </Text>
-                    )}
-                </View>
-            </View>
+            <PropertyMediaGallery 
+                mediaFiles={property.image_files || []}
+                propertyTitle={property.title}
+            />
+
+           <PropertyMapView 
+                coordinates={property.coordinates || []}
+                propertyTitle={property.title}
+                city={property.city}
+                location={property.location}
+                address={property.address}
+            />
 
             <View style={styles.ctaSection}>
                 <TouchableOpacity style={styles.listButton} onPress={handleListForSale}>

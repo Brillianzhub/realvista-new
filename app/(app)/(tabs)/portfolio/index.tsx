@@ -229,6 +229,7 @@ export default function PortfolioScreen() {
       <ScrollView
         style={[styles.container, isDark && styles.containerDark]}
         contentContainerStyle={styles.emptyScrollContent}
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#358B8B" />
         }
@@ -476,8 +477,8 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   cardValue: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '500',
     color: '#111827',
   },
   cardValueDark: {
@@ -534,9 +535,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   investmentIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
@@ -548,8 +549,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   investmentName: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '500',
     color: '#111827',
     marginBottom: 6,
   },
