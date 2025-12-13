@@ -45,7 +45,6 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
     if (!coordinates || coordinates.length === 0) {
         return (
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Location</Text>
                 <View style={styles.noLocationContainer}>
                     <Ionicons name="location-outline" size={48} color="#CBD5E1" />
                     <Text style={styles.noLocationText}>No location data available</Text>
@@ -75,16 +74,6 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
     const handleMapReady = (): void => {
         setIsLoading(false);
     };
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            setIsLoading(false);
-            Alert.alert('Error', 'Map took too long to load. Please check your internet.');
-        }, 8000); // 8 seconds timeout
-
-        return () => clearTimeout(timeout);
-    }, []);
-
 
     const zoomToMarker = (): void => {
         if (mapRef.current) {

@@ -11,11 +11,12 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
-import MapView, { Marker } from 'react-native-maps';
 import { formatCurrency } from '@/utils/general/formatCurrency';
 import { useGlobalContext } from '@/context/GlobalProvider';
-import PropertyMediaGallery from '@/components/portfolio/PortfolioMediaGallery';
+import PortfolioMediaGallery from '@/components/portfolio/PortfolioMediaGallery';
 import PropertyMapView from '@/components/portfolio/PropertyMapView';
+import { useSingleProperty } from '@/hooks/portfolio/useSingleProperty';
+
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -26,7 +27,7 @@ const formatROI = (initial_cost: string | number, current_value: string | number
 
     if (!initial || initial <= 0) return 'N/A';
 
-    const roi = ((current - initial) / initial) * 100; // appreciation %
+    const roi = ((current - initial) / initial) * 100; 
 
     return `${roi > 0 ? '+' : ''}${roi.toFixed(1)}%`;
 };
@@ -38,7 +39,18 @@ export default function PropertyDetailScreen() {
 
     const user = useGlobalContext().user;
 
-    const property = JSON.parse(params.propertyData as string);
+    const {id} = useLocalSearchParams();
+
+    const {
+        property,
+        loading,
+        error,
+        refetch,
+    } = useSingleProperty(Number(id));
+
+    if (loading) return <Text>Loading property...</Text>;
+    if (error) return <Text>{error}</Text>;
+    if (!property) return <Text>Property not found</Text>;
 
     const incomes = property.incomes || [];
     const expenses = property.expenses || [];
@@ -72,6 +84,13 @@ export default function PropertyDetailScreen() {
         }
     };
 
+    const handleRefetch = async () => {
+        try {
+            await refetch();
+        } catch (err) {
+            Alert.alert('Error', 'Failed to refresh property.');
+        }
+    };
 
     const handleListForSale = async () => {
         try {
@@ -84,6 +103,7 @@ export default function PropertyDetailScreen() {
             Alert.alert('Error', 'Failed to create listing');
         }
     };
+
 
     const capitalize = (text?: string) => {
         if (!text) return '';
@@ -258,9 +278,12 @@ export default function PropertyDetailScreen() {
                 </View>
             </View>
 
-            <PropertyMediaGallery 
+            <PortfolioMediaGallery 
                 mediaFiles={property.image_files || []}
                 propertyTitle={property.title}
+                propertyId={property.id}
+                onRefetchNeeded={handleRefetch}
+                editable={true} 
             />
 
            <PropertyMapView 

@@ -128,7 +128,7 @@ export default function PortfolioScreen() {
     if (property) {
       router.push({
         pathname: '/portfolio/portfoliodetails',
-        params: { propertyData: JSON.stringify(property) },
+        params: { propertyData: JSON.stringify(property), id: investmentId },
       });
     } else {
       console.warn('Property not found for ID:', investmentId);
