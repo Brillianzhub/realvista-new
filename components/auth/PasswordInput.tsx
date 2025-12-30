@@ -1,6 +1,7 @@
 import React, { useState, FC } from 'react';
 import { View, Text, Pressable, TextInput, StyleSheet, TextInputProps } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/context/ThemeContext';
 
 // Generic interface
 interface PasswordInputProps<T extends Record<string, any>> extends TextInputProps {
@@ -23,6 +24,8 @@ const PasswordInput = <T extends Record<string, any>>({
 }: PasswordInputProps<T>) => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+
+    const { colors } = useTheme();
 
     const handleChange = (text: string) => {
         setForm((prev) => ({
@@ -63,13 +66,44 @@ const PasswordInput = <T extends Record<string, any>>({
         }
     };
 
+
+        
+    const styles = StyleSheet.create({
+        container: {
+            marginBottom: 15,
+        },
+        inputContainer: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            borderWidth: 1,
+            borderColor: colors.border.default,
+            borderRadius: 15,
+            paddingHorizontal: 10,
+            backgroundColor: colors.background.secondary,
+        },
+        inputp: {
+            flex: 1,
+            height: 50,
+            fontSize: 16,
+            color: colors.text.primary,
+        },
+        icon: {
+            paddingLeft: 10,
+        },
+        errorText: {
+            color: colors.text.error,
+            fontSize: 14,
+            marginTop: 5,
+        },
+    });
+
     return (
         <View style={styles.container}>
             <View style={styles.inputContainer}>
                 <TextInput
                     style={styles.inputp}
                     placeholder={placeholder}
-                    placeholderTextColor="#888"
+                    placeholderTextColor={colors.text.muted}
                     value={value}
                     onChangeText={handleChange}
                     secureTextEntry={!showPassword}
@@ -84,32 +118,5 @@ const PasswordInput = <T extends Record<string, any>>({
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        marginBottom: 15,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        paddingHorizontal: 10,
-        backgroundColor: '#f9f9f9',
-    },
-    inputp: {
-        flex: 1,
-        height: 50,
-        fontSize: 16,
-    },
-    icon: {
-        paddingLeft: 10,
-    },
-    errorText: {
-        color: 'red',
-        fontSize: 14,
-        marginTop: 5,
-    },
-});
 
 export default PasswordInput;

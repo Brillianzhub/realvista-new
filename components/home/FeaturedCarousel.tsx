@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, ScrollView, Image, StyleSheet, Dimensions } from 'react-native';
 import images from '@/constants/images';
+import { useTheme } from '@/context/ThemeContext';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -14,6 +15,8 @@ interface CarouselItem {
 export default function FeaturedCarousel() {
     const [activeSlide, setActiveSlide] = useState(0);
     const scrollViewRef = useRef<ScrollView>(null);
+
+    const { colors } = useTheme();
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -42,12 +45,11 @@ export default function FeaturedCarousel() {
             image: images.carouselTwo,
             description: 'Plan your goals and track your progress using our Target Calculator.',
         },
-
         {
             id: '3',
             title: 'Real Estate Investment',
             image: images.carouselThree,
-            description: 'Invest in premium real estate opportunities',
+            description: 'Invest in premium real estate opportunities & grow your wealth.',
         },
         {
             id: '4',
@@ -78,7 +80,7 @@ export default function FeaturedCarousel() {
 
     return (
         <View style={styles.carouselContainer}>
-            <Text style={styles.carouselTitle}>Featured Opportunities</Text>
+            <Text style={[styles.carouselTitle, {color: colors.text.primary}]}>Featured Opportunities</Text>
             <ScrollView
                 ref={scrollViewRef}
                 horizontal
@@ -92,9 +94,9 @@ export default function FeaturedCarousel() {
                 {carouselItems.map((item) => (
                     <View key={item.id} style={styles.carouselItem}>
                         <Image source={item.image} style={styles.carouselImage} />
-                        <View style={styles.carouselContent}>
-                            <Text style={styles.carouselItemTitle}>{item.title}</Text>
-                            <Text style={styles.carouselItemDescription}>{item.description}</Text>
+                        <View style={[styles.carouselContent, {backgroundColor: colors.background.secondary}]}>
+                            <Text style={[styles.carouselItemTitle, {color: colors.text.primary}]}>{item.title}</Text>
+                            <Text style={[styles.carouselItemDescription, {color: colors.text.muted}]}>{item.description}</Text>
                         </View>
                     </View>
                 ))}
@@ -124,7 +126,6 @@ const styles = StyleSheet.create({
     carouselTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#1f2937',
         marginLeft: 20,
         marginBottom: 16,
     },

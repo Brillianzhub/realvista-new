@@ -160,7 +160,10 @@ export default function RemovePropertyModal({
                                 </TouchableOpacity>
                                 {showPropertyPicker && (
                                     <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
-                                        <View style={styles.pickerScroll}>
+                                        <ScrollView 
+                                            showsVerticalScrollIndicator={false}
+                                            style={styles.pickerScroll}
+                                        >
                                             {properties.map((item) => (
                                                 <TouchableOpacity
                                                     key={item.id.toString()}
@@ -180,7 +183,7 @@ export default function RemovePropertyModal({
                                                     </Text>
                                                 </TouchableOpacity>
                                             ))}
-                                        </View>
+                                        </ScrollView>
                                     </View>
                                 )}
                             </View>
@@ -392,6 +395,7 @@ const styles = StyleSheet.create({
     },
     pickerScroll: {
         maxHeight: 200,
+        paddingBottom: 30
     },
     pickerOption: {
         padding: 12,

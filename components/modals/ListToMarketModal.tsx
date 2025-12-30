@@ -7,7 +7,8 @@ import {
     TouchableOpacity,
     useColorScheme,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    ScrollView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -115,7 +116,10 @@ export default function ListToMarketModal({
 
                     {showPropertyPicker && (
                         <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
-                            <View style={styles.pickerScroll}>
+                            <ScrollView 
+                                style={styles.pickerScroll}
+                                showsVerticalScrollIndicator={false}
+                            >
                                 {properties.map((item) => (
                                     <TouchableOpacity
                                         key={item.id.toString()}
@@ -138,7 +142,7 @@ export default function ListToMarketModal({
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
-                            </View>
+                            </ScrollView>
                         </View>
                     )}
 
@@ -253,6 +257,7 @@ const styles = StyleSheet.create({
     },
     pickerScroll: {
         maxHeight: 200,
+        paddingBottom: 30
     },
     pickerOption: {
         padding: 12,

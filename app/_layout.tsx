@@ -2,9 +2,18 @@ import { Slot } from 'expo-router';
 import { useCallback, useEffect } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
-import { useFonts, RobotoSerif_400Regular, RobotoSerif_500Medium, RobotoSerif_700Bold } from '@expo-google-fonts/roboto-serif';
-import { Poppins_400Regular, Poppins_500Medium, Poppins_700Bold } from '@expo-google-fonts/poppins';
-import { StatusBar, View, ActivityIndicator } from 'react-native';
+import {
+  useFonts,
+  RobotoSerif_400Regular,
+  RobotoSerif_500Medium,
+  RobotoSerif_700Bold,
+} from '@expo-google-fonts/roboto-serif';
+import {
+  Poppins_400Regular,
+  Poppins_500Medium,
+  Poppins_700Bold,
+} from '@expo-google-fonts/poppins';
+import { StatusBar, ActivityIndicator } from 'react-native';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import { ThemeProvider } from '@/context/ThemeContext';
 import GlobalProvider from '@/context/GlobalProvider';
@@ -14,18 +23,23 @@ import { CurrencyProvider } from '@/context/CurrencyContext';
 import { ProjectsProvider } from '@/context/ProjectsContext';
 import { useTheme } from '@/context/ThemeContext';
 
-SplashScreen.preventAutoHideAsync().catch(() => { });
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function InnerApp() {
-  const { theme } = useTheme();
+  const { theme, colors } = useTheme();
 
   return (
     <>
       <StatusBar
-        backgroundColor={theme === "dark" ? "#000" : "#fff"}
-        barStyle={theme === "dark" ? "light-content" : "dark-content"}
+        backgroundColor={colors.background.primary}
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
       />
-      <SafeAreaView style={{ flex: 1, backgroundColor: theme === "dark" ? "#000" : "#fff" }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          backgroundColor: colors.background.primary,
+        }}
+      >
         <Slot />
       </SafeAreaView>
     </>
@@ -36,12 +50,12 @@ export default function RootLayout() {
   useFrameworkReady();
 
   const [fontsLoaded, fontError] = useFonts({
-    "RobotoSerif-Regular": RobotoSerif_400Regular,
-    "RobotoSerif-Medium": RobotoSerif_500Medium,
-    "RobotoSerif-Bold": RobotoSerif_700Bold,
-    "Poppins-Regular": Poppins_400Regular,
-    "Poppins-Medium": Poppins_500Medium,
-    "Poppins-Bold": Poppins_700Bold,
+    'RobotoSerif-Regular': RobotoSerif_400Regular,
+    'RobotoSerif-Medium': RobotoSerif_500Medium,
+    'RobotoSerif-Bold': RobotoSerif_700Bold,
+    'Poppins-Regular': Poppins_400Regular,
+    'Poppins-Medium': Poppins_500Medium,
+    'Poppins-Bold': Poppins_700Bold,
   });
 
   const onLayoutRootView = useCallback(async () => {
@@ -56,12 +70,18 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) {
     return (
-      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: "#fff" }}>
+      <SafeAreaView
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#fff',
+        }}
+      >
         <ActivityIndicator size="large" color="#358B8B" />
       </SafeAreaView>
     );
   }
-
 
   return (
     <ThemeProvider>

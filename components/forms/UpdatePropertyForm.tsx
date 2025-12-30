@@ -409,7 +409,10 @@ const UpdatePropertyForm: React.FC<UpdatePropertyFormProps> = ({ onSubmit }) => 
                     </TouchableOpacity>
                     {showPropertyPicker && (
                         <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
-                            <View style={styles.pickerScroll}>
+                            <ScrollView 
+                                style={styles.pickerScroll}
+                                showsVerticalScrollIndicator={false}
+                            >
                                 {properties.map((item) => (
                                     <TouchableOpacity
                                         key={item.id.toString()}
@@ -430,7 +433,7 @@ const UpdatePropertyForm: React.FC<UpdatePropertyFormProps> = ({ onSubmit }) => 
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
-                            </View>
+                            </ScrollView>
                         </View>
                     )}
                     {errors.property && (
@@ -578,7 +581,10 @@ const UpdatePropertyForm: React.FC<UpdatePropertyFormProps> = ({ onSubmit }) => 
                             </TouchableOpacity>
                             {showPropertyTypePicker && (
                                 <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
-                                    <View style={styles.pickerScroll}>
+                                    <ScrollView 
+                                        style={styles.pickerScroll}
+                                        showsVerticalScrollIndicator={false}
+                                    >
                                         {propertyTypes.map((item) => (
                                             <TouchableOpacity
                                                 key={item.value}
@@ -598,7 +604,7 @@ const UpdatePropertyForm: React.FC<UpdatePropertyFormProps> = ({ onSubmit }) => 
                                                 </Text>
                                             </TouchableOpacity>
                                         ))}
-                                    </View>
+                                    </ScrollView>
                                 </View>
                             )}
                             {errors.property_type && <Text style={styles.errorText}>{errors.property_type}</Text>}

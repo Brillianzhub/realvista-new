@@ -4,7 +4,7 @@ export default {
   expo: {
     name: "Realvista",
     slug: "realvista",
-    version: "1.0.2",
+    version: "1.0.3",
     orientation: "portrait",
     icon: "./assets/images/icon.png",
     platforms: [

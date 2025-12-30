@@ -18,6 +18,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import useUserProperties from '@/hooks/portfolio/useUserProperty';
+import { useUpdateCoordinate } from '@/hooks/portfolio/useUpdateCoordinate';
 
 
 interface Property {
@@ -25,7 +26,7 @@ interface Property {
     title: string;
 }
 
-interface Coordinate {
+export interface Coordinate {
     latitude?: number;
     longitude?: number;
     utm_x?: number;
@@ -34,16 +35,33 @@ interface Coordinate {
 }
 
 interface CoordinateFormProps {
+    mode?: 'add' | 'edit';
+    initialPropertyId?: string;
+    initialCoordinate?: Coordinate;
+    coordinateId?: number;
+
     onSubmit?: (payload: any) => void;
+    onClose?: () => void;
+    onRefetch?: () => void;
+
 }
 
-const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
+
+const CoordinateForm: React.FC<CoordinateFormProps> = ({ 
+    mode = 'add',
+    initialPropertyId,
+    initialCoordinate,
+    coordinateId,
+    onSubmit,
+    onClose,
+    onRefetch
+}) => {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
 
     const { properties, loading: propertiesLoading } = useUserProperties();
 
-    const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
+    const [selectedPropertyId, setSelectedPropertyId] = useState<string | undefined>(undefined);
     const [showPropertyPicker, setShowPropertyPicker] = useState(false);
     const [coordinate, setCoordinate] = useState<Coordinate | null>(null);
     const [utmX, setUtmX] = useState('');
@@ -56,6 +74,32 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
     const [isModalVisible, setIsModalVisible] = useState(false);
     const [isUTMInput, setIsUTMInput] = useState(true);
 
+    const {updateCoordinate, loading} = useUpdateCoordinate();
+
+
+    useEffect(() => {
+        if (mode !== 'edit' || !initialCoordinate) return;
+
+        // Set property
+        setSelectedPropertyId(initialPropertyId);
+
+        // Detect coordinate type
+        const isWGS84 =
+            initialCoordinate.latitude !== undefined &&
+            initialCoordinate.longitude !== undefined;
+
+        setIsUTMInput(!isWGS84);
+        setCoordinate(initialCoordinate);
+
+        if (isWGS84) {
+            setLatitude(initialCoordinate.latitude!.toString());
+            setLongitude(initialCoordinate.longitude!.toString());
+        } else {
+            setUtmX(initialCoordinate.utm_x?.toString() ?? '');
+            setUtmY(initialCoordinate.utm_y?.toString() ?? '');
+            setUtmZone(initialCoordinate.utm_zone?.toString() ?? '32');
+        }
+    }, [mode, initialCoordinate, initialPropertyId]);
 
 
     const handlePickCoordinates = async () => {
@@ -118,7 +162,7 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
             }
 
             setCoordinate(newCoordinate);
-            Alert.alert('Success', 'Coordinate added successfully!');
+            
         } else {
             if (!latitude || !longitude) {
                 Alert.alert('Error', 'Please fill in both Latitude and Longitude fields.');
@@ -139,7 +183,7 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
             }
 
             setCoordinate(newCoordinate);
-            Alert.alert('Success', 'Coordinate added successfully!');
+            
         }
     };
 
@@ -220,6 +264,35 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
         }
     };
 
+
+    const handleEditSubmit = async () => {
+        if(!coordinateId || !coordinate) {
+            Alert.alert('Error', 'Missing coordinate');
+            return;
+        }
+
+        const payload = 
+            coordinate.latitude !== undefined && coordinate.longitude !== undefined
+                ? {
+                    latitude: Number(coordinate.latitude.toFixed(6)),
+                    longitude: Number(coordinate.longitude.toFixed(6))
+                } 
+                : {
+                    utm_x: coordinate.utm_x,
+                    utm_y: coordinate.utm_y,
+                    utm_zone: coordinate.utm_zone
+                };
+
+            try {
+                await updateCoordinate(coordinateId, payload);
+                onRefetch?.()
+                Alert.alert('Success', 'Coordinate updated successfully!');
+                onSubmit?.(payload)
+            } catch (e) {
+                Alert.alert('Error', 'Failed to update coordinate');
+            }
+    };
+
     const toggleModal = () => setIsModalVisible(!isModalVisible);
     const toggleInputType = () => {
         setIsUTMInput(!isUTMInput);
@@ -278,7 +351,10 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
                     </TouchableOpacity>
                     {showPropertyPicker && (
                         <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
-                            <View style={styles.pickerScroll}>
+                            <ScrollView 
+                                style={styles.pickerScroll}
+                                showsVerticalScrollIndicator={false}
+                            >
                                 {properties.map((item) => (
                                     <TouchableOpacity
                                         key={item.id.toString()}
@@ -298,7 +374,7 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
-                            </View>
+                            </ScrollView>
                         </View>
                     )}
                 </View>
@@ -414,7 +490,7 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
                     <View style={[styles.coordinateCard, isDark && styles.coordinateCardDark]}>
                         <View style={styles.coordinateHeader}>
                             <Text style={[styles.coordinateTitle, isDark && styles.coordinateTitleDark]}>
-                                Current Coordinate
+                                Review Coordinate
                             </Text>
                             <TouchableOpacity onPress={clearCoordinate}>
                                 <Ionicons name="close-circle" size={24} color="#EF4444" />
@@ -450,21 +526,29 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({ onSubmit }) => {
                 <TouchableOpacity
                     style={[
                         styles.submitButton,
-                        (isSubmitting || !coordinate || !selectedPropertyId) &&
-                        styles.submitButtonDisabled,
+                        ((isSubmitting || loading) || !coordinate || (mode === 'add' && !selectedPropertyId)) &&
+                            styles.submitButtonDisabled,
                     ]}
-                    onPress={handleSubmit}
-                    disabled={isSubmitting || !coordinate || !selectedPropertyId}
+                    onPress={mode === 'edit' ? handleEditSubmit : handleSubmit}
+                    disabled={
+                        isSubmitting ||
+                        loading ||
+                        !coordinate ||
+                        (mode === 'add' && !selectedPropertyId)
+                    }
                 >
-                    {isSubmitting ? (
+                    {(isSubmitting || loading) ? (
                         <ActivityIndicator color="#FFFFFF" />
                     ) : (
                         <>
                             <Ionicons name="checkmark-circle" size={20} color="#FFFFFF" />
-                            <Text style={styles.submitButtonText}>Submit Coordinate</Text>
+                            <Text style={styles.submitButtonText}>
+                                {mode === 'edit' ? 'Update Coordinate' : 'Submit Coordinate'}
+                            </Text>
                         </>
                     )}
                 </TouchableOpacity>
+
 
                 <Modal
                     visible={isModalVisible}
@@ -579,6 +663,7 @@ const styles = StyleSheet.create({
     },
     pickerScroll: {
         maxHeight: 200,
+        paddingBottom: 30
     },
     pickerOption: {
         padding: 12,

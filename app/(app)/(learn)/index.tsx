@@ -15,7 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import VideoCard from '@/components/learn/VideoCard';
 import { useLearnVideos, LearnVideo } from '@/hooks/learn/useLearnVideos';
-import { learnContentData, type LearnContent } from '@/data/learnContent';
+
 
 type Category = 'All' | 'Real Estate' | 'Finance' | 'Investment';
 
@@ -154,30 +154,6 @@ export default function Learn() {
             </LinearGradient>
 
             <View style={styles.contentContainer}>
-                {/* <View style={[styles.searchContainer, isDark && styles.searchContainerDark]}>
-                    <Ionicons
-                        name="search"
-                        size={20}
-                        color={isDark ? '#9CA3AF' : '#6B7280'}
-                    />
-                    <TextInput
-                        style={[styles.searchInput, isDark && styles.searchInputDark]}
-                        placeholder="Search videos..."
-                        placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Ionicons
-                                name="close-circle"
-                                size={20}
-                                color={isDark ? '#9CA3AF' : '#6B7280'}
-                            />
-                        </TouchableOpacity>
-                    )}
-                </View> */}
-
                 <FlatList
                     horizontal
                     data={categories}

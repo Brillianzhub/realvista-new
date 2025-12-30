@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Alert, Button, ActivityIndicator, View, StyleSheet, TouchableOpacity, Text } from "react-native";
+import { Alert,  ActivityIndicator, View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import Constants from 'expo-constants';
 import { FontAwesome } from "@expo/vector-icons";
+import { useTheme } from '@/context/ThemeContext';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -37,6 +38,8 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ setUser, setIsLogged }) => 
 
     const [loading, setLoading] = useState(false);
     const { googleWebClientId, googleIosClientId } = Constants.expoConfig?.extra || {};
+
+    const { colors } = useTheme();
 
     // Configure Google sign-in request
     const [request, response, promptAsync] = Google.useAuthRequest({
@@ -126,11 +129,11 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ setUser, setIsLogged }) => 
     return (
         <View style={styles.container}>
             {isSubmitting ? (
-                <ActivityIndicator size="large" color="#000" />
+                <ActivityIndicator size="large" color={colors.icon.default} />
             ) : (
                 <TouchableOpacity style={styles.appleButton} onPress={() => promptAsync()}>
-                    <FontAwesome name="google" size={20} color="#000" style={{ marginRight: 10 }} />
-                    <Text style={styles.appleText}>Sign in with Google</Text>
+                    <FontAwesome name="google" size={20} color={colors.icon.default} style={{ marginRight: 10 }} />
+                    <Text style={[styles.appleText, {color: colors.text.primary}]}>Sign in with Google</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -160,6 +163,5 @@ const styles = StyleSheet.create({
     appleText: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#000",
     },
 });

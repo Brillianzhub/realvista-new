@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -13,16 +13,17 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { WebView } from 'react-native-webview';
 import { useLearnVideos, LearnVideo } from '@/hooks/learn/useLearnVideos';
-
-
+import YouTubePlayer from '@/components/utils/YoutubePlayer';
 
 export default function LearnDetail() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const router = useRouter();
-    const { slug } = useLocalSearchParams<{ slug: string }>();
+
+    const { slug: initialSlug } = useLocalSearchParams<{ slug: string }>();
+    const [activeSlug, setActiveSlug] = useState(initialSlug);
+
     const { width } = Dimensions.get('window');
 
     const [content, setContent] = useState<LearnVideo | null>(null);
@@ -30,15 +31,17 @@ export default function LearnDetail() {
     const [isWatched, setIsWatched] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
 
-    const { videos } = useLearnVideos()
+    const playerRef = useRef<{ stopVideo?: () => void } | null>(null);
 
+    const { videos } = useLearnVideos();
 
     useEffect(() => {
-        if (slug) {
-            loadContentDetail();
+        if (activeSlug) {
+            loadContentDetail(activeSlug);
         }
-    }, [slug]);
+    }, [activeSlug]);
 
     useEffect(() => {
         if (videos.length > 0 && content) {
@@ -52,8 +55,7 @@ export default function LearnDetail() {
         }
     }, [videos, content]);
 
-
-    const loadContentDetail = async () => {
+    const loadContentDetail = async (slug: string) => {
         try {
             setLoading(true);
             setError(null);
@@ -78,12 +80,11 @@ export default function LearnDetail() {
         }
     };
 
-
     const toggleWatchedStatus = async () => {
         if (!content) return;
-
+        // Add your watched status logic here
+        setIsWatched(!isWatched);
     };
-
 
     const handleShare = async () => {
         if (!content) return;
@@ -103,9 +104,10 @@ export default function LearnDetail() {
         }
     };
 
-    const handleRelatedVideoPress = (relatedId: string) => {
-        router.push(`/learn/${relatedId}`);
+    const handleRelatedVideoPress = (relatedSlug: string) => {
+        setActiveSlug(relatedSlug);
     };
+
 
     const formatDate = (dateString: string): string => {
         const date = new Date(dateString);
@@ -127,6 +129,34 @@ export default function LearnDetail() {
             default:
                 return '#6B7280';
         }
+    };
+
+    
+
+    const handlePlayerError = useCallback((error: string) => {
+        // Only log errors in development
+        if (__DEV__) {
+            console.error('YouTube player error:', error);
+        }
+        // You could show a user-friendly error message here
+    }, []);
+
+    const handlePlayerReady = useCallback(() => {
+        // Player is ready, you could add initialization logic here
+    }, []);
+
+    const getYouTubeId = (content: LearnVideo): string => {
+        if (content.youtube_id) {
+            return content.youtube_id;
+        }
+        
+        if (content.youtube_url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+            const match = content.youtube_url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : '';
+        }
+        
+        return '';
     };
 
     if (loading) {
@@ -158,7 +188,7 @@ export default function LearnDetail() {
         );
     }
 
-    const youtubeEmbedUrl = `https://www.youtube.com/embed/${content.youtube_id}?rel=0&modestbranding=1`;
+    const youtubeId = getYouTubeId(content);
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
@@ -175,14 +205,28 @@ export default function LearnDetail() {
                 style={styles.scrollView}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                key={content.id} 
             >
+                {/* YouTube Player */}
                 <View style={styles.videoContainer}>
-                    <WebView
-                        source={{ uri: youtubeEmbedUrl }}
-                        style={styles.video}
-                        allowsFullscreenVideo
-                        mediaPlaybackRequiresUserAction={false}
-                    />
+                    {youtubeId ? (
+                        <YouTubePlayer
+                            key={youtubeId}
+                            videoId={youtubeId}
+                            height={240}
+                            autoPlay={false}
+                            showControls={true}
+                            showFullScreenButton={true}
+                            onError={handlePlayerError}
+                            onReady={handlePlayerReady}
+                            containerStyle={styles.video}
+                        />
+                    ) : (
+                        <View style={[styles.video, styles.videoError]}>
+                            <Ionicons name="alert-circle-outline" size={48} color="#6B7280" />
+                            <Text style={styles.videoErrorText}>Unable to load video</Text>
+                        </View>
+                    )}
                 </View>
 
                 <View style={styles.content}>
@@ -291,7 +335,7 @@ export default function LearnDetail() {
                                 <TouchableOpacity
                                     key={video.id}
                                     style={[styles.relatedCard, isDark && styles.relatedCardDark]}
-                                    onPress={() => handleRelatedVideoPress(video.id)}
+                                    onPress={() => handleRelatedVideoPress(video.slug)}
                                     activeOpacity={0.7}
                                 >
                                     <View style={styles.relatedInfo}>
@@ -409,6 +453,17 @@ const styles = StyleSheet.create({
     },
     video: {
         flex: 1,
+    },
+    videoError: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: '#F3F4F6',
+    },
+    videoErrorText: {
+        marginTop: 12,
+        fontSize: 14,
+        color: '#6B7280',
+        fontWeight: '500',
     },
     content: {
         padding: 24,

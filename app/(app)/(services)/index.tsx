@@ -126,7 +126,7 @@ export default function PropertyManagementServicesScreen() {
         Linking.openURL('mailto:contact@realvistaproperties.com');
         break;
       case 'whatsapp':
-        Linking.openURL('https://wa.me/2348123456789');
+        Linking.openURL('https://wa.me/+2347043065222');
         break;
       case 'website':
         Linking.openURL('https://www.realvistaproperties.com');

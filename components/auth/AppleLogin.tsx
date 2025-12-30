@@ -6,6 +6,7 @@ import { useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
 import { FontAwesome } from "@expo/vector-icons";
 import axios from "axios";
+import { useTheme } from '@/context/ThemeContext';
 
 interface AppleTokenPayload {
     sub: string;
@@ -38,6 +39,8 @@ interface AppleLoginProps {
 const AppleLogin: React.FC<AppleLoginProps> = ({ setUser, setIsLogged }) => {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+
+    const { colors } = useTheme();
 
     const handleAppleLogin = async () => {
         try {
@@ -130,11 +133,11 @@ const AppleLogin: React.FC<AppleLoginProps> = ({ setUser, setIsLogged }) => {
     return (
         <View style={styles.container}>
             {loading ? (
-                <ActivityIndicator size="large" color="#000" />
+                <ActivityIndicator size="large" color={colors.icon.default} />
             ) : (
                 <TouchableOpacity style={styles.appleButton} onPress={handleAppleLogin}>
-                    <FontAwesome name="apple" size={20} color="#000" style={{ marginRight: 10 }} />
-                    <Text style={styles.appleText}>Continue with Apple</Text>
+                    <FontAwesome name="apple" size={20} color={colors.icon.default} style={{ marginRight: 10 }} />
+                    <Text style={[styles.appleText, {color: colors.text.primary}]}>Continue with Apple</Text>
                 </TouchableOpacity>
             )}
         </View>
@@ -163,6 +166,5 @@ const styles = StyleSheet.create({
     appleText: {
         fontSize: 16,
         fontWeight: "600",
-        color: "#000",
     },
 });

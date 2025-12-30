@@ -1,5 +1,6 @@
 import React, { FC } from 'react';
 import { TextInput, StyleSheet, TextInputProps } from 'react-native';
+import { useTheme } from '@/context/ThemeContext';
 
 // Extend TextInputProps to include custom props if needed
 interface FormInputProps extends TextInputProps {
@@ -18,6 +19,27 @@ const FormInput: FC<FormInputProps> = ({
     multiline = false,
     ...props
 }) => {
+
+    const { colors } = useTheme();
+
+    const styles = StyleSheet.create({
+        input: {
+            height: 50,
+            borderWidth: 1,
+            borderColor: colors.border.default,
+            borderRadius: 15,
+            paddingHorizontal: 10,
+            marginBottom: 15,
+            fontSize: 16,
+            backgroundColor: colors.background.secondary,
+            color: colors.text.primary,
+        },
+        multiline: {
+            textAlignVertical: 'top', 
+            paddingTop: 10,
+        },
+    });
+
     return (
         <TextInput
             style={[
@@ -26,7 +48,7 @@ const FormInput: FC<FormInputProps> = ({
                 props.style, // allow overriding styles
             ]}
             placeholder={placeholder}
-            placeholderTextColor="#888"
+            placeholderTextColor={colors.text.muted}
             value={value}
             onChangeText={onChangeText}
             keyboardType={keyboardType}
@@ -36,21 +58,6 @@ const FormInput: FC<FormInputProps> = ({
     );
 };
 
-const styles = StyleSheet.create({
-    input: {
-        height: 50,
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        paddingHorizontal: 10,
-        marginBottom: 15,
-        fontSize: 16,
-        backgroundColor: '#f9f9f9',
-    },
-    multiline: {
-        textAlignVertical: 'top', // ensures text starts at the top in multiline
-        paddingTop: 10,
-    },
-});
+
 
 export default FormInput;

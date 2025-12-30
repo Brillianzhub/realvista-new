@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {
     View,
     Text,
@@ -7,6 +7,7 @@ import {
     StyleSheet,
     Dimensions,
     Alert,
+    ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -16,7 +17,9 @@ import { useGlobalContext } from '@/context/GlobalProvider';
 import PortfolioMediaGallery from '@/components/portfolio/PortfolioMediaGallery';
 import PropertyMapView from '@/components/portfolio/PropertyMapView';
 import { useSingleProperty } from '@/hooks/portfolio/useSingleProperty';
-
+import AddCoordinatesModal from '@/components/modals/AddCoordinatesModal';
+import { Coordinate } from '@/components/forms/CoordinateForm';
+import { useTheme } from '@/context/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -38,6 +41,12 @@ export default function PropertyDetailScreen() {
     const params = useLocalSearchParams();
 
     const user = useGlobalContext().user;
+    const { colors } = useTheme();
+
+    const [isEditCoordinateVisible, setIsEditCoordinateVisible] = useState(false);
+    const [editCoordinate, setEditCoordinate] = useState<Coordinate | null>(null);
+    const [editPropertyId, setEditPropertyId] = useState<string | null>(null);
+    const [editCoordinateId, setEditCoordinateId] = useState<number | null>(null);
 
     const {id} = useLocalSearchParams();
 
@@ -48,9 +57,58 @@ export default function PropertyDetailScreen() {
         refetch,
     } = useSingleProperty(Number(id));
 
-    if (loading) return <Text>Loading property...</Text>;
-    if (error) return <Text>{error}</Text>;
-    if (!property) return <Text>Property not found</Text>;
+    if (loading) {
+    return (
+        <View
+        style={{
+            flex: 1,
+            backgroundColor: colors.background.primary,
+            alignItems: "center",
+            justifyContent: "center",
+        }}
+        >
+        <ActivityIndicator size="large" color={colors.tint} />
+        <Text style={{ color: colors.text.secondary, marginTop: 12 }}>
+            Loading property...
+        </Text>
+        </View>
+    );
+    }
+
+    if (error) {
+    return (
+        <View
+        style={{
+            flex: 1,
+            backgroundColor: colors.background.primary,
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 16,
+        }}
+        >
+        <Text style={{ color: colors.text.primary }}>
+            {error}
+        </Text>
+        </View>
+    );
+    }
+
+    if (!property) {
+    return (
+        <View
+        style={{
+            flex: 1,
+            backgroundColor: colors.background.primary,
+            alignItems: "center",
+            justifyContent: "center",
+        }}
+        >
+        <Text style={{ color: colors.text.primary }}>
+            Property not found
+        </Text>
+        </View>
+    );
+    }
 
     const incomes = property.incomes || [];
     const expenses = property.expenses || [];
@@ -71,7 +129,7 @@ export default function PropertyDetailScreen() {
 
         if (!initial || initial <= 0) return 'Initial cost data is unavailable for appreciation calculation.';
 
-        const app = ((current - initial) / initial) * 100; // appreciation percentage
+        const app = ((current - initial) / initial) * 100; 
 
         if (app > 100) {
             return `The property has appreciated strongly by ${app.toFixed(2)}%, indicating strong growth.`;
@@ -104,6 +162,20 @@ export default function PropertyDetailScreen() {
         }
     };
 
+    const handleEditCoordinate = () => {
+        const firstCoordinate = property.coordinates?.[0];
+
+        if (!firstCoordinate) {
+            Alert.alert('Error', 'No coordinate available to edit.');
+            return;
+        }
+
+        setEditCoordinate(firstCoordinate);
+        setEditPropertyId(property.id.toString());
+        setEditCoordinateId(firstCoordinate.id);
+        setIsEditCoordinateVisible(true);
+    };
+
 
     const capitalize = (text?: string) => {
         if (!text) return '';
@@ -113,17 +185,18 @@ export default function PropertyDetailScreen() {
 
     return (
         <ScrollView 
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
+            style={[styles.container, { backgroundColor: colors.background.primary }]}
+            showsVerticalScrollIndicator={false}
         >
-            <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back-outline" size={24} color="#111827" />
-                </TouchableOpacity>
+            <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, {}]}>
+                <Ionicons name="arrow-back-outline" size={24} color={colors.icon.default} />
+            </TouchableOpacity>
+
+            <View style={[styles.header, { borderBottomColor: colors.border.default }]}>
                 <View style={styles.headerInfo}>
-                    <Text style={styles.propertyName}>{property.title}</Text>
+                    <Text style={[styles.propertyName, { color: colors.text.primary }]}>{property.title}</Text>
                     <View style={styles.headerStats}>
-                        <Text style={styles.currentValue}>{formatCurrency(property.current_value, property.currency)}</Text>
+                        <Text style={[styles.currentValue, { color: colors.text.primary }]}>{formatCurrency(property.current_value, property.currency)}</Text>
                         <View style={styles.roiContainer}>
                             <Ionicons
                                 name={property.roi > 0 ? 'arrow-up-outline' : 'arrow-down-outline'}
@@ -144,14 +217,14 @@ export default function PropertyDetailScreen() {
             </View>
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Performance Overview</Text>
+                <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Performance Overview</Text>
                 <View style={styles.performanceCards}>
-                    <View style={styles.perfCard}>
-                        <Text style={styles.perfLabel}>Initial Cost</Text>
-                        <Text style={styles.perfValue}>{formatCurrency(property.initial_cost, property.currency)}</Text>
+                    <View style={[styles.perfCard, { backgroundColor: colors.background.secondary }]}>
+                        <Text style={[styles.perfLabel, { color: colors.text.primary }]}>Initial Cost</Text>
+                        <Text style={[styles.perfValue, {color: colors.text.primary}]}>{formatCurrency(property.initial_cost, property.currency)}</Text>
                     </View>
-                    <View style={styles.perfCard}>
-                        <Text style={styles.perfLabel}>Appreciation</Text>
+                    <View style={[styles.perfCard, { backgroundColor: colors.background.secondary }]}>
+                        <Text style={[styles.perfLabel, { color: colors.text.primary }]}>Appreciation</Text>
                         <Text
                             style={[
                                 styles.perfValue,
@@ -162,21 +235,21 @@ export default function PropertyDetailScreen() {
                         </Text>
                     </View>
                 </View>
-                <Text style={styles.insightText}>{getAppreciationInsight()}</Text>
+                <Text style={[styles.insightText, { color: colors.text.muted }]}>{getAppreciationInsight()}</Text>
             </View>
 
             {property?.performance_data && (
                 <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Graphical Performance</Text>
+                    <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Graphical Performance</Text>
                     <View style={styles.chartContainer}>
                         <LineChart
                             data={property.performance_data}
-                            width={screenWidth - 48}
+                            width={screenWidth - 32} // minus padding
                             height={220}
                             chartConfig={{
-                                backgroundColor: '#FFFFFF',
-                                backgroundGradientFrom: '#FFFFFF',
-                                backgroundGradientTo: '#FFFFFF',
+                                backgroundColor: colors.background.secondary,
+                                backgroundGradientFrom: colors.background.secondary,
+                                backgroundGradientTo: colors.background.secondary,
                                 decimalPlaces: 2,
                                 color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
                                 labelColor: (opacity = 1) => `rgba(107, 114, 128, ${opacity})`,
@@ -192,51 +265,53 @@ export default function PropertyDetailScreen() {
                             bezier
                             style={styles.chart}
                         />
-                        <Text style={{ textAlign: 'right', color: '#6B7280', fontSize: 12 }}>
-                            Values in {property.currency} Millions
-                        </Text>
-
+                        <View style={{ paddingTop: 8 }}>
+                            <Text style={{ textAlign: 'right', color: colors.text.muted, fontSize: 12 }}>
+                                Values in {property.currency} Millions
+                            </Text>
+                        </View>
+                        
                     </View>
                 </View>
             )}
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Income & Expenses</Text>
-                <View style={styles.financeContainer}>
+                <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Income & Expenses</Text>
+                <View style={[ styles.financeContainer, { backgroundColor: colors.background.secondary }]}>
                     <View style={styles.financeColumn}>
-                        <Text style={styles.financeHeader}>Income</Text>
+                        <Text style={[styles.financeHeader, { color: colors.text.primary }]}>Income</Text>
                         {property.incomes.map((item: { description?: string; amount: number; currency?: string }, index: number) => (
                             <View key={index} style={styles.financeRow}>
-                                <Text style={styles.financeLabel}>{item.description || 'Income'}</Text>
-                                <Text style={styles.financeAmount}>
+                                <Text style={[styles.financeLabel, { color: colors.text.secondary }]}>{item.description || 'Income'}</Text>
+                                <Text style={[styles.financeAmount, { color: colors.text.secondary }]}>
                                     {formatCurrency(item.amount, item.currency || property.currency)}
                                 </Text>
                             </View>
                         ))}
                         <View style={[styles.financeRow, styles.totalRow]}>
-                            <Text style={styles.totalLabel}>Total Income</Text>
-                            <Text style={styles.totalAmount}>{formatCurrency(totalIncome, property.currency)}</Text>
+                            <Text style={[styles.totalLabel, { color: colors.text.primary }]}>Total Income</Text>
+                            <Text style={[styles.totalAmount, { color: colors.text.primary }]}>{formatCurrency(totalIncome, property.currency)}</Text>
                         </View>
                     </View>
 
                     <View style={styles.financeColumn}>
-                        <Text style={styles.financeHeader}>Expenses</Text>
+                        <Text style={[styles.financeHeader, { color: colors.text.primary }]}>Expenses</Text>
                         {property.expenses.map(
                             (
                                 item: { description?: string; amount: number; currency?: string },
                                 index: number
                             ) => (
                                 <View key={index} style={styles.financeRow}>
-                                    <Text style={styles.financeLabel}>{item.description}</Text>
-                                    <Text style={styles.financeAmount}>
+                                    <Text style={[styles.financeLabel, { color: colors.text.secondary }]}>{item.description}</Text>
+                                    <Text style={[styles.financeAmount, { color: colors.text.secondary }]}>
                                         {formatCurrency(item.amount, item.currency || property.currency)}
                                     </Text>
                                 </View>
                             )
                         )}
                         <View style={[styles.financeRow, styles.totalRow]}>
-                            <Text style={styles.totalLabel}>Total Expenses</Text>
-                            <Text style={styles.totalAmount}>{formatCurrency(totalExpenses, property.currency)}</Text>
+                            <Text style={[styles.totalLabel, { color: colors.text.primary }]}>Total Expenses</Text>
+                            <Text style={[styles.totalAmount, { color: colors.text.primary }]}>{formatCurrency(totalExpenses, property.currency)}</Text>
                         </View>
                     </View>
 
@@ -250,29 +325,32 @@ export default function PropertyDetailScreen() {
             </View>
 
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Property Information</Text>
-                <View style={styles.infoCard}>
-                    <Text style={styles.description}>{property.description}</Text>
-
+                <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>Property Information</Text>
+                <View style={[styles.infoCard, { backgroundColor: colors.background.secondary }]}>                    
                     <View style={styles.infoGrid}>
                         <View style={styles.infoItem}>
-                            <Text style={styles.infoLabel}>Location</Text>
-                            <Text style={styles.infoValue}>
+                            <Text style={[styles.infoLabel, { color: colors.text.secondary }]}>Description</Text>
+                            <Text style={[styles.infoValue, { color: colors.text.primary }]}>{property.description}</Text>
+                        </View>
+
+                        <View style={styles.infoItem}>
+                            <Text style={[styles.infoLabel, { color: colors.text.secondary }]}>Location</Text>
+                            <Text style={[styles.infoValue, { color: colors.text.primary }]}>
                                 {`${capitalize(property.address)}, ${capitalize(property.city)}, ${capitalize(property.location)}`}
                             </Text>
                         </View>
 
                         <View style={styles.infoItem}>
-                            <Text style={styles.infoLabel}>Number of Units</Text>
-                            <Text style={styles.infoValue}>{property.num_units}</Text>
+                            <Text style={[styles.infoLabel, { color: colors.text.secondary }]}>Number of Units</Text>
+                            <Text style={[styles.infoValue, { color: colors.text.primary }]}>{property.num_units}</Text>
                         </View>
                         <View style={styles.infoItem}>
-                            <Text style={styles.infoLabel}>Year Bought</Text>
-                            <Text style={styles.infoValue}>{property.year_bought}</Text>
+                            <Text style={[styles.infoLabel, { color: colors.text.secondary }]}>Year Bought</Text>
+                            <Text style={[styles.infoValue, { color: colors.text.primary }]}>{property.year_bought}</Text>
                         </View>
                         <View style={styles.infoItem}>
-                            <Text style={styles.infoLabel}>Investment Type</Text>
-                            <Text style={styles.infoValue}>{property.type}</Text>
+                            <Text style={[styles.infoLabel, { color: colors.text.secondary }]}>Investment Type</Text>
+                            <Text style={[styles.infoValue, { color: colors.text.primary }]}>{`${capitalize(property.property_type)}`}</Text>
                         </View>
                     </View>
                 </View>
@@ -292,6 +370,17 @@ export default function PropertyDetailScreen() {
                 city={property.city}
                 location={property.location}
                 address={property.address}
+                editCoordinate={handleEditCoordinate}
+            />
+
+            <AddCoordinatesModal
+                visible={isEditCoordinateVisible}
+                onClose={() => setIsEditCoordinateVisible(false)}
+                mode="edit"
+                propertyId={editPropertyId ?? undefined}
+                coordinate={editCoordinate ?? undefined}
+                coordinateId={editCoordinateId ?? undefined}
+                onRefetch={handleRefetch}
             />
 
             <View style={styles.ctaSection}>
@@ -306,10 +395,8 @@ export default function PropertyDetailScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F9FAFB',
     },
     header: {
-        backgroundColor: '#FFFFFF',
         paddingTop: 20,
         paddingBottom: 20,
         paddingHorizontal: 16,
@@ -317,7 +404,9 @@ const styles = StyleSheet.create({
         borderBottomColor: '#E5E7EB',
     },
     backButton: {
-        marginBottom: 16,
+        marginBottom: 0,
+        paddingLeft: 16,
+        paddingTop: 10,
     },
     headerInfo: {
         gap: 8,
@@ -325,7 +414,6 @@ const styles = StyleSheet.create({
     propertyName: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#111827',
     },
     headerStats: {
         flexDirection: 'row',
@@ -353,7 +441,6 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: '600',
-        color: '#111827',
         marginBottom: 16,
     },
     performanceCards: {
@@ -363,7 +450,6 @@ const styles = StyleSheet.create({
     },
     perfCard: {
         flex: 1,
-        backgroundColor: '#FFFFFF',
         borderRadius: 12,
         padding: 15,
         shadowColor: '#000',
@@ -380,18 +466,15 @@ const styles = StyleSheet.create({
     perfValue: {
         fontFamily: "RobotoSerif-Medium",
         fontSize: 18,
-        color: '#111827',
     },
     insightText: {
         fontSize: 14,
-        color: '#4B5563',
         lineHeight: 20,
         fontStyle: 'italic',
     },
     chartContainer: {
-        backgroundColor: '#FFFFFF',
         borderRadius: 16,
-        padding: 16,
+        padding: 0,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
@@ -402,7 +485,6 @@ const styles = StyleSheet.create({
         borderRadius: 16,
     },
     financeContainer: {
-        backgroundColor: '#FFFFFF',
         borderRadius: 12,
         padding: 15,
         shadowColor: '#000',
@@ -417,7 +499,6 @@ const styles = StyleSheet.create({
     financeHeader: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#111827',
         marginBottom: 12,
     },
     financeRow: {
@@ -443,12 +524,10 @@ const styles = StyleSheet.create({
     totalLabel: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#111827',
     },
     totalAmount: {
         fontSize: 14,
         fontWeight: '700',
-        color: '#111827',
     },
     netReturnContainer: {
         flexDirection: 'row',
@@ -484,7 +563,6 @@ const styles = StyleSheet.create({
     },
     description: {
         fontSize: 14,
-        color: '#4B5563',
         lineHeight: 20,
         marginBottom: 16,
     },
@@ -496,12 +574,10 @@ const styles = StyleSheet.create({
     },
     infoLabel: {
         fontSize: 12,
-        color: '#6B7280',
         fontWeight: '500',
     },
     infoValue: {
         fontSize: 14,
-        color: '#111827',
         fontWeight: '600',
     },
     mapContainer: {

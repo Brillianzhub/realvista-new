@@ -237,6 +237,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({ propertyId, onClose
                             data={properties}
                             keyExtractor={(item) => item.id.toString()}
                             style={styles.pickerScroll}
+                            showsVerticalScrollIndicator={false}
                             renderItem={({ item }) => (
                                 <TouchableOpacity
                                     style={styles.pickerOption}

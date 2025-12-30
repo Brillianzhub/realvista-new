@@ -14,6 +14,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Region } from 'react-native-maps';
+import { useTheme } from '@/context/ThemeContext';
+
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -29,6 +31,7 @@ interface PropertyMapViewProps {
     city?: string;
     location?: string;
     address?: string;
+    editCoordinate: () => void;
 }
 
 const PropertyMapView: React.FC<PropertyMapViewProps> = ({
@@ -36,11 +39,14 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
     propertyTitle = '',
     city = '',
     location = '',
-    address = ''
+    address = '',
+    editCoordinate,
 }) => {
     const [modalVisible, setModalVisible] = useState<boolean>(false);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const mapRef = useRef<MapView>(null);
+
+    const { colors } = useTheme();
 
     if (!coordinates || coordinates.length === 0) {
         return (
@@ -54,7 +60,15 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
     }
 
     const mainCoordinate = coordinates[0];
-    const fullAddress = `${address || ''}${city ? `, ${city}` : ''}${location && location !== city ? `, ${location}` : ''}`.trim();
+
+    const capitalizeEachWord = (str: string) => {
+        if (!str) return '';
+        return str.replace(/\b\w/g, char => char.toUpperCase());
+    };
+
+    const fullAddress = capitalizeEachWord(
+        `${address || ''}${city ? `, ${city}` : ''}${location && location !== city ? `, ${location}` : ''}`
+    ).trim();
 
     const initialRegion: Region = {
         latitude: mainCoordinate.latitude,
@@ -202,15 +216,24 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
 
     return (
         <View style={styles.section}>
-            <View style={styles.sectionHeader}>
+                <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Location</Text>
-                <TouchableOpacity onPress={handleExpandMap} style={styles.expandButton}>
-                    <Ionicons name="expand-outline" size={20} color="#358B8B" />
-                    <Text style={styles.expandText}>Expand</Text>
-                </TouchableOpacity>
+                <View style={styles.sectionHeaderButtons}>
+                    <TouchableOpacity onPress={handleExpandMap} style={styles.expandButton}>
+                        <Ionicons name="expand-outline" size={20} color="#358B8B" />
+                        <Text style={styles.expandText}>Expand</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        onPress={editCoordinate} 
+                        style={styles.editButton}
+                    >
+                        <Ionicons name="pencil-outline" size={20} color="#358B8B" />
+                        <Text style={styles.editText}>Edit</Text>
+                    </TouchableOpacity>
+                </View>
             </View>
 
-            <View style={styles.mapContainer}>
+            <View style={[styles.mapContainer, {borderColor: colors.border.default}]}>
                 <MapView
                     style={styles.map}
                     initialRegion={initialRegion}
@@ -242,15 +265,15 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
                     </View>
                 </TouchableOpacity>
 
-                <View style={styles.addressContainer}>
+                <View style={[styles.addressContainer, {backgroundColor: colors.background.secondary}]}>
                     <View style={styles.addressIcon}>
                         <Ionicons name="location" size={16} color="#358B8B" />
                     </View>
-                    <View style={styles.addressTextContainer}>
-                        <Text style={styles.addressTitle} numberOfLines={1}>
+                    <View style={[styles.addressTextContainer, ]}>
+                        <Text style={[styles.addressTitle, {color: colors.text.primary}]} numberOfLines={1}>
                             {propertyTitle}
                         </Text>
-                        <Text style={styles.addressText} numberOfLines={2}>
+                        <Text style={[styles.addressText, {color: colors.text.secondary}]} numberOfLines={2}>
                             {fullAddress}
                         </Text>
                     </View>
@@ -259,7 +282,6 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
                     </TouchableOpacity>
                 </View>
             </View>
-
             {renderMapModal()}
         </View>
     );
@@ -273,13 +295,18 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 12,
-        paddingHorizontal: 16,
+        marginBottom: 10,
+        paddingHorizontal: 16
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '600',
         color: '#111827',
+    },
+    sectionHeaderButtons: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
     },
     expandButton: {
         flexDirection: 'row',
@@ -291,6 +318,20 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     expandText: {
+        fontSize: 14,
+        color: '#358B8B',
+        fontWeight: '500',
+    },
+    editButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: '#F0F9F9',
+        borderRadius: 8,
+    },
+    editText: {
         fontSize: 14,
         color: '#358B8B',
         fontWeight: '500',
@@ -348,13 +389,11 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: 'rgba(255,255,255,0.95)',
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 12,
         paddingVertical: 10,
         borderTopWidth: 1,
-        borderTopColor: '#E5E7EB',
     },
     addressIcon: {
         marginRight: 8,
@@ -365,12 +404,10 @@ const styles = StyleSheet.create({
     addressTitle: {
         fontSize: 14,
         fontWeight: '600',
-        color: '#111827',
         marginBottom: 2,
     },
     addressText: {
         fontSize: 12,
-        color: '#6B7280',
     },
     navigationButton: {
         padding: 8,

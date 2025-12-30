@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,9 @@ import {
   StyleSheet,
   RefreshControl,
   useColorScheme,
+  Modal,
+  Animated,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -80,6 +83,10 @@ const formatROI = (roi: number): string => {
 export default function PortfolioScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
+  const [selectedYear, setSelectedYear] = useState<number | 'All'>('All');
+  const [showYearModal, setShowYearModal] = useState(false);
+  const [filterAnimation] = useState(new Animated.Value(0));
+
   const isDark = colorScheme === 'dark';
 
   const { properties, loading, refetch } = useUserProperties();
@@ -95,7 +102,27 @@ export default function PortfolioScreen() {
     router.push('/(app)/(manage)');
   };
 
-  const investments: Investment[] = properties.map((p: any) => ({
+  const propertiesByYear = useMemo(() => {
+    return properties.reduce<Record<number, typeof properties>>((acc, p) => {
+      const year = p.year_bought;
+      if (!acc[year]) acc[year] = [];
+      acc[year].push(p);
+      return acc;
+    }, {});
+  }, [properties]);
+
+  const availableYears = useMemo(() => {
+    return Object.keys(propertiesByYear)
+      .map(Number)
+      .sort((a, b) => b - a);
+  }, [propertiesByYear]);
+
+  const filteredProperties = useMemo(() => {
+    if (selectedYear === 'All') return properties;
+    return propertiesByYear[selectedYear] ?? [];
+  }, [selectedYear, properties, propertiesByYear]);
+
+  const investments: Investment[] = filteredProperties.map((p: any) => ({
     id: p.id.toString(),
     name: p.title,
     currency: p.currency,
@@ -106,10 +133,11 @@ export default function PortfolioScreen() {
 
   const totalValue = investments.reduce((sum, inv) => sum + inv.value, 0);
   const assetsCount = investments.length;
-  const totalInvested = properties.reduce(
+  const totalInvested = filteredProperties.reduce(
     (sum, p) => sum + parseFloat(p.initial_cost || 0),
     0
   );
+
   const totalReturns = totalValue - totalInvested;
   const portfolioCurrency = investments[0]?.currency || 'NGN';
 
@@ -123,7 +151,9 @@ export default function PortfolioScreen() {
   };
 
   const handlePropertyPress = (investmentId: string) => {
-    const property = properties.find((p: any) => p.id.toString() === investmentId);
+    const property = filteredProperties.find(
+      (p: any) => p.id.toString() === investmentId
+    );
 
     if (property) {
       router.push({
@@ -134,6 +164,121 @@ export default function PortfolioScreen() {
       console.warn('Property not found for ID:', investmentId);
     }
   };
+
+  const handleFilterPress = () => {
+    setShowYearModal(true);
+    Animated.spring(filterAnimation, {
+      toValue: 1,
+      friction: 8,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleCloseModal = () => {
+    Animated.timing(filterAnimation, {
+      toValue: 0,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => setShowYearModal(false));
+  };
+
+  const handleYearSelect = (year: number | 'All') => {
+    setSelectedYear(year);
+    handleCloseModal();
+  };
+
+  const modalTranslateY = filterAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [300, 0],
+  });
+
+  const modalOpacity = filterAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+
+  const renderYearModal = () => (
+    <Modal
+      transparent
+      visible={showYearModal}
+      animationType="none"
+      onRequestClose={handleCloseModal}
+    >
+      <TouchableWithoutFeedback onPress={handleCloseModal}>
+        <View style={styles.modalOverlay}>
+          <Animated.View style={[
+            styles.modalContent,
+            { 
+              transform: [{ translateY: modalTranslateY }],
+              opacity: modalOpacity 
+            }
+          ]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, isDark && styles.modalTitleDark]}>
+                Filter by Year
+              </Text>
+              <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              </TouchableOpacity>
+            </View>
+            
+            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+              <TouchableOpacity
+                style={[
+                  styles.modalYearOption,
+                  selectedYear === 'All' && styles.modalYearOptionSelected,
+                  isDark && styles.modalYearOptionDark,
+                ]}
+                onPress={() => handleYearSelect('All')}
+              >
+                <Text style={[
+                  styles.modalYearText,
+                  selectedYear === 'All' && styles.modalYearTextSelected,
+                  isDark && styles.modalYearTextDark,
+                ]}>
+                  All Years
+                </Text>
+                {selectedYear === 'All' && (
+                  <Ionicons name="checkmark" size={20} color="#358B8B" />
+                )}
+              </TouchableOpacity>
+              
+              <View style={[styles.divider, isDark && styles.dividerDark]} />
+              
+              {availableYears.map((year) => (
+                <TouchableOpacity
+                  key={year}
+                  style={[
+                    styles.modalYearOption,
+                    selectedYear === year && styles.modalYearOptionSelected,
+                    isDark && styles.modalYearOptionDark,
+                  ]}
+                  onPress={() => handleYearSelect(year)}
+                >
+                  <Text style={[
+                    styles.modalYearText,
+                    selectedYear === year && styles.modalYearTextSelected,
+                    isDark && styles.modalYearTextDark,
+                  ]}>
+                    {year}
+                  </Text>
+                  <View style={styles.yearPropertyCount}>
+                    <Text style={[
+                      styles.yearCountText,
+                      selectedYear === year && styles.yearCountTextSelected,
+                      isDark && styles.yearCountTextDark,
+                    ]}>
+                      {propertiesByYear[year]?.length || 0}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
 
   const renderEmptyState = () => (
     <View style={[styles.emptyContainer, isDark && styles.emptyContainerDark]}>
@@ -240,154 +385,200 @@ export default function PortfolioScreen() {
   }
 
   return (
-    <ScrollView
-      style={[styles.container, isDark && styles.containerDark]}
-      contentContainerStyle={styles.contentContainer}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#358B8B" />
-      }
-    >
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>My Portfolio</Text>
-          <Text style={[styles.headerSubtitle, isDark && styles.headerSubtitleDark]}>
-            Track your real estate investments
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.addButton} onPress={handleAddInvestment}>
-          <Ionicons name="add" size={24} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.overviewSection}>
-        <View style={styles.cardsRow}>
-          <View style={[styles.card, isDark && styles.cardDark]}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="wallet" size={20} color="#358B8B" />
-            </View>
-            <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>
-              Total Portfolio Value
-            </Text>
-            <Text style={[styles.cardValue, isDark && styles.cardValueDark]}>
-              {formatCurrency(portfolio.totalValue, portfolio.currency)}
+    <>
+      <ScrollView
+        style={[styles.container, isDark && styles.containerDark]}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#358B8B" />
+        }
+      >
+        <View style={styles.header}>
+          <View>
+            <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>My Portfolio</Text>
+            <Text style={[styles.headerSubtitle, isDark && styles.headerSubtitleDark]}>
+              Track your real estate investments
             </Text>
           </View>
-          <View style={[styles.card, isDark && styles.cardDark]}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="business" size={20} color="#358B8B" />
-            </View>
-            <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Number of Assets</Text>
-            <Text style={[styles.cardValue, isDark && styles.cardValueDark]}>
-              {portfolio.assetsCount}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.cardsRow}>
-          <View style={[styles.card, isDark && styles.cardDark]}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="cash" size={20} color="#358B8B" />
-            </View>
-            <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Total Invested</Text>
-            <Text style={[styles.cardValue, isDark && styles.cardValueDark]}>
-              {formatCurrency(portfolio.totalInvested, portfolio.currency)}
-            </Text>
-          </View>
-          <View style={[styles.card, isDark && styles.cardDark]}>
-            <View style={styles.cardHeader}>
-              <Ionicons
-                name="trending-up"
-                size={20}
-                color={portfolio.totalReturns >= 0 ? '#10B981' : '#EF4444'}
-              />
-            </View>
-            <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Total Returns</Text>
-            <Text
-              style={[
-                styles.cardValue,
-                isDark && styles.cardValueDark,
-                { color: portfolio.totalReturns >= 0 ? '#10B981' : '#EF4444' },
-              ]}
-            >
-              {formatCurrency(portfolio.totalReturns, portfolio.currency)}
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.investmentsSection, isDark && styles.investmentsSectionDark]}>
-        <View style={styles.sectionHeader}>
-          <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
-            Your Investments
-          </Text>
-          <View style={[styles.countBadge, isDark && styles.countBadgeDark]}>
-            <Text style={[styles.countBadgeText, isDark && styles.countBadgeTextDark]}>
-              {portfolio.investments.length}
-            </Text>
-          </View>
-        </View>
-
-        {portfolio.investments.map((investment, index) => (
-          <View key={investment.id}>
+          
+          <View style={styles.headerButtons}>
             <TouchableOpacity
-              style={styles.investmentItem}
-              onPress={() => handlePropertyPress(investment.id)}
+              style={[styles.filterButton, isDark && styles.filterButtonDark]}
+              onPress={handleFilterPress}
               activeOpacity={0.7}
             >
-              <View style={[styles.investmentIcon, isDark && styles.investmentIconDark]}>
-                <Ionicons name="home" size={24} color="#358B8B" />
-              </View>
-              <View style={styles.investmentInfo}>
-                <Text style={[styles.investmentName, isDark && styles.investmentNameDark]}>
-                  {investment.name}
+              <View style={styles.filterButtonContent}>
+                <Ionicons 
+                  name="filter" 
+                  size={18} 
+                  color={isDark ? '#358B8B' : '#358B8B'} 
+                />
+                <Text style={[
+                  styles.filterButtonText,
+                  isDark && styles.filterButtonTextDark
+                ]}>
+                  {selectedYear === 'All' ? 'Filter' : selectedYear}
                 </Text>
-                <View style={styles.investmentMeta}>
-                  <View
-                    style={[
-                      styles.typeBadge,
-                      investment.type === 'Group' && styles.typeBadgeGroup,
-                      isDark && styles.typeBadgeDark,
-                    ]}
-                  >
-                    <Text
+              </View>
+              
+              {selectedYear !== 'All' && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>✓</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.addButton} 
+              onPress={handleAddInvestment}
+              activeOpacity={0.7}
+            >
+              <LinearGradient
+                colors={['#358B8B', '#2C7070']}
+                style={styles.addButtonGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+              >
+                <Ionicons name="add" size={20} color="#FFFFFF" />
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.overviewSection}>
+          <View style={styles.cardsRow}>
+            <View style={[styles.card, isDark && styles.cardDark]}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="wallet" size={20} color="#358B8B" />
+              </View>
+              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>
+                Total Portfolio Value
+              </Text>
+              <Text style={[styles.cardValue, isDark && styles.cardValueDark]}>
+                {formatCurrency(portfolio.totalValue, portfolio.currency)}
+              </Text>
+            </View>
+            <View style={[styles.card, isDark && styles.cardDark]}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="business" size={20} color="#358B8B" />
+              </View>
+              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Number of Assets</Text>
+              <Text style={[styles.cardValue, isDark && styles.cardValueDark]}>
+                {portfolio.assetsCount}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.cardsRow}>
+            <View style={[styles.card, isDark && styles.cardDark]}>
+              <View style={styles.cardHeader}>
+                <Ionicons name="cash" size={20} color="#358B8B" />
+              </View>
+              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Total Invested</Text>
+              <Text style={[styles.cardValue, isDark && styles.cardValueDark]}>
+                {formatCurrency(portfolio.totalInvested, portfolio.currency)}
+              </Text>
+            </View>
+            <View style={[styles.card, isDark && styles.cardDark]}>
+              <View style={styles.cardHeader}>
+                <Ionicons
+                  name="trending-up"
+                  size={20}
+                  color={portfolio.totalReturns >= 0 ? '#10B981' : '#EF4444'}
+                />
+              </View>
+              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Total Returns</Text>
+              <Text
+                style={[
+                  styles.cardValue,
+                  isDark && styles.cardValueDark,
+                  { color: portfolio.totalReturns >= 0 ? '#10B981' : '#EF4444' },
+                ]}
+              >
+                {formatCurrency(portfolio.totalReturns, portfolio.currency)}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={[styles.investmentsSection, isDark && styles.investmentsSectionDark]}>
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+              Your Investments
+              {selectedYear !== 'All' && ` (${selectedYear})`}
+            </Text>
+            <View style={[styles.countBadge, isDark && styles.countBadgeDark]}>
+              <Text style={[styles.countBadgeText, isDark && styles.countBadgeTextDark]}>
+                {portfolio.investments.length}
+              </Text>
+            </View>
+          </View>
+
+          {portfolio.investments.map((investment, index) => (
+            <View key={investment.id}>
+              <TouchableOpacity
+                style={styles.investmentItem}
+                onPress={() => handlePropertyPress(investment.id)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.investmentIcon, isDark && styles.investmentIconDark]}>
+                  <Ionicons name="home" size={24} color="#358B8B" />
+                </View>
+                <View style={styles.investmentInfo}>
+                  <Text style={[styles.investmentName, isDark && styles.investmentNameDark]}>
+                    {investment.name}
+                  </Text>
+                  <View style={styles.investmentMeta}>
+                    <View
                       style={[
-                        styles.typeBadgeText,
-                        investment.type === 'Group' && styles.typeBadgeTextGroup,
+                        styles.typeBadge,
+                        investment.type === 'Group' && styles.typeBadgeGroup,
+                        isDark && styles.typeBadgeDark,
                       ]}
                     >
-                      {investment.type}
+                      <Text
+                        style={[
+                          styles.typeBadgeText,
+                          investment.type === 'Group' && styles.typeBadgeTextGroup,
+                        ]}
+                      >
+                        {investment.type}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={styles.investmentStats}>
+                  <Text style={[styles.investmentValue, isDark && styles.investmentValueDark]}>
+                    {formatCurrency(investment.value, portfolio.currency)}
+                  </Text>
+                  <View style={styles.roiContainer}>
+                    <Ionicons
+                      name={investment.roi > 0 ? 'arrow-up' : 'arrow-down'}
+                      size={14}
+                      color={investment.roi > 0 ? '#10B981' : '#EF4444'}
+                    />
+                    <Text
+                      style={[
+                        styles.roiText,
+                        { color: investment.roi > 0 ? '#10B981' : '#EF4444' },
+                      ]}
+                    >
+                      {formatROI(investment.roi)}
                     </Text>
                   </View>
                 </View>
-              </View>
-              <View style={styles.investmentStats}>
-                <Text style={[styles.investmentValue, isDark && styles.investmentValueDark]}>
-                  {formatCurrency(investment.value, portfolio.currency)}
-                </Text>
-                <View style={styles.roiContainer}>
-                  <Ionicons
-                    name={investment.roi > 0 ? 'arrow-up' : 'arrow-down'}
-                    size={14}
-                    color={investment.roi > 0 ? '#10B981' : '#EF4444'}
-                  />
-                  <Text
-                    style={[
-                      styles.roiText,
-                      { color: investment.roi > 0 ? '#10B981' : '#EF4444' },
-                    ]}
-                  >
-                    {formatROI(investment.roi)}
-                  </Text>
-                </View>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#D1D5DB'} />
-            </TouchableOpacity>
-            {index < portfolio.investments.length - 1 && (
-              <View style={[styles.divider, isDark && styles.dividerDark]} />
-            )}
-          </View>
-        ))}
-      </View>
-    </ScrollView>
+                <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#D1D5DB'} />
+              </TouchableOpacity>
+              {index < portfolio.investments.length - 1 && (
+                <View style={[styles.divider, isDark && styles.dividerDark]} />
+              )}
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+      
+      {renderYearModal()}
+    </>
   );
 }
 
@@ -410,12 +601,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     marginBottom: 24,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 28,
+    fontWeight: '800',
     color: '#111827',
     marginBottom: 4,
   },
@@ -429,18 +620,160 @@ const styles = StyleSheet.create({
   headerSubtitleDark: {
     color: '#9CA3AF',
   },
-  addButton: {
+  headerButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 4,
+  },
+  filterButton: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+    position: 'relative',
+  },
+  filterButtonDark: {
+    backgroundColor: '#1F2937',
+    borderColor: '#374151',
+  },
+  filterButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  filterButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  filterButtonTextDark: {
+    color: '#D1D5DB',
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
     backgroundColor: '#358B8B',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    borderRadius: 10,
+    width: 20,
+    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#F9FAFB',
+  },
+  filterBadgeDark: {
+    borderColor: '#1F2937',
+  },
+  filterBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  addButton: {
+    borderRadius: 25,
+    overflow: 'hidden',
     shadowColor: '#358B8B',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+  },
+  addButtonGradient: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingTop: 24,
+    paddingBottom: 34,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalTitleDark: {
+    color: '#F9FAFB',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  modalYearOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalYearOptionDark: {
+    borderBottomColor: '#374151',
+  },
+  modalYearOptionSelected: {
+    backgroundColor: '#F0FDFA',
+  },
+  modalYearText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  modalYearTextDark: {
+    color: '#D1D5DB',
+  },
+  modalYearTextSelected: {
+    color: '#0F766E',
+    fontWeight: '600',
+  },
+  yearPropertyCount: {
+    backgroundColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  yearCountText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  yearCountTextDark: {
+    color: '#9CA3AF',
+  },
+  yearCountTextSelected: {
+    color: '#0F766E',
   },
   overviewSection: {
     marginBottom: 24,
@@ -477,8 +810,8 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   cardValue: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#111827',
   },
   cardValueDark: {
@@ -504,7 +837,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#111827',
   },
@@ -514,7 +847,7 @@ const styles = StyleSheet.create({
   countBadge: {
     backgroundColor: '#F0FDFA',
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   countBadgeDark: {
@@ -522,7 +855,7 @@ const styles = StyleSheet.create({
   },
   countBadgeText: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: '#0F766E',
   },
   countBadgeTextDark: {
@@ -535,9 +868,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   investmentIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: '#F0FDFA',
     justifyContent: 'center',
     alignItems: 'center',
@@ -549,8 +882,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   investmentName: {
-    fontSize: 14,
-    fontWeight: '500',
+    fontSize: 15,
+    fontWeight: '600',
     color: '#111827',
     marginBottom: 6,
   },
@@ -564,20 +897,20 @@ const styles = StyleSheet.create({
   },
   typeBadge: {
     backgroundColor: '#EFF6FF',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
   },
   typeBadgeGroup: {
     backgroundColor: '#FEF3C7',
   },
   typeBadgeDark: {
-    backgroundColor: '#1E3A8A',
+    backgroundColor: '#202125ff',
   },
   typeBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#1E40AF',
+    color: '#9CA3AF',
   },
   typeBadgeTextGroup: {
     color: '#92400E',

@@ -200,7 +200,10 @@ const PropertyIncomeForm: React.FC<PropertyIncomeFormProps> = ({ onSubmit }) => 
                     </TouchableOpacity>
                     {showPropertyPicker && (
                         <View style={[styles.pickerContainer, isDark && styles.pickerContainerDark]}>
-                            <View style={styles.pickerScroll}>
+                            <ScrollView 
+                                style={styles.pickerScroll}
+                                showsVerticalScrollIndicator={false}
+                            >
                                 {properties.map((item) => (
                                     <TouchableOpacity
                                         key={item.id.toString()}
@@ -221,7 +224,7 @@ const PropertyIncomeForm: React.FC<PropertyIncomeFormProps> = ({ onSubmit }) => 
                                         </Text>
                                     </TouchableOpacity>
                                 ))}
-                            </View>
+                            </ScrollView>
                         </View>
                     )}
                     {errors.property && (
@@ -449,6 +452,7 @@ const styles = StyleSheet.create({
     },
     pickerScroll: {
         maxHeight: 200,
+        paddingBottom: 30
     },
     pickerOption: {
         padding: 12,

@@ -23,6 +23,7 @@ import {
 import { useRouter, Href } from 'expo-router';
 import FeaturedCarousel from '@/components/home/FeaturedCarousel';
 import { useGlobalContext } from '@/context/GlobalProvider';
+import { useTheme } from '@/context/ThemeContext';
 
 const ROUTES = {
   PORTFOLIO: '/(tabs)/portfolio' as Href,
@@ -68,6 +69,8 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
+  const {colors, theme} = useTheme();
+
   const { user } = useGlobalContext();
 
   const handleNavigationPress = (item: NavigationItem) => {
@@ -85,22 +88,22 @@ export default function HomeScreen() {
 
   const renderPrimaryNavigation = () => (
     <View
-      style={[styles.primaryNavContainer]}
+      style={[styles.primaryNavContainer, {backgroundColor: colors.background.secondary}]}
     >
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      <Text style={[styles.sectionTitle, {color: colors.text.primary}]}>Quick Actions</Text>
       <View style={styles.primaryNavGrid}>
         {navigationItems.map((item) => (
           <TouchableOpacity
             key={item.id}
-            style={styles.primaryNavItem}
+            style={[styles.primaryNavItem, {backgroundColor: colors.background.secondary, borderColor: colors.border.default}]}
             onPress={() => handleNavigationPress(item)}
             activeOpacity={0.8}
           >
             <View style={[styles.primaryIconContainer, { backgroundColor: item.color }]}>
               <item.icon size={32} color="#ffffff" />
             </View>
-            <Text style={styles.primaryNavText}>{item.title}</Text>
-            <Text style={styles.primaryNavSubtext}>{item.subtitle}</Text>
+            <Text style={[styles.primaryNavText, {color: colors.text.primary}]}>{item.title}</Text>
+            <Text style={[styles.primaryNavSubtext, {color: colors.text.muted}]}>{item.subtitle}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -108,8 +111,8 @@ export default function HomeScreen() {
   );
 
   const renderSecondaryNavigation = () => (
-    <View style={styles.secondaryNavContainer}>
-      <Text style={styles.sectionTitle}>Tools & Resources</Text>
+    <View style={[styles.secondaryNavContainer, {backgroundColor: colors.background.secondary}]}>
+      <Text style={[styles.sectionTitle, {color: colors.text.primary}]}>Tools & Resources</Text>
       <View style={styles.secondaryNavGrid}>
         {secondaryNavigationItems.map((item) => (
           <TouchableOpacity
@@ -121,7 +124,7 @@ export default function HomeScreen() {
             <View style={[styles.secondaryIconContainer, { backgroundColor: item.color }]}>
               <item.icon size={24} color="#ffffff" />
             </View>
-            <Text style={styles.secondaryNavText}>{item.title}</Text>
+            <Text style={[styles.secondaryNavText, {color: colors.text.primary}]}>{item.title}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -171,13 +174,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1f2937',
     marginBottom: 16,
   },
   primaryNavContainer: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    backgroundColor: '#ffffff',
     marginTop: 12,
     marginHorizontal: 16,
     borderRadius: 20,
@@ -200,10 +201,8 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 8,
     marginHorizontal: 4,
-    backgroundColor: '#f8fafc',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#e2e8f0',
   },
   primaryIconContainer: {
     width: 64,
@@ -237,7 +236,6 @@ const styles = StyleSheet.create({
   secondaryNavContainer: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    backgroundColor: '#ffffff',
     marginTop: 12,
     marginHorizontal: 16,
     borderRadius: 16,
@@ -278,7 +276,6 @@ const styles = StyleSheet.create({
   secondaryNavText: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#374151',
     textAlign: 'center',
   },
   carouselContainer: {
