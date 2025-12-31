@@ -5,14 +5,30 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
-  Image
+  Image,
 } from 'react-native';
-import { DrawerContentScrollView, DrawerContentComponentProps } from '@react-navigation/drawer';
-import { UserIcon, UserPen, GlobeLock, NotepadText, Handshake, Save, Settings, CircleHelp as HelpCircle, Briefcase, FileQuestion, Calculator } from 'lucide-react-native';
+import {
+  DrawerContentScrollView,
+  DrawerContentComponentProps,
+} from '@react-navigation/drawer';
+import {
+  UserIcon,
+  UserPen,
+  GlobeLock,
+  NotepadText,
+  Handshake,
+  Save,
+  Settings,
+  CircleHelp as HelpCircle,
+  Briefcase,
+  FileQuestion,
+  Calculator,
+} from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import HelpSupportModal from './HelpSupportModal';
 import SocialMediaLinks from './SocialMediaLinks';
+import { useTheme } from '@/context/ThemeContext';
 
 interface DrawerItem {
   id: string;
@@ -21,16 +37,18 @@ interface DrawerItem {
   onPress: () => void;
 }
 
-export default function CustomDrawerContent(props: DrawerContentComponentProps) {
+export default function CustomDrawerContent(
+  props: DrawerContentComponentProps
+) {
   const { user } = useGlobalContext();
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  const name = user?.name || user?.first_name || "Unnamed User";
-  const email = user?.email || user?.agent?.user || "No email";
+  const name = user?.name || user?.first_name || 'Unnamed User';
+  const email = user?.email || user?.agent?.user || 'No email';
   const avatarUrl =
     user?.profile?.avatar ||
     user?.agent?.avatar ||
-    "https://via.placeholder.com/150";
+    'https://via.placeholder.com/150';
   const agencyName = user?.agent?.agency_name || null;
 
   const handleHelpSupportPress = () => {
@@ -39,6 +57,8 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       setShowHelpModal(true);
     }, 300);
   };
+
+  const { colors } = useTheme();
 
   const drawerItems: DrawerItem[] = [
     {
@@ -75,23 +95,22 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
       id: '6',
       title: 'FAQ',
       icon: FileQuestion,
-      onPress: () =>
-        Linking.openURL('https://www.realvistaproperties.com/faq')
+      onPress: () => Linking.openURL('https://www.realvistaproperties.com/faq'),
     },
     {
       id: '7',
       title: 'Privacy Policy',
       icon: GlobeLock,
       onPress: () =>
-        Linking.openURL('https://www.realvistaproperties.com/privacy-policy')
+        Linking.openURL('https://www.realvistaproperties.com/privacy-policy'),
     },
     {
       id: '8',
       title: 'Terms of Service',
       icon: Handshake,
       onPress: () =>
-        Linking.openURL('https://www.realvistaproperties.com/terms')
-    }
+        Linking.openURL('https://www.realvistaproperties.com/terms'),
+    },
   ];
 
   const bottomItems: DrawerItem[] = [
@@ -112,21 +131,45 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
   const renderDrawerItem = (item: DrawerItem, isBottomItem = false) => (
     <TouchableOpacity
       key={item.id}
-      style={[styles.drawerItem, isBottomItem && styles.bottomDrawerItem]}
+      style={[
+        styles.drawerItem,
+        isBottomItem && styles.bottomDrawerItem,
+        {
+          backgroundColor: isBottomItem
+            ? colors.background.secondary
+            : colors.background.primary,
+        },
+      ]}
       onPress={item.onPress}
       activeOpacity={0.7}
     >
-      <item.icon size={24} color={isBottomItem ? '#6b7280' : '#374151'} />
-      <Text style={[styles.drawerItemText, isBottomItem && styles.bottomDrawerItemText]}>
+      <item.icon size={24} color={colors.icon.default} />
+      <Text
+        style={[
+          styles.drawerItemText,
+          isBottomItem && styles.bottomDrawerItemText,
+          { color: colors.text.primary },
+        ]}
+      >
         {item.title}
       </Text>
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <DrawerContentScrollView {...props} contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
+    <View
+      style={[styles.container, { backgroundColor: colors.background.primary }]}
+    >
+      <DrawerContentScrollView
+        {...props}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View
+          style={[
+            styles.header,
+            { backgroundColor: colors.background.secondary },
+          ]}
+        >
           <View style={styles.profileContainer}>
             <View style={styles.avatar}>
               {avatarUrl ? (
@@ -137,9 +180,19 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
             </View>
 
             <View style={styles.profileInfo}>
-              <Text style={styles.userName}>{name}</Text>
-              <Text style={styles.userEmail}>{email}</Text>
-              {agencyName && <Text style={styles.agency}>{agencyName}</Text>}
+              <Text style={[styles.userName, { color: colors.text.primary }]}>
+                {name}
+              </Text>
+              <Text
+                style={[styles.userEmail, { color: colors.text.secondary }]}
+              >
+                {email}
+              </Text>
+              {agencyName && (
+                <Text style={[styles.agency, { color: colors.text.secondary }]}>
+                  {agencyName}
+                </Text>
+              )}
             </View>
           </View>
         </View>
@@ -168,7 +221,6 @@ export default function CustomDrawerContent(props: DrawerContentComponentProps) 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
   },
   scrollContent: {
     flexGrow: 1,
@@ -176,9 +228,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 20,
     paddingVertical: 24,
-    backgroundColor: '#f8fafc',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderRadius: 12,
   },
   profileContainer: {
     flexDirection: 'row',
@@ -188,16 +238,16 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    overflow: "hidden",
+    overflow: 'hidden',
     backgroundColor: '#358B8B',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
   },
   avatarImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
   profileInfo: {
     flex: 1,
@@ -214,7 +264,7 @@ const styles = StyleSheet.create({
   },
   agency: {
     fontSize: 13,
-    color: "#cfd8dc",
+    color: '#cfd8dc',
     marginTop: 2,
   },
   menuSection: {
@@ -247,9 +297,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  bottomDrawerItem: {
-    backgroundColor: '#f9fafb',
-  },
+  bottomDrawerItem: {},
   bottomDrawerItemText: {
     color: '#6b7280',
   },
