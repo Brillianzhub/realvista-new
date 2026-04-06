@@ -11,17 +11,21 @@ import {
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { type MarketplaceListing } from '@/data/marketplaceListings';
 import CustomPicker from '@/components/forms/CustomPicker';
+import CustomForm from '@/components/forms/CustomForm';
+
+import { useCreateMarketProperty } from '@/hooks/portfolio/useCreateMarketProperty';
 
 import { useListingLoader } from '@/utils/market/useListingLoader';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import useFetchVendorProperties from '@/hooks/market/useVendorListing';
 
-import { useUpdateMarketFeatures } from '@/hooks/market/useUpdateMarketFeatures';
-
 type PropertyFeatures = {
+  listing_purpose: string;
+  state: string;
+  category: string;
+  price: string;
+  currency: string;
   negotiable: 'yes' | 'slightly' | 'no';
   furnished: boolean;
   pet_friendly: boolean;
@@ -33,6 +37,9 @@ type PropertyFeatures = {
   development_level: string;
   water_supply: boolean;
   security: boolean;
+  bedrooms?: number;
+  bathrooms?: number;
+  size?: number;
 };
 
 type AddFeaturesModalProps = {
@@ -40,13 +47,14 @@ type AddFeaturesModalProps = {
   listingId: string | null;
   onClose: () => void;
   mode: 'create' | 'update';
+  onSuccess?: () => void;
 };
 
 export default function AddFeaturesModal({
   visible,
   listingId,
   onClose,
-  mode,
+  onSuccess,
 }: AddFeaturesModalProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
@@ -55,11 +63,25 @@ export default function AddFeaturesModal({
   const { user } = useGlobalContext();
   const { properties } = useFetchVendorProperties(user?.email || null);
 
-  const { updateMarketFeatures, isLoading: isSubmitting } =
-    useUpdateMarketFeatures();
+  const {
+    createMarketProperty,
+    loading: listingToMarket,
+    error: listingProperty,
+  } = useCreateMarketProperty();
+
+  const [propertyType, setPropertyType] = useState<string>('');
 
   const [formData, setFormData] = useState<PropertyFeatures>({
+    listing_purpose: '',
+    state: '',
+    category: 'p2p',
+    price: '',
+    currency: 'NGN',
     negotiable: 'no',
+    bedrooms: 0,
+    bathrooms: 0,
+    size: 0,
+
     furnished: false,
     pet_friendly: false,
     parking_available: false,
@@ -79,6 +101,10 @@ export default function AddFeaturesModal({
       if (listing?.features) {
         setFormData(listing.features as PropertyFeatures);
       }
+
+      if (listing?.property_type) {
+        setPropertyType(listing.property_type);
+      }
     },
   });
 
@@ -90,7 +116,16 @@ export default function AddFeaturesModal({
 
   const resetForm = () => {
     setFormData({
+      state: 'Abia',
+      listing_purpose: 'sale',
+      category: 'p2p',
+      price: '',
+      currency: 'NGN',
       negotiable: 'no',
+      bedrooms: 0,
+      bathrooms: 0,
+      size: 0,
+
       furnished: false,
       pet_friendly: false,
       parking_available: false,
@@ -104,6 +139,8 @@ export default function AddFeaturesModal({
     });
   };
 
+  const isLandType = ['land', 'farm_land'].includes(propertyType);
+
   const handleInputChange = (key: keyof PropertyFeatures, value: any) => {
     setFormData({
       ...formData,
@@ -111,103 +148,68 @@ export default function AddFeaturesModal({
     });
   };
 
+  const formatNumberWithCommas = (value: string) => {
+    if (!value) return value;
+    const numericValue = value.replace(/[^0-9.]/g, '');
+    const [whole, decimal] = numericValue.split('.');
+    const formattedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return decimal !== undefined
+      ? `${formattedWhole}.${decimal}`
+      : formattedWhole;
+  };
+
+  const removeCommas = (value: string) => value.replace(/,/g, '');
+
   const handleSubmit = async () => {
     if (!listingId) return;
 
     setLoading(true);
+
     try {
-      if (mode === 'create') {
-        const storedListings = await AsyncStorage.getItem(
-          'marketplaceListings',
+      let propertyId = listingId;
+
+      // falls backend_ prefix
+      if (typeof propertyId === 'string' && propertyId.startsWith('backend_')) {
+        propertyId = propertyId.replace('backend_', '');
+      }
+
+      // ✅ FINAL PAYLOAD
+      const payload = {
+        state: formData.state,
+        category: formData.category,
+        price: formData.price,
+        currency: formData.currency,
+        listing_purpose: formData.listing_purpose,
+        negotiable: formData.negotiable,
+        bedrooms: formData.bedrooms,
+        bathrooms: formData.bathrooms,
+        size: formData.size,
+
+        features: {
+          ...formData, // ✅ direkt verwenden
+        },
+      };
+
+      // 🔥 EIN CALL → Backend macht alles
+      const result = await createMarketProperty(Number(propertyId), payload);
+
+      if (result) {
+        Alert.alert(
+          'Success ✅',
+          'Your property has been successfully listed.',
         );
-        if (!storedListings) {
-          Alert.alert('Error', 'Listing not found');
-          return;
-        }
 
-        const listings: MarketplaceListing[] = JSON.parse(storedListings);
-        const index = listings.findIndex((l) => l.id === listingId);
-
-        if (index === -1) {
-          Alert.alert('Error', 'Listing not found');
-          return;
-        }
-
-        listings[index] = {
-          ...listings[index],
-          features: formData,
-          current_step: Math.max(listings[index].current_step, 4),
-          completion_percentage: calculateCompletion(listings[index]),
-          updated_at: new Date().toISOString(),
-        };
-
-        await AsyncStorage.setItem(
-          'marketplaceListings',
-          JSON.stringify(listings),
-        );
-
-        Alert.alert('Success', 'Features saved successfully');
-        onClose();
-      } else if (mode === 'update') {
-        let backendId = listingId;
-        if (typeof backendId === 'string' && backendId.startsWith('backend_')) {
-          backendId = backendId.replace('backend_', '');
-        }
-
-        // Map negotiable and electricity_proximity to the API-accepted values
-        const mappedElectricity = (():
-          | 'moderate'
-          | 'close'
-          | 'far'
-          | undefined => {
-          switch (formData.electricity_proximity) {
-            case 'moderate':
-              return 'moderate';
-            case 'nearby':
-            case 'available':
-              return 'close';
-            case 'far':
-              return 'far';
-            default:
-              return undefined;
-          }
-        })();
-
-        const payload = {
-          ...formData,
-          electricity_proximity: mappedElectricity,
-        };
-
-        // cast to any to satisfy the hook's expected type if needed
-        await updateMarketFeatures(backendId, payload as any);
-
-        Alert.alert('Success', 'Features updated successfully');
+        onSuccess?.();
+        onClose(); // Modal schließen
+      } else {
+        Alert.alert('Error ❌', 'Failed to create listing');
       }
     } catch (error: any) {
-      console.error('Error saving features:', error);
-      Alert.alert('Error', error.message || 'Failed to save features');
+      console.error('Error creating listing:', error);
+      Alert.alert('Error', error.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
-  };
-
-  const calculateCompletion = (listing: MarketplaceListing) => {
-    const steps = {
-      basicInfo: !!(
-        listing.property_name &&
-        listing.property_type &&
-        listing.location &&
-        listing.city &&
-        listing.state
-      ),
-      images: !!(listing.images && listing.images.length > 0),
-      location: !!(listing.latitude && listing.longitude),
-      features: !!(listing.features && typeof listing.features === 'object'),
-      published: listing.status === 'Published',
-    };
-
-    const completedSteps = Object.values(steps).filter(Boolean).length;
-    return Math.round((completedSteps / 5) * 100);
   };
 
   const FeatureToggle = ({
@@ -255,6 +257,66 @@ export default function AddFeaturesModal({
       )}
     </TouchableOpacity>
   );
+
+  const stateOptions = [
+    { label: 'Abia', value: 'abia' },
+    { label: 'Adamawa', value: 'adamawa' },
+    { label: 'Akwa Ibom', value: 'akwa_ibom' },
+    { label: 'Anambra', value: 'anambra' },
+    { label: 'Bauchi', value: 'bauchi' },
+    { label: 'Bayelsa', value: 'bayelsa' },
+    { label: 'Benue', value: 'benue' },
+    { label: 'Borno', value: 'borno' },
+    { label: 'Cross River', value: 'cross_river' },
+    { label: 'Delta', value: 'delta' },
+    { label: 'Ebonyi', value: 'ebonyi' },
+    { label: 'Edo', value: 'edo' },
+    { label: 'Ekiti', value: 'ekiti' },
+    { label: 'Enugu', value: 'enugu' },
+    { label: 'Gombe', value: 'gombe' },
+    { label: 'Imo', value: 'imo' },
+    { label: 'Jigawa', value: 'jigawa' },
+    { label: 'Kaduna', value: 'kaduna' },
+    { label: 'Kano', value: 'kano' },
+    { label: 'Katsina', value: 'katsina' },
+    { label: 'Kebbi', value: 'kebbi' },
+    { label: 'Kogi', value: 'kogi' },
+    { label: 'Kwara', value: 'kwara' },
+    { label: 'Lagos', value: 'lagos' },
+    { label: 'Nasarawa', value: 'nasarawa' },
+    { label: 'Niger', value: 'niger' },
+    { label: 'Ogun', value: 'ogun' },
+    { label: 'Ondo', value: 'ondo' },
+    { label: 'Osun', value: 'osun' },
+    { label: 'Oyo', value: 'oyo' },
+    { label: 'Plateau', value: 'plateau' },
+    { label: 'Rivers', value: 'rivers' },
+    { label: 'Sokoto', value: 'sokoto' },
+    { label: 'Taraba', value: 'taraba' },
+    { label: 'Yobe', value: 'yobe' },
+    { label: 'Zamfara', value: 'zamfara' },
+
+    // ✅ Federal Capital Territory
+    { label: 'Abuja (FCT)', value: 'fct' },
+  ];
+
+  const currencyOptions = [
+    { label: '₦ (NGN)', value: 'NGN' },
+    { label: '$ (USD)', value: 'USD' },
+    { label: '£ (GBP)', value: 'GBP' },
+    { label: '€ (EUR)', value: 'EUR' },
+  ];
+
+  const listingPurpose = [
+    { label: 'For Sale', value: 'sale' },
+    { label: 'For Lease', value: 'lease' },
+    { label: 'For Rent', value: 'rent' },
+  ];
+
+  const categoryOptions = [
+    { label: 'Corporate', value: 'corporate' },
+    { label: 'Peer-to-Peer', value: 'p2p' },
+  ];
 
   const negotiableOptions = [
     { label: 'Yes', value: 'yes' },
@@ -310,8 +372,45 @@ export default function AddFeaturesModal({
             showsVerticalScrollIndicator={false}
           >
             <Text style={[styles.subtitle, isDark && styles.subtitleDark]}>
-              Select what applies
+              We need some additional details about your property to create a
+              compelling listing.
             </Text>
+
+            <CustomPicker
+              label="Listing Purpose"
+              options={listingPurpose}
+              selectedValue={formData.listing_purpose}
+              onValueChange={(value) =>
+                handleInputChange('listing_purpose', value)
+              }
+            />
+
+            <CustomPicker
+              label="Category"
+              options={categoryOptions}
+              selectedValue={formData.category}
+              onValueChange={(value) => handleInputChange('category', value)}
+            />
+
+            <CustomForm
+              label="Price"
+              required
+              placeholder="Selling price of property"
+              keyboardType="numeric"
+              value={formatNumberWithCommas(formData.price)}
+              onChangeText={(value) =>
+                handleInputChange('price', removeCommas(value))
+              }
+            />
+
+            <CustomPicker
+              label="Currency"
+              required
+              placeholder="Select a currency"
+              options={currencyOptions}
+              selectedValue={formData.currency}
+              onValueChange={(value) => handleInputChange('currency', value)}
+            />
 
             <CustomPicker
               label="Is the price negotiable?"
@@ -319,6 +418,48 @@ export default function AddFeaturesModal({
               selectedValue={formData.negotiable}
               onValueChange={(value) => handleInputChange('negotiable', value)}
             />
+
+            {!isLandType && (
+              <>
+                <CustomForm
+                  label="Size of Plot (in sq ft, sqm or acres)"
+                  placeholder="Property size"
+                  keyboardType="numeric"
+                  value={formData.size?.toString()}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      size: text ? parseInt(text) : undefined,
+                    })
+                  }
+                />
+                <CustomForm
+                  label="Bedrooms"
+                  placeholder="Number of bedrooms"
+                  keyboardType="numeric"
+                  value={formData.bedrooms?.toString()}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      bedrooms: text ? parseInt(text) : undefined,
+                    })
+                  }
+                />
+
+                <CustomForm
+                  label="Bathrooms"
+                  placeholder="Number of bathrooms"
+                  keyboardType="numeric"
+                  value={formData.bathrooms?.toString()}
+                  onChangeText={(text) =>
+                    setFormData({
+                      ...formData,
+                      bathrooms: text ? parseInt(text) : undefined,
+                    })
+                  }
+                />
+              </>
+            )}
 
             <Text
               style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
@@ -442,7 +583,7 @@ export default function AddFeaturesModal({
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" />
               ) : (
-                <Text style={styles.submitButtonText}>Save Features</Text>
+                <Text style={styles.submitButtonText}>Continue to List</Text>
               )}
             </TouchableOpacity>
           </View>

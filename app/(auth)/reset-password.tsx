@@ -206,12 +206,12 @@ const ResetPassword: React.FC = () => {
       // Show success message
       Alert.alert(
         'Password Reset Successful!',
-        'Your password has been reset and you are now logged in.',
+        'Your password has been reset, continue to login with your new password.',
         [
           {
             text: 'Continue',
             onPress: () => {
-              router.replace('/(app)/(tabs)');
+              router.replace('/sign-in');
             },
           },
         ]

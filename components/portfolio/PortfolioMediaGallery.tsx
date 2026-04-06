@@ -20,6 +20,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '@/context/ThemeContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -58,6 +59,7 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
   const allMedia = [...images, ...videos];
 
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   const getAuthToken = async (): Promise<string | null> => {
     try {
@@ -71,7 +73,7 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
 
   const handleDeleteFile = async (
     fileId: number,
-    fileType: 'image' | 'video'
+    fileType: 'image' | 'video',
   ): Promise<void> => {
     // Show confirmation dialog
     Alert.alert(
@@ -84,7 +86,7 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
           style: 'destructive',
           onPress: () => confirmDeleteFile(fileId, fileType),
         },
-      ]
+      ],
     );
   };
 
@@ -103,7 +105,7 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
 
   const confirmDeleteFile = async (
     fileId: number,
-    fileType: 'image' | 'video'
+    fileType: 'image' | 'video',
   ): Promise<void> => {
     setIsDeleting(true);
     setDeletingFileId(fileId);
@@ -124,7 +126,7 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
             Authorization: `Token ${token}`,
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -151,22 +153,22 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
                 }
               },
             },
-          ]
+          ],
         );
       } else if (response.status === 403) {
         Alert.alert(
           'Permission Denied',
-          'You do not have permission to delete this file.'
+          'You do not have permission to delete this file.',
         );
       } else if (response.status === 404) {
         Alert.alert(
           'Not Found',
-          'The file you are trying to delete does not exist.'
+          'The file you are trying to delete does not exist.',
         );
       } else {
         const errorData = await response.text();
         throw new Error(
-          `Failed to delete file: ${response.status} ${errorData}`
+          `Failed to delete file: ${response.status} ${errorData}`,
         );
       }
     } catch (error) {
@@ -194,7 +196,7 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
         <Text style={styles.noMediaText}>No media available</Text>
         {editable && (
           <Text style={styles.addMediaHint}>
-            Tap the edit button to add media
+            Tap Update Property button to add media
           </Text>
         )}
       </View>
@@ -211,17 +213,17 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
   };
 
   const handleScrollEnd = (
-    event: NativeSyntheticEvent<NativeScrollEvent>
+    event: NativeSyntheticEvent<NativeScrollEvent>,
   ): void => {
     const newIndex = Math.round(
-      event.nativeEvent.contentOffset.x / screenWidth
+      event.nativeEvent.contentOffset.x / screenWidth,
     );
     setSelectedIndex(newIndex);
   };
 
   const openVideoInBrowser = (url: string): void => {
     Linking.openURL(url).catch((err) =>
-      console.error('Failed to open URL:', err)
+      console.error('Failed to open URL:', err),
     );
   };
 
@@ -245,7 +247,14 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
             barStyle="light-content"
           />
           <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
+            <View
+              style={[
+                styles.modalHeader,
+                {
+                  paddingTop: insets.top + 12, // 👈 key fix
+                },
+              ]}
+            >
               <TouchableOpacity
                 onPress={handleCloseModal}
                 style={styles.closeButton}
@@ -581,12 +590,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'ios' ? 0 : 40,
     paddingHorizontal: 16,
     paddingVertical: 16,
     backgroundColor: 'rgba(0,0,0,0.5)',
-    minHeight: 80,
   },
+
   closeButton: {
     flexDirection: 'row',
     alignItems: 'center',

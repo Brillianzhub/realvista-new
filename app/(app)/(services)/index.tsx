@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTheme } from '@/context/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -88,6 +89,8 @@ export default function PropertyManagementServicesScreen() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { colors } = useTheme();
+
   const scrollToContact = () => {
     contactSectionRef.current?.scrollToEnd({ animated: true });
   };
@@ -135,7 +138,11 @@ export default function PropertyManagementServicesScreen() {
   };
 
   return (
-    <ScrollView ref={contactSectionRef} style={styles.container}>
+    <ScrollView
+      ref={contactSectionRef}
+      style={[styles.container, { backgroundColor: colors.background.primary }]}
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.heroSection}>
         <Image
           source={{
@@ -149,8 +156,8 @@ export default function PropertyManagementServicesScreen() {
             Trusted Property Management & Verification in Nigeria
           </Text>
           <Text style={styles.heroSubtitle}>
-            We help diaspora clients verify, register, and manage their properties with
-            integrity and transparency.
+            We help diaspora clients verify, register, and manage their
+            properties with integrity and transparency.
           </Text>
           <TouchableOpacity style={styles.heroButton} onPress={scrollToContact}>
             <Text style={styles.heroButtonText}>Book Consultation</Text>
@@ -159,19 +166,49 @@ export default function PropertyManagementServicesScreen() {
         </View>
       </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Our Services</Text>
-        <Text style={styles.sectionSubtitle}>
+      <View
+        style={[styles.section, { backgroundColor: colors.background.primary }]}
+      >
+        <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+          Our Services
+        </Text>
+        <Text
+          style={[styles.sectionSubtitle, { color: colors.text.secondary }]}
+        >
           Comprehensive property solutions tailored for diaspora clients
         </Text>
         <View style={styles.servicesGrid}>
           {services.map((service) => (
-            <View key={service.id} style={styles.serviceCard}>
+            <View
+              key={service.id}
+              style={[
+                styles.serviceCard,
+                {
+                  borderColor: colors.border.default,
+                  backgroundColor: colors.background.secondary,
+                },
+              ]}
+            >
               <View style={styles.serviceIconContainer}>
-                <Ionicons name={service.icon as any} size={32} color="#358B8B" />
+                <Ionicons
+                  name={service.icon as any}
+                  size={32}
+                  color="#358B8B"
+                />
               </View>
-              <Text style={styles.serviceTitle}>{service.title}</Text>
-              <Text style={styles.serviceDescription}>{service.description}</Text>
+              <Text
+                style={[styles.serviceTitle, { color: colors.text.primary }]}
+              >
+                {service.title}
+              </Text>
+              <Text
+                style={[
+                  styles.serviceDescription,
+                  { color: colors.text.secondary },
+                ]}
+              >
+                {service.description}
+              </Text>
             </View>
           ))}
         </View>
@@ -262,14 +299,19 @@ export default function PropertyManagementServicesScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+            style={[
+              styles.submitButton,
+              isSubmitting && styles.submitButtonDisabled,
+            ]}
             onPress={handleSubmit}
             disabled={isSubmitting}
           >
             <Text style={styles.submitButtonText}>
               {isSubmitting ? 'Sending...' : 'Submit Inquiry'}
             </Text>
-            {!isSubmitting && <Ionicons name="send" size={20} color="#FFFFFF" />}
+            {!isSubmitting && (
+              <Ionicons name="send" size={20} color="#FFFFFF" />
+            )}
           </TouchableOpacity>
         </View>
 
@@ -286,7 +328,9 @@ export default function PropertyManagementServicesScreen() {
           >
             <Ionicons name="mail" size={28} color="#358B8B" />
             <Text style={styles.contactMethodLabel}>Email</Text>
-            <Text style={styles.contactMethodValue}>contact@realvistaproperties.com</Text>
+            <Text style={styles.contactMethodValue}>
+              contact@realvistaproperties.com
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -389,13 +433,11 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 24,
-    backgroundColor: '#FFFFFF',
     marginBottom: 2,
   },
   sectionTitle: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#111827',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -409,11 +451,9 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   serviceCard: {
-    backgroundColor: '#F9FAFB',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
   },
   serviceIconContainer: {
     width: 64,

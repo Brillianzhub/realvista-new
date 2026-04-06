@@ -23,6 +23,8 @@ import { CurrencyProvider } from '@/context/CurrencyContext';
 import { ProjectsProvider } from '@/context/ProjectsContext';
 import { useTheme } from '@/context/ThemeContext';
 
+import { ProProvider } from '@/context/ProProvider';
+
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 function InnerApp() {

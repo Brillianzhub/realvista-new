@@ -4,7 +4,7 @@ export default {
   expo: {
     name: 'Realvista',
     slug: 'realvista',
-    version: '1.0.4',
+    version: '1.0.5',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     platforms: ['ios', 'android'],
@@ -77,6 +77,8 @@ export default {
       eas: {
         projectId: process.env.EAS_PROJECT_ID,
       },
+      revenueCatIosKey: process.env.REVENUECAT_IOS_API_KEY,
+      revenueCatAndroidKey: process.env.REVENUECAT_ANDROID_API_KEY,
     },
   },
 };

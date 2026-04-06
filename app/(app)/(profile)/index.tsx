@@ -13,6 +13,9 @@ import {
   ActivityIndicator,
   Image,
   RefreshControl,
+  Modal,
+  Pressable,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,18 +28,52 @@ import { formatCurrency } from '@/utils/general/formatCurrency';
 import usePortfolioDetail from '@/hooks/portfolio/usePortfolioDetail';
 import SubmitReferralModal from '@/components/modals/SubmitReferralModal';
 import DeleteAccountModal from '@/components/modals/DeleteAccountModal';
+import { useTheme } from '@/context/ThemeContext';
+import useWithdrawReferral from '@/hooks/profile/useWithdrawReferral';
+import { usePro } from '@/context/ProProvider';
+
+import { restoreProSubscription } from '@/utils/subscriptions/proSubscription';
+import { openStoreSubscriptionSettings } from '@/utils/subscriptions/manageSubscription';
 
 export default function Profile() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
+  const { colors } = useTheme();
+
   const { result, refreshing, refreshPortfolioDetails, currency } =
     usePortfolioDetail();
 
+  /*const { isPro, refreshProStatus } = usePro();*/
+
   const [loading, setLoading] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
-  const { user, setUser, setIsLogged } = useGlobalContext();
+  const { user, setUser, setIsLogged, reloadProfile } = useGlobalContext();
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+
+  const { withdrawReferralEarnings } = useWithdrawReferral();
+
+  const MIN_WITHDRAWAL = 5000;
+
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [amount, setAmount] = useState<number>(0);
+  const [accountDetails, setAccountDetails] = useState<string>('');
+  const [paymentMethod, setPaymentMethod] = useState<'bank'>('bank');
+
+  /*const handleRestoreSubscription = async () => {
+    try {
+      const info = await restoreProSubscription();
+
+      if (info.entitlements.active['pro']) {
+        await refreshProStatus();
+        Alert.alert('Restored', 'Your Pro subscription has been restored');
+      } else {
+        Alert.alert('No Subscription', 'No active Pro subscription found');
+      }
+    } catch {
+      Alert.alert('Error', 'Failed to restore purchase');
+    }
+  };*/
 
   const netWorth = result?.personal_summary
     ? result.personal_summary.totalCurrentValue +
@@ -45,10 +82,15 @@ export default function Profile() {
     : 0;
 
   const handleShare = async () => {
+    const playStoreUrl =
+      'https://play.google.com/store/apps/details?id=com.brillianzhub.realvista';
+    const appStoreUrl = 'https://apps.apple.com/app/6745751743';
+
+    const url = Platform.OS === 'ios' ? appStoreUrl : playStoreUrl;
+
     try {
       await Share.share({
-        message:
-          'Manage your properties with Realvista App. Get it now: https://play.google.com/store/apps/details?id=com.brillianzhub.realvista',
+        message: `Manage your properties with Realvista App. Get it now: ${url}`,
       });
     } catch (error) {
       console.error('Error sharing:', error);
@@ -58,7 +100,7 @@ export default function Profile() {
   const handleRateUs = async () => {
     const playStoreUrl =
       'https://play.google.com/store/apps/details?id=com.brillianzhub.realvista';
-    const appStoreUrl = 'https://apps.apple.com/app/idYOUR_APP_ID';
+    const appStoreUrl = 'https://apps.apple.com/app/6745751743';
 
     try {
       const url = Platform.OS === 'ios' ? appStoreUrl : playStoreUrl;
@@ -74,7 +116,7 @@ export default function Profile() {
   const signOut = async (): Promise<boolean> => {
     try {
       const response = await axios.post(
-        'https://www.realvistamanagement.com/accounts/logout/'
+        'https://www.realvistamanagement.com/accounts/logout/',
       );
       if (response.status === 200) {
         return true;
@@ -108,10 +150,69 @@ export default function Profile() {
       await Clipboard.setStringAsync(user.referral_code);
       Alert.alert(
         'Copied!',
-        'Referral code has been copied to your clipboard.'
+        'Referral code has been copied to your clipboard.',
       );
     } else {
       Alert.alert('Error', 'No referral code available.');
+    }
+  };
+
+  const numericAmount = Number(amount);
+  const totalEarnings = user?.total_referral_earnings || 0;
+  const canWithdraw = (user?.total_referral_earnings || 0) >= MIN_WITHDRAWAL;
+  const canSubmit =
+    numericAmount >= MIN_WITHDRAWAL &&
+    numericAmount <= totalEarnings &&
+    accountDetails.trim().length > 5;
+
+  const handleWithdrawReferral = async () => {
+    const numericAmount = Number(amount);
+    const totalEarnings = user?.total_referral_earnings || 0;
+
+    if (!numericAmount || isNaN(numericAmount)) {
+      Alert.alert('Invalid Amount', 'Enter a valid amount');
+      return;
+    }
+
+    if (numericAmount < MIN_WITHDRAWAL) {
+      Alert.alert(
+        'Withdrawal Not Allowed',
+        `Minimum withdrawal is ${formatCurrency(MIN_WITHDRAWAL, 'NGN')}`,
+      );
+      return;
+    }
+
+    if (numericAmount > totalEarnings) {
+      Alert.alert(
+        'Insufficient Balance',
+        `You can withdraw up to ${formatCurrency(totalEarnings, 'NGN')}`,
+      );
+      return;
+    }
+
+    if (!accountDetails.trim()) {
+      Alert.alert(
+        'Missing Bank Details',
+        'Please enter your bank account details',
+      );
+      return;
+    }
+
+    try {
+      await withdrawReferralEarnings({
+        amount: numericAmount,
+        payment_method: paymentMethod,
+        account_details: accountDetails,
+      });
+
+      Alert.alert('Success', 'Your withdrawal request has been submitted');
+
+      reloadProfile();
+      setShowWithdrawModal(false);
+      setAmount(0);
+      setAccountDetails('');
+    } catch (err: any) {
+      Alert.alert('Withdrawal Failed', err?.error || 'Something went wrong');
     }
   };
 
@@ -184,6 +285,85 @@ export default function Profile() {
             Total Value + Income - Expenses
           </Text>
         </View>
+
+        {/*
+        <View style={[styles.card, isDark && styles.cardDark]}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="card-outline" size={24} color="#358B8B" />
+            <Text style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
+              Subscription
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={() => {
+              if (!isPro) router.push('/(pro)');
+            }}
+            disabled={isPro}
+          >
+            <Ionicons
+              name="star-outline"
+              size={20}
+              color={isDark ? '#E5E7EB' : '#6B7280'}
+            />
+            <Text
+              style={[styles.menuItemText, isDark && styles.menuItemTextDark]}
+            >
+              {isPro ? 'Pro Membership Active' : 'Upgrade to Pro'}
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={isDark ? '#9CA3AF' : '#D1D5DB'}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.menuItem}
+            onPress={handleRestoreSubscription}
+          >
+            <Ionicons
+              name="refresh-outline"
+              size={20}
+              color={isDark ? '#E5E7EB' : '#6B7280'}
+            />
+            <Text
+              style={[styles.menuItemText, isDark && styles.menuItemTextDark]}
+            >
+              Restore Purchase
+            </Text>
+            <Ionicons
+              name="chevron-forward"
+              size={20}
+              color={isDark ? '#9CA3AF' : '#D1D5DB'}
+            />
+          </TouchableOpacity>
+
+          {isPro && (
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={openStoreSubscriptionSettings}
+            >
+              <Ionicons
+                name="settings-outline"
+                size={20}
+                color={isDark ? '#E5E7EB' : '#6B7280'}
+              />
+              <Text
+                style={[styles.menuItemText, isDark && styles.menuItemTextDark]}
+              >
+                Manage Billing
+              </Text>
+              <Ionicons
+                name="open-outline"
+                size={18}
+                color={isDark ? '#9CA3AF' : '#D1D5DB'}
+              />
+            </TouchableOpacity>
+          )}
+        </View> */}
+
         <View style={[styles.card, isDark && styles.cardDark]}>
           <View style={styles.cardHeader}>
             <Ionicons name="people-outline" size={24} color="#358B8B" />
@@ -254,6 +434,26 @@ export default function Profile() {
             </Text>
           </View>
 
+          <View style={styles.referralRow}>
+            <Text
+              style={[styles.referralLabel, isDark && styles.referralLabelDark]}
+            >
+              Withdraw Referral Earning
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.withdrawButton,
+                { backgroundColor: canWithdraw ? '#358B8B' : '#9CA3AF' },
+                !canWithdraw && { opacity: 0.5 },
+              ]}
+              disabled={!canWithdraw}
+              onPress={() => setShowWithdrawModal(true)}
+            >
+              <Text style={styles.withdrawButtonText}>Withdraw</Text>
+            </TouchableOpacity>
+          </View>
+
           {!user?.referrer && (
             <TouchableOpacity
               style={[
@@ -270,7 +470,13 @@ export default function Profile() {
         </View>
       </View>
 
-      <View style={[styles.card, isDark && styles.cardDark]}>
+      <View
+        style={[
+          styles.card,
+          isDark && styles.cardDark,
+          { marginHorizontal: 16 },
+        ]}
+      >
         <View style={styles.cardHeader}>
           <Ionicons name="settings-outline" size={24} color="#358B8B" />
           <Text style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
@@ -357,7 +563,13 @@ export default function Profile() {
         </TouchableOpacity>
       </View>
 
-      <View style={[styles.card, isDark && styles.cardDark]}>
+      <View
+        style={[
+          styles.card,
+          { marginHorizontal: 20 },
+          isDark && styles.cardDark,
+        ]}
+      >
         <View style={styles.cardHeader}>
           <Ionicons
             name="information-circle-outline"
@@ -395,7 +607,7 @@ export default function Profile() {
         <TouchableOpacity
           style={styles.menuItem}
           onPress={() =>
-            Linking.openURL('mailto:contact@realvistaproperties.com')
+            Linking.openURL('https://realvistaproperties.com/contact')
           }
         >
           <Ionicons
@@ -453,7 +665,11 @@ export default function Profile() {
       </View>
 
       <TouchableOpacity
-        style={[styles.signOutButton, isDark && styles.signOutButtonDark]}
+        style={[
+          styles.signOutButton,
+          isDark && styles.signOutButtonDark,
+          { borderColor: colors.border.default },
+        ]}
         onPress={logout}
       >
         <Ionicons name="log-out-outline" size={20} color="#EF4444" />
@@ -465,7 +681,7 @@ export default function Profile() {
           Realvista Properties
         </Text>
         <Text style={[styles.footerText, isDark && styles.footerTextDark]}>
-          Version 1.0.4
+          Version 1.0.5
         </Text>
       </View>
       <SubmitReferralModal
@@ -477,6 +693,85 @@ export default function Profile() {
         visible={showDeleteAccountModal}
         onClose={() => setShowDeleteAccountModal(false)}
       />
+
+      <Modal
+        visible={showWithdrawModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowWithdrawModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalCard,
+              { backgroundColor: colors.background.primary },
+            ]}
+          >
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text.primary }]}>
+                Withdraw Referral Earnings
+              </Text>
+              <Pressable onPress={() => setShowWithdrawModal(false)}>
+                <Text
+                  style={[styles.closeText, { color: colors.text.primary }]}
+                >
+                  ✕
+                </Text>
+              </Pressable>
+            </View>
+
+            {/* Balance */}
+            <Text style={[styles.balanceText, { color: colors.text.primary }]}>
+              Available:{' '}
+              {formatCurrency(user?.total_referral_earnings || 0, 'NGN')}
+            </Text>
+
+            {/* Amount */}
+            <TextInput
+              value={amount.toString()}
+              onChangeText={(text) => setAmount(text === '' ? 0 : Number(text))}
+              keyboardType="numeric"
+              placeholder="Enter amount"
+              style={[
+                styles.input,
+                {
+                  color: colors.text.primary,
+                  backgroundColor: colors.background.secondary,
+                },
+              ]}
+            />
+
+            {/* Account details */}
+            <TextInput
+              value={accountDetails}
+              onChangeText={setAccountDetails}
+              placeholder="Bank name | Account number | Account name"
+              placeholderTextColor={colors.text.primary}
+              multiline
+              style={[
+                styles.input,
+                styles.textArea,
+                {
+                  color: colors.text.primary,
+                  backgroundColor: colors.background.secondary,
+                },
+              ]}
+            />
+
+            {/* Submit */}
+            <TouchableOpacity
+              style={[styles.submitButton, !canSubmit && { opacity: 0.5 }]}
+              disabled={!canSubmit || loading}
+              onPress={handleWithdrawReferral}
+            >
+              <Text style={styles.submitButtonText}>
+                {loading ? 'Submitting...' : 'Submit Request'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -484,7 +779,6 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
   },
   containerDark: {
     backgroundColor: '#111827',
@@ -627,6 +921,19 @@ const styles = StyleSheet.create({
   referralValueDark: {
     color: '#F9FAFB',
   },
+
+  withdrawButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+  },
+
+  withdrawButtonText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -652,13 +959,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
-    marginBottom: 24,
+    marginHorizontal: 20,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#FEE2E2',
   },
   signOutButtonDark: {
     backgroundColor: '#1F2937',
-    borderColor: '#7F1D1D',
   },
   signOutText: {
     fontSize: 16,
@@ -701,5 +1008,67 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+
+  modalCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+  },
+
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+
+  closeText: {
+    fontSize: 20,
+    fontWeight: '600',
+  },
+
+  balanceText: {
+    marginBottom: 12,
+    color: '#4b5563',
+  },
+
+  submitButton: {
+    marginTop: 16,
+    backgroundColor: '#358B8B',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 12,
+    fontSize: 14,
+  },
+  textArea: {
+    height: 80,
+    paddingTop: 10,
+    textAlignVertical: 'top',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

@@ -13,9 +13,7 @@ import {
   KeyboardAvoidingView,
   TouchableOpacity,
 } from 'react-native';
-import images from '@/constants/images';
 import { useGlobalContext } from '@/context/GlobalProvider';
-import { Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
@@ -45,6 +43,7 @@ interface FormData {
 interface UserData {
   id: number;
   email: string;
+  is_email_verified: boolean;
   name: string;
   first_name: string;
   auth_provider: string;
@@ -62,6 +61,7 @@ interface UserData {
 }
 
 interface SignInResult {
+  is_email_verified: any;
   token: string;
   id: number;
   email: string;
@@ -100,32 +100,26 @@ const signIn = async (
   password: string
 ): Promise<SignInResult | null> => {
   try {
-    const signInResponse = await fetch(
+    const response = await fetch(
       'https://www.realvistamanagement.com/accounts/signin/',
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email,
-          password: password,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
       }
     );
 
-    if (!signInResponse.ok) {
-      const errorData = await signInResponse.json();
-      throw new Error(errorData.error || 'Failed to sign in');
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to sign in');
     }
 
+    // get token
     const tokenResponse = await fetch(
       'https://www.realvistamanagement.com/portfolio/api-token-auth/',
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           username: email,
           password: password,
@@ -140,35 +134,37 @@ const signIn = async (
 
     await AsyncStorage.setItem('authToken', tokenData.token);
 
+    // fetch user
     const userResponse = await fetch(
       'https://www.realvistamanagement.com/accounts/current-user/',
       {
-        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
           Authorization: `Token ${tokenData.token}`,
         },
       }
     );
 
     if (!userResponse.ok) {
-      const errorData = await userResponse.json();
-      throw new Error(errorData.error || 'Failed to fetch user details');
+      throw new Error('Failed to fetch user details');
     }
 
     const userData: UserData = await userResponse.json();
 
-    return { token: tokenData.token, ...userData };
+    return {
+      token: tokenData.token,
+      ...userData,
+      is_email_verified: userData.is_email_verified || false,
+    };
   } catch (error: any) {
-    console.error('Sign-In Error:', error);
     Alert.alert('Sign-In Error', error.message);
     return null;
   }
 };
 
 const SignIn: React.FC = () => {
-  const { setUser, isLogged, setIsLogged } =
-    useGlobalContext() as GlobalContextType;
+  const { user, setUser, isLogged, setIsLogged } =
+    useGlobalContext() as GlobalContextType & { user: UserData | null };
+
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [rememberMe, setRememberMe] = useState(false);
@@ -180,51 +176,31 @@ const SignIn: React.FC = () => {
 
   const { colors } = useTheme();
 
-  const fetchUserData = async (): Promise<void> => {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
-
-      if (!token) {
-        console.log('Use password');
-        return;
-      }
-
-      const response = await fetch(
-        'https://www.realvistamanagement.com/accounts/current-user/',
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Token ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch user data');
-      }
-
-      const userData = await response.json();
-      router.replace({
-        pathname: '/(app)/(tabs)',
-        params: { user: JSON.stringify(userData) },
-      });
-    } catch (error: any) {
-      console.error('Error fetching user data:', error);
-      Alert.alert('Error', 'Failed to fetch user data.');
-    }
-  };
-
   useEffect(() => {
-    if (!isLogged) return;
+    if (!isLogged || !user) return;
 
-    const { authenticate } = FingerprintAuth({
-      onSuccess: fetchUserData,
-      onFailure: () => {},
-    });
+    if (!user.is_email_verified) {
+      router.replace('/verify-email');
 
-    authenticate();
-  }, [isLogged]);
+      const resendOnce = async () => {
+        const alreadyResent = await AsyncStorage.getItem('verificationResent');
+
+        if (alreadyResent) return;
+
+        fetch('https://www.realvistamanagement.com/accounts/resend_token/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: user.email }),
+        }).catch(() => {});
+
+        await AsyncStorage.setItem('verificationResent', 'true');
+      };
+
+      resendOnce();
+    } else {
+      router.replace('/(app)/(tabs)');
+    }
+  }, [isLogged, user]);
 
   const handleSubmit = async (): Promise<void> => {
     if (!form.email || !form.password) {
@@ -237,28 +213,29 @@ const SignIn: React.FC = () => {
     try {
       const result = await signIn(form.email, form.password);
 
-      if (result) {
-        setUser({
-          id: result.id,
-          email: result.email,
-          name: result.name,
-          firstName: result.first_name,
-          authProvider: result.auth_provider,
-          isActive: result.is_active,
-          isStaff: result.is_staff,
-          dateJoined: result.date_joined,
-          profile: result.profile,
-          preference: result.preference,
-          subscription: result.subscription,
-          referral_code: result.referral_code,
-          referrer: result.referrer,
-          referred_users_count: result.referred_users_count,
-          total_referral_earnings: result.total_referral_earnings,
-          groups: result.groups,
-        });
-        setIsLogged(true);
-        router.replace('/(app)/(tabs)');
-      }
+      if (!result) return;
+
+      setUser({
+        id: result.id,
+        email: result.email,
+        name: result.name,
+        firstName: result.first_name,
+        authProvider: result.auth_provider,
+        isActive: result.is_active,
+        isStaff: result.is_staff,
+        dateJoined: result.date_joined,
+        profile: result.profile,
+        preference: result.preference,
+        subscription: result.subscription,
+        referral_code: result.referral_code,
+        referrer: result.referrer,
+        referred_users_count: result.referred_users_count,
+        total_referral_earnings: result.total_referral_earnings,
+        groups: result.groups,
+        is_email_verified: result.is_email_verified,
+      });
+
+      setIsLogged(true);
     } catch (error: any) {
       Alert.alert('Error', 'Failed to sign in. Please try again.');
     } finally {
@@ -330,7 +307,7 @@ const SignIn: React.FC = () => {
                 setForm={setForm}
                 form={form}
                 type="password"
-                validate={true}
+                validate={false}
               />
 
               {/* Remember Me & Forgot Password */}

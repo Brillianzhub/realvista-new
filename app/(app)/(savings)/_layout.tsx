@@ -36,7 +36,7 @@ const CalculatorLayout = () => {
           title: 'Savings Targets',
           headerLeft: () => (
             <TouchableOpacity onPress={() => router.replace('/(app)/(tabs)')}>
-              <Ionicons name="arrow-back" size={24} color="#358B8B" />
+              <Ionicons name="arrow-back" size={24} color={colors.brand} />
             </TouchableOpacity>
           ),
         }}
