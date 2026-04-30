@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import {
   View,
   ScrollView,
@@ -25,6 +25,8 @@ import PasswordInput from '@/components/auth/PasswordInput';
 import { useTheme } from '@/context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useReferralPromotion } from '@/hooks/promotions/useReferralPromotion';
+import { getDeviceId } from '@/utils/device/deviceUtils';
 
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = width < 375 || height < 700;
@@ -34,6 +36,10 @@ interface FormData {
   name: string;
   first_name: string;
   email: string;
+  referrer_code: string;
+  promotion_code: string;
+  install_id?: string;
+  device_id?: string;
   password: string;
   confirmPassword: string;
   agreedToTerms: boolean;
@@ -81,12 +87,18 @@ const RegistrationForm = () => {
   const { setUser, setIsLogged } = useGlobalContext() as GlobalContextType;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const { promotion, loading } = useReferralPromotion();
+
   const { colors } = useTheme();
 
   const [form, setForm] = useState({
     name: '',
     first_name: '',
     email: '',
+    referrer_code: '',
+    promotion_code: promotion ? promotion.code : '',
+    install_id: '',
+    device_id: '',
     password: '',
     confirmPassword: '',
     agreedToTerms: false,
@@ -97,6 +109,25 @@ const RegistrationForm = () => {
     confirmPassword: '',
     agreedToTerms: '',
   });
+
+  useEffect(() => {
+    const initIds = async () => {
+      try {
+        const rawInstallId = await AsyncStorage.getItem('install_id');
+        const deviceId = await getDeviceId();
+
+        setForm((prev) => ({
+          ...prev,
+          install_id: rawInstallId || '',
+          device_id: deviceId || '',
+        }));
+      } catch (error) {
+        console.error('Error loading IDs:', error);
+      }
+    };
+
+    initIds();
+  }, []);
 
   const validateForm = (form: FormData): ValidationResult => {
     const { email, password, confirmPassword, agreedToTerms } = form;
@@ -145,7 +176,7 @@ const RegistrationForm = () => {
 
   const handleInputChange = (
     field: keyof FormData,
-    value: string | boolean
+    value: string | boolean,
   ): void => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -174,15 +205,19 @@ const RegistrationForm = () => {
             email: form.email,
             password: form.password,
             auth_provider: 'email',
+            referrer_code: form.referrer_code,
+            promotion_code: promotion ? promotion.code : '',
+            install_id: form.install_id,
+            device_id: form.device_id,
           }),
-        }
+        },
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to sign up');
-      }
-
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Failed to sign up');
+      }
 
       const tokenResponse = await fetch(
         'https://www.realvistamanagement.com/portfolio/api-token-auth/',
@@ -195,7 +230,7 @@ const RegistrationForm = () => {
             username: form.email,
             password: form.password,
           }),
-        }
+        },
       );
 
       const tokenData: TokenData = await tokenResponse.json();
@@ -214,7 +249,7 @@ const RegistrationForm = () => {
             'Content-Type': 'application/json',
             Authorization: `Token ${tokenData.token}`,
           },
-        }
+        },
       );
 
       if (!userResponse.ok) {
@@ -346,6 +381,21 @@ const RegistrationForm = () => {
                   validate={true}
                 />
 
+                <Text
+                  style={[styles.sectionTitle, { color: colors.text.primary }]}
+                >
+                  Referral Code (Optional)
+                </Text>
+
+                <FormInput
+                  placeholder="a276e48ecdef"
+                  keyboardType="email-address"
+                  value={form.referrer_code}
+                  onChangeText={(text) =>
+                    handleInputChange('referrer_code', text)
+                  }
+                />
+
                 {/* Terms Agreement */}
                 <View style={styles.termsContainer}>
                   <View style={styles.checkboxContainer}>
@@ -373,7 +423,7 @@ const RegistrationForm = () => {
                         style={styles.termsLink}
                         onPress={() =>
                           Linking.openURL(
-                            'https://www.realvistaproperties.com/terms'
+                            'https://www.realvistaproperties.com/terms',
                           )
                         }
                       >
@@ -384,7 +434,7 @@ const RegistrationForm = () => {
                         style={styles.termsLink}
                         onPress={() =>
                           Linking.openURL(
-                            'https://www.realvistaproperties.com/privacy-policy'
+                            'https://www.realvistaproperties.com/privacy-policy',
                           )
                         }
                       >

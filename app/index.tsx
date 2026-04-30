@@ -15,6 +15,20 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import images from '@/constants/images';
 import { useTheme } from '@/context/ThemeContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Crypto from 'expo-crypto';
+import * as Application from 'expo-application';
+
+export const getInstallId = async () => {
+  let installId = await AsyncStorage.getItem('install_id');
+
+  if (!installId) {
+    installId = Crypto.randomUUID(); // 🔥 BEST
+    await AsyncStorage.setItem('install_id', installId);
+  }
+
+  return installId;
+};
 
 const { width, height } = Dimensions.get('window');
 
@@ -67,6 +81,18 @@ const OnboardingScreen = () => {
   const handleSkip = () => {
     router.push('/(auth)/sign-in');
   };
+
+  useEffect(() => {
+    const initIds = async () => {
+      try {
+        await getInstallId();
+      } catch (error) {
+        console.error('Error loading IDs:', error);
+      }
+    };
+
+    initIds();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {

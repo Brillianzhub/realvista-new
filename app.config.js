@@ -4,7 +4,7 @@ export default {
   expo: {
     name: 'Realvista',
     slug: 'realvista',
-    version: '1.0.5',
+    version: '1.0.6',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     platforms: ['ios', 'android'],
@@ -46,6 +46,10 @@ export default {
         'android.permission.USE_BIOMETRIC',
         'android.permission.USE_FINGERPRINT',
         'android.permission.RECORD_AUDIO',
+      ],
+      blockedPermissions: [
+        'android.permission.READ_MEDIA_IMAGES',
+        'android.permission.READ_MEDIA_VIDEO',
       ],
     },
     web: {

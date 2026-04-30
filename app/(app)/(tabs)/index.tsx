@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Alert,
-  useColorScheme
+  useColorScheme,
 } from 'react-native';
 import {
   Briefcase,
@@ -18,7 +18,7 @@ import {
   BookOpen,
   BarChart3,
   NotebookPen,
-  CircleDollarSign
+  CircleDollarSign,
 } from 'lucide-react-native';
 import { useRouter, Href } from 'expo-router';
 import FeaturedCarousel from '@/components/home/FeaturedCarousel';
@@ -49,18 +49,75 @@ interface NavigationItem {
 }
 
 const navigationItems: NavigationItem[] = [
-  { id: '1', title: 'Portfolio', subtitle: 'Track your real estate assets', icon: Briefcase, color: 'rgba(53, 139, 139, 1)', route: ROUTES.PORTFOLIO },
-  { id: '2', title: 'RealManager', subtitle: 'We secure your investment', icon: NotebookPen, color: '#10b981', route: ROUTES.MANAGEMENT },
-  { id: '3', title: 'MutualInvest', subtitle: 'Invest with others & earn returns', icon: TrendingUp, color: '#f59e0b', route: ROUTES.MUTUAL },
+  {
+    id: '1',
+    title: 'Portfolio',
+    subtitle: 'Track your real estate assets',
+    icon: Briefcase,
+    color: 'rgba(53, 139, 139, 1)',
+    route: ROUTES.PORTFOLIO,
+  },
+  {
+    id: '2',
+    title: 'RealManager',
+    subtitle: 'We secure your investment',
+    icon: NotebookPen,
+    color: '#10b981',
+    route: ROUTES.MANAGEMENT,
+  },
+  {
+    id: '3',
+    title: 'MutualInvest',
+    subtitle: 'Invest with others & earn returns',
+    icon: TrendingUp,
+    color: '#f59e0b',
+    route: ROUTES.MUTUAL,
+  },
 ];
 
 const secondaryNavigationItems: NavigationItem[] = [
-  { id: '4', title: 'Set Financial Targets', icon: Target, color: '#ef4444', route: ROUTES.TARGETS },
-  { id: '5', title: 'Evaluate Your Property', icon: Calculator, color: 'rgba(53, 139, 139, 1)', route: ROUTES.ANALYSIS },
-  { id: '6', title: 'Manage Your Portfolio', icon: Users, color: '#ec4899', route: ROUTES.MANAGER },
-  { id: '7', title: 'Learn', icon: BookOpen, color: '#06b6d4', route: ROUTES.LEARN },
-  { id: '8', title: 'Market Trends & Info', icon: BarChart3, color: '#84cc16', route: ROUTES.TRENDS },
-  { id: '9', title: 'Manage Your Listings', icon: CircleDollarSign, color: 'rgba(53, 139, 139, 1)', route: ROUTES.LISTINGS },
+  {
+    id: '4',
+    title: 'Set Financial Targets',
+    icon: Target,
+    color: '#ef4444',
+    route: ROUTES.TARGETS,
+  },
+  {
+    id: '5',
+    title: 'Evaluate Your Property',
+    icon: Calculator,
+    color: 'rgba(53, 139, 139, 1)',
+    route: ROUTES.ANALYSIS,
+  },
+  {
+    id: '6',
+    title: 'Manage Your Portfolio',
+    icon: Users,
+    color: '#ec4899',
+    route: ROUTES.MANAGER,
+  },
+  {
+    id: '7',
+    title: 'Learn',
+    icon: BookOpen,
+    color: '#06b6d4',
+    route: ROUTES.LEARN,
+  },
+  {
+    id: '8',
+    title: 'Market Trends & Info',
+    icon: BarChart3,
+    color: '#84cc16',
+    route: ROUTES.TRENDS,
+  },
+  {
+    id: '9',
+    title: 'Manage Your Listings',
+    icon: CircleDollarSign,
+    color: 'rgba(53, 139, 139, 1)',
+    route: ROUTES.LISTINGS,
+  },
 ];
 
 export default function HomeScreen() {
@@ -69,41 +126,64 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const {colors, theme} = useTheme();
+  const { colors, theme } = useTheme();
 
   const { user } = useGlobalContext();
 
   const handleNavigationPress = (item: NavigationItem) => {
     if (item.id === '3') {
       Alert.alert(
-        "Coming Soon",
-        "Thank you for your interest! The MutualInvest feature is not yet available - stay tuned for updates.",
-        [{ text: "OK", style: "default" }]
-      )
+        'Coming Soon',
+        'Thank you for your interest! The MutualInvest feature is not yet available - stay tuned for updates.',
+        [{ text: 'OK', style: 'default' }],
+      );
     } else {
       router.push(item.route);
-    };
-
+    }
   };
 
   const renderPrimaryNavigation = () => (
     <View
-      style={[styles.primaryNavContainer, {backgroundColor: colors.background.secondary}]}
+      style={[
+        styles.primaryNavContainer,
+        { backgroundColor: colors.background.secondary },
+      ]}
     >
-      <Text style={[styles.sectionTitle, {color: colors.text.primary}]}>Quick Actions</Text>
+      <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+        Quick Actions
+      </Text>
       <View style={styles.primaryNavGrid}>
         {navigationItems.map((item) => (
           <TouchableOpacity
             key={item.id}
-            style={[styles.primaryNavItem, {backgroundColor: colors.background.secondary, borderColor: colors.border.default}]}
+            style={[
+              styles.primaryNavItem,
+              {
+                backgroundColor: colors.background.secondary,
+                borderColor: colors.border.default,
+              },
+            ]}
             onPress={() => handleNavigationPress(item)}
             activeOpacity={0.8}
           >
-            <View style={[styles.primaryIconContainer, { backgroundColor: item.color }]}>
+            <View
+              style={[
+                styles.primaryIconContainer,
+                { backgroundColor: item.color },
+              ]}
+            >
               <item.icon size={32} color="#ffffff" />
             </View>
-            <Text style={[styles.primaryNavText, {color: colors.text.primary}]}>{item.title}</Text>
-            <Text style={[styles.primaryNavSubtext, {color: colors.text.muted}]}>{item.subtitle}</Text>
+            <Text
+              style={[styles.primaryNavText, { color: colors.text.primary }]}
+            >
+              {item.title}
+            </Text>
+            <Text
+              style={[styles.primaryNavSubtext, { color: colors.text.muted }]}
+            >
+              {item.subtitle}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -111,8 +191,15 @@ export default function HomeScreen() {
   );
 
   const renderSecondaryNavigation = () => (
-    <View style={[styles.secondaryNavContainer, {backgroundColor: colors.background.secondary}]}>
-      <Text style={[styles.sectionTitle, {color: colors.text.primary}]}>Tools & Resources</Text>
+    <View
+      style={[
+        styles.secondaryNavContainer,
+        { backgroundColor: colors.background.secondary },
+      ]}
+    >
+      <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+        Tools & Resources
+      </Text>
       <View style={styles.secondaryNavGrid}>
         {secondaryNavigationItems.map((item) => (
           <TouchableOpacity
@@ -121,10 +208,19 @@ export default function HomeScreen() {
             onPress={() => handleNavigationPress(item)}
             activeOpacity={0.7}
           >
-            <View style={[styles.secondaryIconContainer, { backgroundColor: item.color }]}>
+            <View
+              style={[
+                styles.secondaryIconContainer,
+                { backgroundColor: item.color },
+              ]}
+            >
               <item.icon size={24} color="#ffffff" />
             </View>
-            <Text style={[styles.secondaryNavText, {color: colors.text.primary}]}>{item.title}</Text>
+            <Text
+              style={[styles.secondaryNavText, { color: colors.text.primary }]}
+            >
+              {item.title}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -133,7 +229,10 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, isDark && styles.containerDark]}>
-      <ScrollView style={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollContainer}
+        showsVerticalScrollIndicator={false}
+      >
         {renderPrimaryNavigation()}
         {renderSecondaryNavigation()}
         <FeaturedCarousel />
@@ -141,7 +240,6 @@ export default function HomeScreen() {
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

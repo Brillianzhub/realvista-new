@@ -7,15 +7,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Image,
   Linking,
   Dimensions,
-  Platform,
-  KeyboardAvoidingView,
 } from 'react-native';
-import images from '@/constants/images';
 import { useGlobalContext } from '@/context/GlobalProvider';
-import { Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
@@ -26,6 +21,8 @@ import PasswordInput from '@/components/auth/PasswordInput';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
+import { useReferralPromotion } from '@/hooks/promotions/useReferralPromotion';
+import { getDeviceId } from '@/utils/device/deviceUtils';
 
 // Type definitions
 interface FormData {
@@ -42,6 +39,10 @@ interface FormData {
   whatsapp_number: string;
   experience_years: string;
   preferred_contact_mode: string;
+  referrer_code: string;
+  promotion_code: string;
+  install_id: string;
+  device_id: string;
 }
 
 interface ValidationResult {
@@ -84,6 +85,8 @@ const AgentRegistrationForm: React.FC = () => {
   const { setUser, setIsLogged } = useGlobalContext() as GlobalContextType;
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
+  const { promotion, loading } = useReferralPromotion();
+
   const { colors } = useTheme();
 
   const [form, setForm] = useState<FormData>({
@@ -100,7 +103,30 @@ const AgentRegistrationForm: React.FC = () => {
     whatsapp_number: '',
     experience_years: '',
     preferred_contact_mode: '',
+    referrer_code: '',
+    promotion_code: '',
+    install_id: '',
+    device_id: '',
   });
+
+  useEffect(() => {
+    const initIds = async () => {
+      try {
+        const rawInstallId = await AsyncStorage.getItem('install_id');
+        const deviceId = await getDeviceId();
+
+        setForm((prev) => ({
+          ...prev,
+          install_id: rawInstallId || '',
+          device_id: deviceId || '',
+        }));
+      } catch (error) {
+        console.error('Error loading IDs:', error);
+      }
+    };
+
+    initIds();
+  }, []);
 
   const validateForm = (form: FormData): ValidationResult => {
     const { email, password, confirmPassword } = form;
@@ -173,15 +199,20 @@ const AgentRegistrationForm: React.FC = () => {
             whatsapp_number: form.whatsapp_number,
             experience_years: form.experience_years,
             preferred_contact_mode: form.preferred_contact_mode,
+
+            referrer_code: form.referrer_code,
+            promotion_code: promotion ? promotion.code : '',
+            install_id: form.install_id,
+            device_id: form.device_id,
           }),
-        }
+        },
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to sign up');
-      }
+      const data = await response.json();
 
-      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Failed to sign up');
+      }
 
       const tokenResponse = await fetch(
         'https://www.realvistamanagement.com/portfolio/api-token-auth/',
@@ -194,7 +225,7 @@ const AgentRegistrationForm: React.FC = () => {
             username: form.email,
             password: form.password,
           }),
-        }
+        },
       );
 
       const tokenData: TokenData = await tokenResponse.json();
@@ -213,7 +244,7 @@ const AgentRegistrationForm: React.FC = () => {
             'Content-Type': 'application/json',
             Authorization: `Token ${tokenData.token}`,
           },
-        }
+        },
       );
 
       if (!userResponse.ok) {
@@ -252,7 +283,7 @@ const AgentRegistrationForm: React.FC = () => {
 
   const handleInputChange = (
     field: keyof FormData,
-    value: string | boolean
+    value: string | boolean,
   ): void => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
@@ -552,6 +583,38 @@ const AgentRegistrationForm: React.FC = () => {
                   />
                 </View>
 
+                {/* Agency Information Section */}
+                <View
+                  style={[
+                    styles.card,
+                    {
+                      backgroundColor: colors.background.secondary,
+                      borderColor: colors.border.default,
+                    },
+                  ]}
+                >
+                  <View style={styles.cardHeader}>
+                    <Ionicons
+                      name="share-social-outline"
+                      size={22}
+                      color="#358B8B"
+                    />
+                    <Text
+                      style={[styles.cardTitle, { color: colors.text.primary }]}
+                    >
+                      Referral Code (Optional)
+                    </Text>
+                  </View>
+
+                  <FormInput
+                    placeholder="a276e48ecdef"
+                    value={form.referrer_code}
+                    onChangeText={(text: string) =>
+                      handleInputChange('referrer_code', text)
+                    }
+                  />
+                </View>
+
                 {/* Terms Agreement */}
                 <View
                   style={[
@@ -588,7 +651,7 @@ const AgentRegistrationForm: React.FC = () => {
                         style={styles.termsLink}
                         onPress={() =>
                           Linking.openURL(
-                            'https://www.realvistaproperties.com/terms-of-use'
+                            'https://www.realvistaproperties.com/terms-of-use',
                           )
                         }
                       >
@@ -599,7 +662,7 @@ const AgentRegistrationForm: React.FC = () => {
                         style={styles.termsLink}
                         onPress={() =>
                           Linking.openURL(
-                            'https://www.realvistaproperties.com/privacy-policy'
+                            'https://www.realvistaproperties.com/privacy-policy',
                           )
                         }
                       >

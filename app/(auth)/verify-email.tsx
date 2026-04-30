@@ -39,13 +39,13 @@ const VerifyEmail: React.FC = () => {
 
   const { colors } = useTheme();
   const [code, setCode] = useState<string[]>(['', '', '', '', '']);
-  const [timer, setTimer] = useState<number>(120);
+  const [timer, setTimer] = useState<number>(60);
   const [canResend, setCanResend] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [isFocused, setIsFocused] = useState<number | null>(null);
   const [appState, setAppState] = useState<AppStateStatus>(
-    AppState.currentState
+    AppState.currentState,
   );
 
   const inputRefs = useRef<Array<TextInput | null>>([]);
@@ -121,7 +121,7 @@ const VerifyEmail: React.FC = () => {
       triggerShake();
       Alert.alert(
         'Incomplete Code',
-        'Please enter all 5 digits to verify your email.'
+        'Please enter all 5 digits to verify your email.',
       );
       return;
     }
@@ -146,7 +146,7 @@ const VerifyEmail: React.FC = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-        }
+        },
       );
 
       if (response.ok) {
@@ -166,13 +166,13 @@ const VerifyEmail: React.FC = () => {
         triggerShake();
         Alert.alert(
           'Verification Failed',
-          errorData.error || 'Invalid verification code.'
+          errorData.error || 'Invalid verification code.',
         );
       }
     } catch (err: unknown) {
       Alert.alert(
         'Network Error',
-        'Something went wrong. Please check your connection and try again.'
+        'Something went wrong. Please check your connection and try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -203,7 +203,7 @@ const VerifyEmail: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ email }),
-        }
+        },
       );
 
       const data = await response.json();
@@ -211,20 +211,21 @@ const VerifyEmail: React.FC = () => {
       if (response.ok && data.success) {
         Alert.alert(
           'Code Resent',
-          data.message || 'A new verification code has been sent to your email.'
+          data.message ||
+            'A new verification code has been sent to your email.',
         );
-        setTimer(120);
+        setTimer(60);
         setCanResend(false);
       } else {
         Alert.alert(
           'Error',
-          data.error || 'Failed to resend verification code.'
+          data.error || 'Failed to resend verification code.',
         );
       }
     } catch (err) {
       Alert.alert(
         'Network Error',
-        'Unable to resend code. Please check your connection and try again.'
+        'Unable to resend code. Please check your connection and try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -312,7 +313,7 @@ const VerifyEmail: React.FC = () => {
                 onChangeText={(value) => handleInputChange(value, index)}
                 onKeyPress={(e) => handleKeyPress(e, index)}
                 keyboardType="number-pad"
-                maxLength={index === 0 ? 5 : 1}
+                maxLength={1}
                 onFocus={() => setIsFocused(index)}
                 onBlur={() => setIsFocused(null)}
                 selectTextOnFocus
