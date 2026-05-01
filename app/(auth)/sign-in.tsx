@@ -32,12 +32,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = width < 375 || height < 700;
 
+// AsyncStorage keys
+const STORAGE_KEYS = {
+  REMEMBER_ME: 'rememberMe',
+  SAVED_EMAIL: 'savedEmail',
+  SAVED_PASSWORD: 'savedPassword',
+};
+
 interface FormData {
-  // name: string;
-  // first_name: string;
   email: string;
   password: string;
-  // confirmPassword: string;
 }
 
 interface UserData {
@@ -97,7 +101,7 @@ const { googleWebClientId, googleIosClientId } =
 // Sign-in function (moved outside component)
 const signIn = async (
   email: string,
-  password: string
+  password: string,
 ): Promise<SignInResult | null> => {
   try {
     const response = await fetch(
@@ -106,7 +110,7 @@ const signIn = async (
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
-      }
+      },
     );
 
     const data = await response.json();
@@ -124,7 +128,7 @@ const signIn = async (
           username: email,
           password: password,
         }),
-      }
+      },
     );
 
     const tokenData: TokenData = await tokenResponse.json();
@@ -141,7 +145,7 @@ const signIn = async (
         headers: {
           Authorization: `Token ${tokenData.token}`,
         },
-      }
+      },
     );
 
     if (!userResponse.ok) {
@@ -166,8 +170,9 @@ const SignIn: React.FC = () => {
     useGlobalContext() as GlobalContextType & { user: UserData | null };
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoadingSavedCredentials, setIsLoadingSavedCredentials] =
+    useState(true);
 
   const [form, setForm] = useState({
     email: '',
@@ -175,6 +180,79 @@ const SignIn: React.FC = () => {
   });
 
   const { colors } = useTheme();
+
+  // Load saved credentials on component mount
+  useEffect(() => {
+    loadSavedCredentials();
+  }, []);
+
+  // Save or clear credentials when rememberMe changes or after successful login
+  useEffect(() => {
+    if (!isLoadingSavedCredentials) {
+      if (rememberMe && form.email && form.password) {
+        saveCredentials(form.email, form.password);
+      } else if (!rememberMe) {
+        clearCredentials();
+      }
+    }
+  }, [rememberMe, form.email, form.password]);
+
+  const loadSavedCredentials = async () => {
+    try {
+      const [rememberMeValue, savedEmail, savedPassword] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.REMEMBER_ME),
+        AsyncStorage.getItem(STORAGE_KEYS.SAVED_EMAIL),
+        AsyncStorage.getItem(STORAGE_KEYS.SAVED_PASSWORD),
+      ]);
+
+      const isRememberMe = rememberMeValue === 'true';
+      setRememberMe(isRememberMe);
+
+      if (isRememberMe && savedEmail && savedPassword) {
+        setForm({
+          email: savedEmail,
+          password: savedPassword,
+        });
+      }
+    } catch (error) {
+      console.error('Error loading saved credentials:', error);
+    } finally {
+      setIsLoadingSavedCredentials(false);
+    }
+  };
+
+  const saveCredentials = async (email: string, password: string) => {
+    try {
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.REMEMBER_ME, 'true'),
+        AsyncStorage.setItem(STORAGE_KEYS.SAVED_EMAIL, email),
+        AsyncStorage.setItem(STORAGE_KEYS.SAVED_PASSWORD, password),
+      ]);
+    } catch (error) {
+      console.error('Error saving credentials:', error);
+    }
+  };
+
+  const clearCredentials = async () => {
+    try {
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.REMEMBER_ME, 'false'),
+        AsyncStorage.removeItem(STORAGE_KEYS.SAVED_EMAIL),
+        AsyncStorage.removeItem(STORAGE_KEYS.SAVED_PASSWORD),
+      ]);
+    } catch (error) {
+      console.error('Error clearing credentials:', error);
+    }
+  };
+
+  const updateSavedCredentialsAfterLogin = async (
+    email: string,
+    password: string,
+  ) => {
+    if (rememberMe) {
+      await saveCredentials(email, password);
+    }
+  };
 
   useEffect(() => {
     if (!isLogged || !user) return;
@@ -215,6 +293,9 @@ const SignIn: React.FC = () => {
 
       if (!result) return;
 
+      // Save credentials after successful login if rememberMe is true
+      await updateSavedCredentialsAfterLogin(form.email, form.password);
+
       setUser({
         id: result.id,
         email: result.email,
@@ -246,6 +327,29 @@ const SignIn: React.FC = () => {
   const handleInputChange = (field: keyof FormData, value: string): void => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+
+  const handleRememberMeToggle = () => {
+    const newValue = !rememberMe;
+    setRememberMe(newValue);
+
+    // If unchecking remember me, clear saved credentials immediately
+    if (!newValue) {
+      clearCredentials();
+    }
+  };
+
+  if (isLoadingSavedCredentials) {
+    return (
+      <View
+        style={[
+          styles.loadingOverlay,
+          { backgroundColor: colors.background.primary },
+        ]}
+      >
+        <ActivityIndicator size="large" color="#FB902E" />
+      </View>
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -314,7 +418,7 @@ const SignIn: React.FC = () => {
               <View style={styles.utilityRow}>
                 <TouchableOpacity
                   style={styles.rememberMeContainer}
-                  onPress={() => setRememberMe(!rememberMe)}
+                  onPress={handleRememberMeToggle}
                   activeOpacity={0.7}
                 >
                   <View
@@ -424,7 +528,7 @@ const SignIn: React.FC = () => {
                   style={styles.termsLink}
                   onPress={() =>
                     Linking.openURL(
-                      'https://www.realvistaproperties.com/privacy-policy'
+                      'https://www.realvistaproperties.com/privacy-policy',
                     )
                   }
                 >

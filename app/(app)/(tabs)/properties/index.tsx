@@ -135,7 +135,7 @@ export default function PortfolioScreen() {
   const assetsCount = investments.length;
   const totalInvested = filteredProperties.reduce(
     (sum, p) => sum + parseFloat(p.initial_cost || 0),
-    0
+    0,
   );
 
   const totalReturns = totalValue - totalInvested;
@@ -152,12 +152,12 @@ export default function PortfolioScreen() {
 
   const handlePropertyPress = (investmentId: string) => {
     const property = filteredProperties.find(
-      (p: any) => p.id.toString() === investmentId
+      (p: any) => p.id.toString() === investmentId,
     );
 
     if (property) {
       router.push({
-        pathname: '/portfolio/portfoliodetails',
+        pathname: '/properties/portfoliodetails',
         params: { propertyData: JSON.stringify(property), id: investmentId },
       });
     } else {
@@ -206,23 +206,37 @@ export default function PortfolioScreen() {
     >
       <TouchableWithoutFeedback onPress={handleCloseModal}>
         <View style={styles.modalOverlay}>
-          <Animated.View style={[
-            styles.modalContent,
-            { 
-              transform: [{ translateY: modalTranslateY }],
-              opacity: modalOpacity 
-            }
-          ]}>
+          <Animated.View
+            style={[
+              styles.modalContent,
+              {
+                transform: [{ translateY: modalTranslateY }],
+                opacity: modalOpacity,
+              },
+            ]}
+          >
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, isDark && styles.modalTitleDark]}>
+              <Text
+                style={[styles.modalTitle, isDark && styles.modalTitleDark]}
+              >
                 Filter by Year
               </Text>
-              <TouchableOpacity onPress={handleCloseModal} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={isDark ? '#9CA3AF' : '#6B7280'} />
+              <TouchableOpacity
+                onPress={handleCloseModal}
+                style={styles.closeButton}
+              >
+                <Ionicons
+                  name="close"
+                  size={24}
+                  color={isDark ? '#9CA3AF' : '#6B7280'}
+                />
               </TouchableOpacity>
             </View>
-            
-            <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+
+            <ScrollView
+              style={styles.modalScroll}
+              showsVerticalScrollIndicator={false}
+            >
               <TouchableOpacity
                 style={[
                   styles.modalYearOption,
@@ -231,20 +245,22 @@ export default function PortfolioScreen() {
                 ]}
                 onPress={() => handleYearSelect('All')}
               >
-                <Text style={[
-                  styles.modalYearText,
-                  selectedYear === 'All' && styles.modalYearTextSelected,
-                  isDark && styles.modalYearTextDark,
-                ]}>
+                <Text
+                  style={[
+                    styles.modalYearText,
+                    selectedYear === 'All' && styles.modalYearTextSelected,
+                    isDark && styles.modalYearTextDark,
+                  ]}
+                >
                   All Years
                 </Text>
                 {selectedYear === 'All' && (
                   <Ionicons name="checkmark" size={20} color="#358B8B" />
                 )}
               </TouchableOpacity>
-              
+
               <View style={[styles.divider, isDark && styles.dividerDark]} />
-              
+
               {availableYears.map((year) => (
                 <TouchableOpacity
                   key={year}
@@ -255,19 +271,23 @@ export default function PortfolioScreen() {
                   ]}
                   onPress={() => handleYearSelect(year)}
                 >
-                  <Text style={[
-                    styles.modalYearText,
-                    selectedYear === year && styles.modalYearTextSelected,
-                    isDark && styles.modalYearTextDark,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.modalYearText,
+                      selectedYear === year && styles.modalYearTextSelected,
+                      isDark && styles.modalYearTextDark,
+                    ]}
+                  >
                     {year}
                   </Text>
                   <View style={styles.yearPropertyCount}>
-                    <Text style={[
-                      styles.yearCountText,
-                      selectedYear === year && styles.yearCountTextSelected,
-                      isDark && styles.yearCountTextDark,
-                    ]}>
+                    <Text
+                      style={[
+                        styles.yearCountText,
+                        selectedYear === year && styles.yearCountTextSelected,
+                        isDark && styles.yearCountTextDark,
+                      ]}
+                    >
                       {propertiesByYear[year]?.length || 0}
                     </Text>
                   </View>
@@ -286,7 +306,12 @@ export default function PortfolioScreen() {
         colors={isDark ? ['#1F2937', '#111827'] : ['#F0FDFA', '#FFFFFF']}
         style={styles.emptyGradient}
       >
-        <View style={[styles.emptyIconContainer, isDark && styles.emptyIconContainerDark]}>
+        <View
+          style={[
+            styles.emptyIconContainer,
+            isDark && styles.emptyIconContainerDark,
+          ]}
+        >
           <Ionicons name="briefcase-outline" size={60} color="#358B8B" />
         </View>
 
@@ -294,8 +319,11 @@ export default function PortfolioScreen() {
           Build Your Property Portfolio
         </Text>
 
-        <Text style={[styles.emptySubtitle, isDark && styles.emptySubtitleDark]}>
-          Start tracking your real estate investments and grow your wealth with confidence
+        <Text
+          style={[styles.emptySubtitle, isDark && styles.emptySubtitleDark]}
+        >
+          Start tracking your real estate investments and grow your wealth with
+          confidence
         </Text>
 
         <View style={[styles.benefitsCard, isDark && styles.benefitsCardDark]}>
@@ -304,10 +332,17 @@ export default function PortfolioScreen() {
               <Ionicons name="trending-up" size={24} color="#358B8B" />
             </View>
             <View style={styles.benefitText}>
-              <Text style={[styles.benefitTitle, isDark && styles.benefitTitleDark]}>
+              <Text
+                style={[styles.benefitTitle, isDark && styles.benefitTitleDark]}
+              >
                 Track Performance
               </Text>
-              <Text style={[styles.benefitDescription, isDark && styles.benefitDescriptionDark]}>
+              <Text
+                style={[
+                  styles.benefitDescription,
+                  isDark && styles.benefitDescriptionDark,
+                ]}
+              >
                 Monitor ROI and appreciation over time
               </Text>
             </View>
@@ -320,10 +355,17 @@ export default function PortfolioScreen() {
               <Ionicons name="analytics" size={24} color="#358B8B" />
             </View>
             <View style={styles.benefitText}>
-              <Text style={[styles.benefitTitle, isDark && styles.benefitTitleDark]}>
+              <Text
+                style={[styles.benefitTitle, isDark && styles.benefitTitleDark]}
+              >
                 Financial Insights
               </Text>
-              <Text style={[styles.benefitDescription, isDark && styles.benefitDescriptionDark]}>
+              <Text
+                style={[
+                  styles.benefitDescription,
+                  isDark && styles.benefitDescriptionDark,
+                ]}
+              >
                 Get detailed reports on income and expenses
               </Text>
             </View>
@@ -336,17 +378,27 @@ export default function PortfolioScreen() {
               <Ionicons name="shield-checkmark" size={24} color="#358B8B" />
             </View>
             <View style={styles.benefitText}>
-              <Text style={[styles.benefitTitle, isDark && styles.benefitTitleDark]}>
+              <Text
+                style={[styles.benefitTitle, isDark && styles.benefitTitleDark]}
+              >
                 Secure Records
               </Text>
-              <Text style={[styles.benefitDescription, isDark && styles.benefitDescriptionDark]}>
+              <Text
+                style={[
+                  styles.benefitDescription,
+                  isDark && styles.benefitDescriptionDark,
+                ]}
+              >
                 Keep all your property data safe in one place
               </Text>
             </View>
           </View>
         </View>
 
-        <TouchableOpacity style={styles.emptyButton} onPress={handleAddInvestment}>
+        <TouchableOpacity
+          style={styles.emptyButton}
+          onPress={handleAddInvestment}
+        >
           <LinearGradient
             colors={['#358B8B', '#2C7070']}
             style={styles.emptyButtonGradient}
@@ -363,7 +415,9 @@ export default function PortfolioScreen() {
           onPress={() => router.push('/(app)/(learn)')}
         >
           <Ionicons name="book-outline" size={20} color="#358B8B" />
-          <Text style={styles.secondaryButtonText}>Learn About Real Estate Investing</Text>
+          <Text style={styles.secondaryButtonText}>
+            Learn About Real Estate Investing
+          </Text>
         </TouchableOpacity>
       </LinearGradient>
     </View>
@@ -376,7 +430,11 @@ export default function PortfolioScreen() {
         contentContainerStyle={styles.emptyScrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#358B8B" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#358B8B"
+          />
         }
       >
         {renderEmptyState()}
@@ -391,17 +449,30 @@ export default function PortfolioScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#358B8B" />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#358B8B"
+          />
         }
       >
         <View style={styles.header}>
           <View>
-            <Text style={[styles.headerTitle, isDark && styles.headerTitleDark]}>My Portfolio</Text>
-            <Text style={[styles.headerSubtitle, isDark && styles.headerSubtitleDark]}>
+            <Text
+              style={[styles.headerTitle, isDark && styles.headerTitleDark]}
+            >
+              My Portfolio
+            </Text>
+            <Text
+              style={[
+                styles.headerSubtitle,
+                isDark && styles.headerSubtitleDark,
+              ]}
+            >
               Track your real estate investments
             </Text>
           </View>
-          
+
           <View style={styles.headerButtons}>
             <TouchableOpacity
               style={[styles.filterButton, isDark && styles.filterButtonDark]}
@@ -409,19 +480,21 @@ export default function PortfolioScreen() {
               activeOpacity={0.7}
             >
               <View style={styles.filterButtonContent}>
-                <Ionicons 
-                  name="filter" 
-                  size={18} 
-                  color={isDark ? '#358B8B' : '#358B8B'} 
+                <Ionicons
+                  name="filter"
+                  size={18}
+                  color={isDark ? '#358B8B' : '#358B8B'}
                 />
-                <Text style={[
-                  styles.filterButtonText,
-                  isDark && styles.filterButtonTextDark
-                ]}>
+                <Text
+                  style={[
+                    styles.filterButtonText,
+                    isDark && styles.filterButtonTextDark,
+                  ]}
+                >
                   {selectedYear === 'All' ? 'Filter' : selectedYear}
                 </Text>
               </View>
-              
+
               {selectedYear !== 'All' && (
                 <View style={styles.filterBadge}>
                   <Text style={styles.filterBadgeText}>✓</Text>
@@ -429,8 +502,8 @@ export default function PortfolioScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              style={styles.addButton} 
+            <TouchableOpacity
+              style={styles.addButton}
               onPress={handleAddInvestment}
               activeOpacity={0.7}
             >
@@ -463,7 +536,9 @@ export default function PortfolioScreen() {
               <View style={styles.cardHeader}>
                 <Ionicons name="business" size={20} color="#358B8B" />
               </View>
-              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Number of Assets</Text>
+              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>
+                Number of Assets
+              </Text>
               <Text style={[styles.cardValue, isDark && styles.cardValueDark]}>
                 {portfolio.assetsCount}
               </Text>
@@ -474,7 +549,9 @@ export default function PortfolioScreen() {
               <View style={styles.cardHeader}>
                 <Ionicons name="cash" size={20} color="#358B8B" />
               </View>
-              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Total Invested</Text>
+              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>
+                Total Invested
+              </Text>
               <Text style={[styles.cardValue, isDark && styles.cardValueDark]}>
                 {formatCurrency(portfolio.totalInvested, portfolio.currency)}
               </Text>
@@ -487,12 +564,16 @@ export default function PortfolioScreen() {
                   color={portfolio.totalReturns >= 0 ? '#10B981' : '#EF4444'}
                 />
               </View>
-              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>Total Returns</Text>
+              <Text style={[styles.cardLabel, isDark && styles.cardLabelDark]}>
+                Total Returns
+              </Text>
               <Text
                 style={[
                   styles.cardValue,
                   isDark && styles.cardValueDark,
-                  { color: portfolio.totalReturns >= 0 ? '#10B981' : '#EF4444' },
+                  {
+                    color: portfolio.totalReturns >= 0 ? '#10B981' : '#EF4444',
+                  },
                 ]}
               >
                 {formatCurrency(portfolio.totalReturns, portfolio.currency)}
@@ -501,14 +582,26 @@ export default function PortfolioScreen() {
           </View>
         </View>
 
-        <View style={[styles.investmentsSection, isDark && styles.investmentsSectionDark]}>
+        <View
+          style={[
+            styles.investmentsSection,
+            isDark && styles.investmentsSectionDark,
+          ]}
+        >
           <View style={styles.sectionHeader}>
-            <Text style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}>
+            <Text
+              style={[styles.sectionTitle, isDark && styles.sectionTitleDark]}
+            >
               Your Investments
               {selectedYear !== 'All' && ` (${selectedYear})`}
             </Text>
             <View style={[styles.countBadge, isDark && styles.countBadgeDark]}>
-              <Text style={[styles.countBadgeText, isDark && styles.countBadgeTextDark]}>
+              <Text
+                style={[
+                  styles.countBadgeText,
+                  isDark && styles.countBadgeTextDark,
+                ]}
+              >
                 {portfolio.investments.length}
               </Text>
             </View>
@@ -521,11 +614,21 @@ export default function PortfolioScreen() {
                 onPress={() => handlePropertyPress(investment.id)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.investmentIcon, isDark && styles.investmentIconDark]}>
+                <View
+                  style={[
+                    styles.investmentIcon,
+                    isDark && styles.investmentIconDark,
+                  ]}
+                >
                   <Ionicons name="home" size={24} color="#358B8B" />
                 </View>
                 <View style={styles.investmentInfo}>
-                  <Text style={[styles.investmentName, isDark && styles.investmentNameDark]}>
+                  <Text
+                    style={[
+                      styles.investmentName,
+                      isDark && styles.investmentNameDark,
+                    ]}
+                  >
                     {investment.name}
                   </Text>
                   <View style={styles.investmentMeta}>
@@ -539,7 +642,8 @@ export default function PortfolioScreen() {
                       <Text
                         style={[
                           styles.typeBadgeText,
-                          investment.type === 'Group' && styles.typeBadgeTextGroup,
+                          investment.type === 'Group' &&
+                            styles.typeBadgeTextGroup,
                         ]}
                       >
                         {investment.type}
@@ -548,7 +652,12 @@ export default function PortfolioScreen() {
                   </View>
                 </View>
                 <View style={styles.investmentStats}>
-                  <Text style={[styles.investmentValue, isDark && styles.investmentValueDark]}>
+                  <Text
+                    style={[
+                      styles.investmentValue,
+                      isDark && styles.investmentValueDark,
+                    ]}
+                  >
                     {formatCurrency(investment.value, portfolio.currency)}
                   </Text>
                   <View style={styles.roiContainer}>
@@ -567,7 +676,11 @@ export default function PortfolioScreen() {
                     </Text>
                   </View>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={isDark ? '#9CA3AF' : '#D1D5DB'} />
+                <Ionicons
+                  name="chevron-forward"
+                  size={20}
+                  color={isDark ? '#9CA3AF' : '#D1D5DB'}
+                />
               </TouchableOpacity>
               {index < portfolio.investments.length - 1 && (
                 <View style={[styles.divider, isDark && styles.dividerDark]} />
@@ -576,7 +689,7 @@ export default function PortfolioScreen() {
           ))}
         </View>
       </ScrollView>
-      
+
       {renderYearModal()}
     </>
   );

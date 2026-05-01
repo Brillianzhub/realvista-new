@@ -1,312 +1,385 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    FlatList,
-    ActivityIndicator,
-    RefreshControl,
-    useColorScheme,
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  ActivityIndicator,
+  RefreshControl,
+  useColorScheme,
+  TouchableOpacity,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import PostCard from '@/components/trends/PostCard';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
 
-
+import useTrends from '@/hooks/trends/useTrends';
 
 type TrendPost = {
-    id: number;
-    title: string;
-    slug: string;
-    body: string;
-    attachment: string | null;
-    date_created: string;
-    category: string;
-    views: number;
-    publish: boolean;
+  id: number;
+  title: string;
+  slug: string;
+  body: string;
+  attachment: string | null;
+  date_created: string;
+  category: string;
+  views: number;
+  publish: boolean;
 };
 
-type ApiResponse = {
-    count: number;
-    next: string | null;
-    previous: string | null;
-    results: TrendPost[];
-};
+const BRAND = '#358B8B';
+const BRAND_DARK = '#2A6F6F';
+const ACCENT = '#efa968';
 
 export default function Trends() {
-    const colorScheme = useColorScheme();
-    const isDark = colorScheme === 'dark';
-    const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const router = useRouter();
 
-    const [posts, setPosts] = useState<TrendPost[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+  const {
+    posts,
+    loading,
+    refreshing,
+    loadingMore,
+    error,
+    onRefresh,
+    refetch,
+    loadMore,
+    incrementViews,
+  } = useTrends();
 
-    const fetchPosts = async () => {
-        try {
-            setError(null);
+  const extractExcerpt = (html: string): string => {
+    const text = html.replace(/<[^>]*>/g, '');
+    return text.length > 150 ? text.substring(0, 150) + '...' : text;
+  };
 
-            const response = await fetch(
-                'https://www.realvistamanagement.com/trends/reports/',
-                {
-                    method: 'GET',
-                }
-            );
+  const handlePostPress = (slug: string) => {
+    router.push({ pathname: '/(app)/(trends)/[slug]', params: { slug } });
+    incrementViews(slug);
+  };
 
-            if (!response.ok) {
-                throw new Error('Failed to fetch trends');
-            }
+  // ── Skeleton ──────────────────────────────────────────────────────────────
+  const SkeletonPulse = ({ style }: { style: any }) => (
+    <View
+      style={[
+        { backgroundColor: isDark ? '#1E2D2D' : '#E8F0F0', borderRadius: 6 },
+        style,
+      ]}
+    />
+  );
 
-            const data: ApiResponse = await response.json();
-            setPosts(data.results || []);
-        } catch (err: any) {
-            console.error('Error fetching posts:', err);
-            setError('Failed to load trends. Please try again.');
-        } finally {
-            setLoading(false);
-            setRefreshing(false);
-        }
-    };
-
-
-    // const handleReportPress = async (report) => {
-    //     try {
-
-
-    //         // 2️⃣ Increment views quietly in the background
-    //         await axios.post(
-    //             `https://www.realvistamanagement.com/api/reports/${report.slug}/increment-views/`
-    //         );
-
-    //     } catch (err) {
-    //         console.error('❌ Failed to update report views:', err);
-    //     }
-    // };
-
-    const extractExcerpt = (html: string): string => {
-        const text = html.replace(/<[^>]*>/g, '');
-        return text.length > 150 ? text.substring(0, 150) + '...' : text;
-    };
-
-    useEffect(() => {
-        fetchPosts();
-    }, []);
-
-    const onRefresh = useCallback(() => {
-        setRefreshing(true);
-        fetchPosts();
-    }, []);
-
-    const handlePostPress = async (slug: string) => {
-        router.push({
-            pathname: '/(app)/(trends)/[slug]',
-            params: { slug },
-        });
-
-        await axios.post(
-            `https://www.realvistamanagement.com/trends/reports/${slug}/increment-views/`
-        );
-    };
-
-    const renderSkeleton = () => (
-        <View style={styles.skeletonContainer}>
-            {[1, 2, 3].map((item) => (
-                <View key={item} style={[styles.skeletonCard, isDark && styles.skeletonCardDark]}>
-                    <View style={styles.skeletonImage} />
-                    <View style={styles.skeletonContent}>
-                        <View style={styles.skeletonCategory} />
-                        <View style={styles.skeletonTitle} />
-                        <View style={styles.skeletonExcerpt} />
-                        <View style={styles.skeletonExcerptShort} />
-                    </View>
-                </View>
-            ))}
-        </View>
-    );
-
-    const renderEmptyState = () => (
-        <View style={styles.emptyState}>
-            <Ionicons
-                name="newspaper-outline"
-                size={64}
-                color={isDark ? '#4B5563' : '#D1D5DB'}
+  const renderSkeleton = () => (
+    <View style={{ paddingHorizontal: 20, paddingTop: 16, gap: 16 }}>
+      {[1, 2, 3].map((i) => (
+        <View
+          key={i}
+          style={[styles.skeletonCard, isDark && styles.skeletonCardDark]}
+        >
+          <SkeletonPulse
+            style={{ width: '100%', height: 180, borderRadius: 0 }}
+          />
+          <View style={{ padding: 16, gap: 10 }}>
+            <SkeletonPulse
+              style={{ width: 80, height: 22, borderRadius: 20 }}
             />
-            <Text style={[styles.emptyStateTitle, isDark && styles.emptyStateTitleDark]}>
-                No trends available yet
-            </Text>
-            <Text style={[styles.emptyStateText, isDark && styles.emptyStateTextDark]}>
-                Check back soon for the latest market insights and trends.
-            </Text>
+            <SkeletonPulse style={{ width: '90%', height: 18 }} />
+            <SkeletonPulse style={{ width: '70%', height: 18 }} />
+            <SkeletonPulse style={{ width: '55%', height: 14, marginTop: 4 }} />
+          </View>
         </View>
-    );
+      ))}
+    </View>
+  );
 
-    const renderErrorState = () => (
-        <View style={styles.emptyState}>
-            <Ionicons
-                name="alert-circle-outline"
-                size={64}
-                color={isDark ? '#EF4444' : '#F87171'}
+  // ── Empty / Error states ───────────────────────────────────────────────────
+  const renderEmptyState = () => (
+    <View style={styles.centeredState}>
+      <View
+        style={[
+          styles.stateIconRing,
+          { borderColor: isDark ? '#1E3A3A' : '#D0E9E9' },
+        ]}
+      >
+        <Ionicons name="newspaper-outline" size={32} color={BRAND} />
+      </View>
+      <Text style={[styles.stateTitle, isDark && styles.stateTitleDark]}>
+        Nothing here yet
+      </Text>
+      <Text style={[styles.stateBody, isDark && styles.stateBodyDark]}>
+        Check back soon for the latest market insights and trends.
+      </Text>
+    </View>
+  );
+
+  const renderErrorState = () => (
+    <View style={styles.centeredState}>
+      <View
+        style={[
+          styles.stateIconRing,
+          { borderColor: isDark ? '#3B1F1F' : '#FDDCDC' },
+        ]}
+      >
+        <Ionicons name="alert-circle-outline" size={32} color="#E24B4A" />
+      </View>
+      <Text style={[styles.stateTitle, isDark && styles.stateTitleDark]}>
+        Something went wrong
+      </Text>
+      <Text style={[styles.stateBody, isDark && styles.stateBodyDark]}>
+        {error}
+      </Text>
+      <TouchableOpacity
+        style={styles.retryBtn}
+        onPress={refetch}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.retryBtnText}>Try again</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // ── Header (inline, not inside gradient anymore) ───────────────────────────
+  const ListHeader = () => (
+    <View style={[styles.listHeader, isDark && styles.listHeaderDark]}>
+      {/* Accent bar */}
+      <View style={styles.accentBar} />
+      <Text style={[styles.pageTitle, isDark && styles.pageTitleDark]}>
+        Market Trends
+      </Text>
+      <Text style={[styles.pageSubtitle, isDark && styles.pageSubtitleDark]}>
+        Latest real estate insights, curated for you
+      </Text>
+
+      {/* Stats pill row */}
+      <View style={styles.statsRow}>
+        <View style={[styles.statPill, isDark && styles.statPillDark]}>
+          <View style={[styles.statDot, { backgroundColor: BRAND }]} />
+          <Text
+            style={[styles.statPillText, isDark && styles.statPillTextDark]}
+          >
+            {posts.length} reports
+          </Text>
+        </View>
+        <View style={[styles.statPill, isDark && styles.statPillDark]}>
+          <View style={[styles.statDot, { backgroundColor: ACCENT }]} />
+          <Text
+            style={[styles.statPillText, isDark && styles.statPillTextDark]}
+          >
+            Updated today
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+
+  // ── Root ───────────────────────────────────────────────────────────────────
+  return (
+    <View style={[styles.container, isDark && styles.containerDark]}>
+      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
+
+      {loading ? (
+        <>
+          <ListHeader />
+          {renderSkeleton()}
+        </>
+      ) : error ? (
+        <>
+          <ListHeader />
+          {renderErrorState()}
+        </>
+      ) : (
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <PostCard
+              id={item.id.toString()}
+              title={item.title}
+              excerpt={extractExcerpt(item.body)}
+              thumbnail={item.attachment || undefined}
+              publishedDate={item.date_created}
+              category={item.category}
+              onPress={() => handlePostPress(item.slug)}
             />
-            <Text style={[styles.emptyStateTitle, isDark && styles.emptyStateTitleDark]}>
-                {error}
-            </Text>
-        </View>
-    );
-
-    return (
-        <View style={[styles.container, isDark && styles.containerDark]}>
-            <LinearGradient
-                colors={['#efa968', '#358B8B']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.header}
-            >
-                <Text style={styles.headerTitle}>Market Trends & Insights</Text>
-                <Text style={styles.headerSubtitle}>
-                    Stay informed with the latest real estate market insights
-                </Text>
-            </LinearGradient>
-
-            {loading ? (
-                renderSkeleton()
-            ) : error ? (
-                renderErrorState()
-            ) : (
-                <FlatList
-                    data={posts}
-                    keyExtractor={(item) => item.id.toString()}
-                    renderItem={({ item }) => (
-                        <PostCard
-                            id={item.id.toString()}
-                            title={item.title}
-                            excerpt={extractExcerpt(item.body)}
-                            thumbnail={item.attachment || undefined}
-                            publishedDate={item.date_created}
-                            category={item.category}
-                            onPress={() => handlePostPress(item.slug)}
-                        />
-                    )}
-                    contentContainerStyle={styles.listContent}
-                    showsVerticalScrollIndicator={false}
-                    refreshControl={
-                        <RefreshControl
-                            refreshing={refreshing}
-                            onRefresh={onRefresh}
-                            tintColor="#FB902E"
-                            colors={['#FB902E']}
-                        />
-                    }
-                    ListEmptyComponent={renderEmptyState}
-                />
-            )}
-        </View>
-    );
+          )}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.5}
+          ListHeaderComponent={<ListHeader />}
+          ListFooterComponent={
+            loadingMore ? (
+              <View style={{ paddingVertical: 20 }}>
+                <ActivityIndicator size="small" />
+              </View>
+            ) : null
+          }
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={BRAND}
+              colors={[BRAND]}
+            />
+          }
+          ListEmptyComponent={renderEmptyState}
+          ItemSeparatorComponent={() => (
+            <View
+              style={{
+                height: 1,
+                backgroundColor: isDark ? '#1A2E2E' : '#EBF4F4',
+                marginHorizontal: 20,
+              }}
+            />
+          )}
+        />
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#F9FAFB',
-    },
-    containerDark: {
-        backgroundColor: '#111827',
-    },
-    header: {
-        paddingTop: 60,
-        paddingBottom: 32,
-        paddingHorizontal: 24,
-    },
-    headerTitle: {
-        fontSize: 28,
-        fontWeight: '700',
-        color: '#FFFFFF',
-        marginBottom: 8,
-    },
-    headerSubtitle: {
-        fontSize: 14,
-        color: 'rgba(255, 255, 255, 0.9)',
-        lineHeight: 20,
-    },
-    listContent: {
-        padding: 16,
-        paddingTop: 24,
-    },
-    skeletonContainer: {
-        padding: 16,
-        paddingTop: 24,
-    },
-    skeletonCard: {
-        backgroundColor: '#FFFFFF',
-        borderRadius: 16,
-        marginBottom: 16,
-        overflow: 'hidden',
-    },
-    skeletonCardDark: {
-        backgroundColor: '#1F2937',
-    },
-    skeletonImage: {
-        width: '100%',
-        height: 200,
-        backgroundColor: '#E5E7EB',
-    },
-    skeletonContent: {
-        padding: 16,
-    },
-    skeletonCategory: {
-        width: 100,
-        height: 20,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 8,
-        marginBottom: 12,
-    },
-    skeletonTitle: {
-        width: '100%',
-        height: 24,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 4,
-        marginBottom: 8,
-    },
-    skeletonExcerpt: {
-        width: '100%',
-        height: 16,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 4,
-        marginBottom: 6,
-    },
-    skeletonExcerptShort: {
-        width: '80%',
-        height: 16,
-        backgroundColor: '#E5E7EB',
-        borderRadius: 4,
-    },
-    emptyState: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingVertical: 80,
-        paddingHorizontal: 32,
-    },
-    emptyStateTitle: {
-        fontSize: 18,
-        fontWeight: '600',
-        color: '#374151',
-        marginTop: 16,
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    emptyStateTitleDark: {
-        color: '#E5E7EB',
-    },
-    emptyStateText: {
-        fontSize: 14,
-        color: '#6B7280',
-        textAlign: 'center',
-        lineHeight: 20,
-    },
-    emptyStateTextDark: {
-        color: '#9CA3AF',
-    },
+  // ── Layout ────────────────────────────────────────────────────────────────
+  container: {
+    flex: 1,
+    backgroundColor: '#F4FAFA',
+  },
+  containerDark: {
+    backgroundColor: '#0D1A1A',
+  },
+
+  // ── List header block ─────────────────────────────────────────────────────
+  listHeader: {
+    paddingTop: 20,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    backgroundColor: '#F4FAFA',
+  },
+  listHeaderDark: {
+    backgroundColor: '#0D1A1A',
+  },
+  accentBar: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: BRAND,
+    marginBottom: 14,
+  },
+  pageTitle: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#0D2626',
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  pageTitleDark: {
+    color: '#E8F5F5',
+  },
+  pageSubtitle: {
+    fontSize: 14,
+    color: '#5A8A8A',
+    lineHeight: 20,
+    marginBottom: 18,
+  },
+  pageSubtitleDark: {
+    color: '#6AABAB',
+  },
+
+  // ── Stats pills ───────────────────────────────────────────────────────────
+  statsRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  statPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#DAEEF0',
+    borderRadius: 20,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  statPillDark: {
+    backgroundColor: '#112626',
+  },
+  statDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+  },
+  statPillText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#2A6F6F',
+  },
+  statPillTextDark: {
+    color: '#7ABFBF',
+  },
+
+  // ── FlatList content ──────────────────────────────────────────────────────
+  listContent: {
+    paddingBottom: 32,
+  },
+
+  // ── Skeleton ──────────────────────────────────────────────────────────────
+  skeletonCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 0.5,
+    borderColor: '#DAEEF0',
+  },
+  skeletonCardDark: {
+    backgroundColor: '#112626',
+    borderColor: '#1A3333',
+  },
+
+  // ── Empty / Error ─────────────────────────────────────────────────────────
+  centeredState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 72,
+    paddingHorizontal: 36,
+  },
+  stateIconRing: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  stateTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#0D2626',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  stateTitleDark: {
+    color: '#E8F5F5',
+  },
+  stateBody: {
+    fontSize: 14,
+    color: '#5A8A8A',
+    textAlign: 'center',
+    lineHeight: 21,
+  },
+  stateBodyDark: {
+    color: '#6AABAB',
+  },
+  retryBtn: {
+    marginTop: 22,
+    backgroundColor: BRAND,
+    borderRadius: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 28,
+  },
+  retryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
 });

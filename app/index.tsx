@@ -17,13 +17,14 @@ import images from '@/constants/images';
 import { useTheme } from '@/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
-import * as Application from 'expo-application';
+import { getDeviceId } from '@/utils/device/deviceUtils';
+import useDeviceUpdate from '@/hooks/landing/useDeviceUpdate';
 
 export const getInstallId = async () => {
   let installId = await AsyncStorage.getItem('install_id');
 
   if (!installId) {
-    installId = Crypto.randomUUID(); // 🔥 BEST
+    installId = Crypto.randomUUID();
     await AsyncStorage.setItem('install_id', installId);
   }
 
