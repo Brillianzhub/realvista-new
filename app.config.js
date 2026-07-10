@@ -82,8 +82,6 @@ export default {
       eas: {
         projectId: process.env.EAS_PROJECT_ID,
       },
-      revenueCatIosKey: process.env.REVENUECAT_IOS_API_KEY,
-      revenueCatAndroidKey: process.env.REVENUECAT_ANDROID_API_KEY,
     },
   },
 };

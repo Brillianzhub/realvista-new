@@ -31,10 +31,6 @@ import SubmitReferralModal from '@/components/modals/SubmitReferralModal';
 import DeleteAccountModal from '@/components/modals/DeleteAccountModal';
 import { useTheme } from '@/context/ThemeContext';
 import useWithdrawReferral from '@/hooks/profile/useWithdrawReferral';
-import { usePro } from '@/context/ProProvider';
-
-import { restoreProSubscription } from '@/utils/subscriptions/proSubscription';
-import { openStoreSubscriptionSettings } from '@/utils/subscriptions/manageSubscription';
 
 interface Withdrawal {
   id: number;
@@ -62,8 +58,6 @@ export default function Profile() {
 
   const { result, refreshing, refreshPortfolioDetails, currency } =
     usePortfolioDetail();
-
-  /*const { isPro, refreshProStatus } = usePro();*/
 
   const [loading, setLoading] = useState(false);
   const [showReferralModal, setShowReferralModal] = useState(false);
@@ -97,21 +91,6 @@ export default function Profile() {
   const hasOpenWithdrawal = withdrawals.some(
     (w) => w.status === 'pending' || w.status === 'approved',
   );
-
-  /*const handleRestoreSubscription = async () => {
-    try {
-      const info = await restoreProSubscription();
-
-      if (info.entitlements.active['pro']) {
-        await refreshProStatus();
-        Alert.alert('Restored', 'Your Pro subscription has been restored');
-      } else {
-        Alert.alert('No Subscription', 'No active Pro subscription found');
-      }
-    } catch {
-      Alert.alert('Error', 'Failed to restore purchase');
-    }
-  };*/
 
   const netWorth = result?.personal_summary
     ? result.personal_summary.totalCurrentValue +
@@ -326,84 +305,6 @@ export default function Profile() {
             Total Value + Income - Expenses
           </Text>
         </View>
-
-        {/*
-        <View style={[styles.card, isDark && styles.cardDark]}>
-          <View style={styles.cardHeader}>
-            <Ionicons name="card-outline" size={24} color="#358B8B" />
-            <Text style={[styles.cardTitle, isDark && styles.cardTitleDark]}>
-              Subscription
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={() => {
-              if (!isPro) router.push('/(pro)');
-            }}
-            disabled={isPro}
-          >
-            <Ionicons
-              name="star-outline"
-              size={20}
-              color={isDark ? '#E5E7EB' : '#6B7280'}
-            />
-            <Text
-              style={[styles.menuItemText, isDark && styles.menuItemTextDark]}
-            >
-              {isPro ? 'Pro Membership Active' : 'Upgrade to Pro'}
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={isDark ? '#9CA3AF' : '#D1D5DB'}
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.menuItem}
-            onPress={handleRestoreSubscription}
-          >
-            <Ionicons
-              name="refresh-outline"
-              size={20}
-              color={isDark ? '#E5E7EB' : '#6B7280'}
-            />
-            <Text
-              style={[styles.menuItemText, isDark && styles.menuItemTextDark]}
-            >
-              Restore Purchase
-            </Text>
-            <Ionicons
-              name="chevron-forward"
-              size={20}
-              color={isDark ? '#9CA3AF' : '#D1D5DB'}
-            />
-          </TouchableOpacity>
-
-          {isPro && (
-            <TouchableOpacity
-              style={styles.menuItem}
-              onPress={openStoreSubscriptionSettings}
-            >
-              <Ionicons
-                name="settings-outline"
-                size={20}
-                color={isDark ? '#E5E7EB' : '#6B7280'}
-              />
-              <Text
-                style={[styles.menuItemText, isDark && styles.menuItemTextDark]}
-              >
-                Manage Billing
-              </Text>
-              <Ionicons
-                name="open-outline"
-                size={18}
-                color={isDark ? '#9CA3AF' : '#D1D5DB'}
-              />
-            </TouchableOpacity>
-          )}
-        </View> */}
 
         <View style={[styles.card, isDark && styles.cardDark]}>
           <View style={styles.cardHeader}>
