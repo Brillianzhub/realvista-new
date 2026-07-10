@@ -10,7 +10,8 @@ export const configureNotificationHandlers = () => {
                 // Optionally, you could show the notifications in a grouped way or update the badge count.
                 return {
                     shouldPlaySound: true,
-                    shouldShowAlert: true,
+                    shouldShowBanner: true,
+                    shouldShowList: true,
                     shouldSetBadge: true,
                 };
             }
@@ -18,7 +19,8 @@ export const configureNotificationHandlers = () => {
             // Default behavior for general notifications
             return {
                 shouldPlaySound: true,
-                shouldShowAlert: true,
+                shouldShowBanner: true,
+                shouldShowList: true,
                 shouldSetBadge: false,
             };
         },

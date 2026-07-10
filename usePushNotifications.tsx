@@ -22,8 +22,8 @@ export const usePushNotifications = (): PushNotificationState => {
     const [expoPushToken, setExpoPushToken] = useState<Notifications.ExpoPushToken>();
     const [notification, setNotification] = useState<Notifications.Notification>();
 
-    const notificationListener = useRef<Notifications.Subscription>();
-    const responseListener = useRef<Notifications.Subscription>();
+    const notificationListener = useRef<Notifications.Subscription | undefined>(undefined);
+    const responseListener = useRef<Notifications.Subscription | undefined>(undefined);
 
     // Notifications.setNotificationHandler({
     //     handleNotification: async () => ({
@@ -44,7 +44,8 @@ export const usePushNotifications = (): PushNotificationState => {
                 console.log(`Notification for groupId: ${groupId}`);
                 return {
                     shouldPlaySound: true,
-                    shouldShowAlert: true,
+                    shouldShowBanner: true,
+                    shouldShowList: true,
                     shouldSetBadge: true,
                 };
             }
@@ -52,7 +53,8 @@ export const usePushNotifications = (): PushNotificationState => {
             // Default behavior
             return {
                 shouldPlaySound: true,
-                shouldShowAlert: true,
+                shouldShowBanner: true,
+                shouldShowList: true,
                 shouldSetBadge: false,
             };
         },
@@ -121,8 +123,8 @@ export const usePushNotifications = (): PushNotificationState => {
         });
 
         return () => {
-            notificationListener.current && Notifications.removeNotificationSubscription(notificationListener.current);
-            responseListener.current && Notifications.removeNotificationSubscription(responseListener.current);
+            notificationListener.current?.remove();
+            responseListener.current?.remove();
         };
     }, []);
 

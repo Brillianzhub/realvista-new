@@ -13,7 +13,10 @@ import { Colors } from "@/constants/Colors";
 type ThemeType = "light" | "dark";
 
 // Define the shape of Colors (update if your Colors object has more keys)
-type ColorScheme = typeof Colors.light;
+// Indexed by ThemeType (not just `typeof Colors.light`) — otherwise
+// `Colors[theme]` for theme === "dark" isn't assignable to this type,
+// since its literal color values differ from the light theme's.
+type ColorScheme = (typeof Colors)[ThemeType];
 
 // Define context value type
 interface ThemeContextProps {
