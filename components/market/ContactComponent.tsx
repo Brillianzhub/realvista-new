@@ -25,6 +25,7 @@ type Owner = {
 
 type Property = {
     id: number;
+    slug: string;
     features?: { verified_user?: boolean }[];
     [key: string]: any;
 };

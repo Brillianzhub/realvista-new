@@ -13,29 +13,19 @@ import {
 import { useRouter } from 'expo-router';
 import PostCard from '@/components/trends/PostCard';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/context/ThemeContext';
 
 import useTrends from '@/hooks/trends/useTrends';
 
-type TrendPost = {
-  id: number;
-  title: string;
-  slug: string;
-  body: string;
-  attachment: string | null;
-  date_created: string;
-  category: string;
-  views: number;
-  publish: boolean;
-};
-
 const BRAND = '#358B8B';
-const BRAND_DARK = '#2A6F6F';
 const ACCENT = '#efa968';
 
 export default function Trends() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
   const router = useRouter();
+
+  const { colors } = useTheme();
 
   const {
     posts,
@@ -140,31 +130,42 @@ export default function Trends() {
 
   // ── Header (inline, not inside gradient anymore) ───────────────────────────
   const ListHeader = () => (
-    <View style={[styles.listHeader, isDark && styles.listHeaderDark]}>
+    <View
+      style={[
+        styles.listHeader,
+        { backgroundColor: colors.background.primary },
+      ]}
+    >
       {/* Accent bar */}
       <View style={styles.accentBar} />
       <Text style={[styles.pageTitle, isDark && styles.pageTitleDark]}>
         Market Trends
       </Text>
-      <Text style={[styles.pageSubtitle, isDark && styles.pageSubtitleDark]}>
+      <Text style={[styles.pageSubtitle, { color: colors.text.secondary }]}>
         Latest real estate insights, curated for you
       </Text>
 
       {/* Stats pill row */}
       <View style={styles.statsRow}>
-        <View style={[styles.statPill, isDark && styles.statPillDark]}>
-          <View style={[styles.statDot, { backgroundColor: BRAND }]} />
-          <Text
-            style={[styles.statPillText, isDark && styles.statPillTextDark]}
-          >
+        <View
+          style={[
+            styles.statPill,
+            { backgroundColor: colors.background.secondary },
+          ]}
+        >
+          <View style={[styles.statDot, { backgroundColor: ACCENT }]} />
+          <Text style={[styles.statPillText, { color: colors.text.secondary }]}>
             {posts.length} reports
           </Text>
         </View>
-        <View style={[styles.statPill, isDark && styles.statPillDark]}>
+        <View
+          style={[
+            styles.statPill,
+            { backgroundColor: colors.background.secondary },
+          ]}
+        >
           <View style={[styles.statDot, { backgroundColor: ACCENT }]} />
-          <Text
-            style={[styles.statPillText, isDark && styles.statPillTextDark]}
-          >
+          <Text style={[styles.statPillText, { color: colors.text.secondary }]}>
             Updated today
           </Text>
         </View>
@@ -174,7 +175,9 @@ export default function Trends() {
 
   // ── Root ───────────────────────────────────────────────────────────────────
   return (
-    <View style={[styles.container, isDark && styles.containerDark]}>
+    <View
+      style={[styles.container, { backgroundColor: colors.background.primary }]}
+    >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
       {loading ? (
@@ -242,10 +245,6 @@ const styles = StyleSheet.create({
   // ── Layout ────────────────────────────────────────────────────────────────
   container: {
     flex: 1,
-    backgroundColor: '#F4FAFA',
-  },
-  containerDark: {
-    backgroundColor: '#0D1A1A',
   },
 
   // ── List header block ─────────────────────────────────────────────────────
@@ -253,11 +252,8 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingBottom: 24,
     paddingHorizontal: 20,
-    backgroundColor: '#F4FAFA',
   },
-  listHeaderDark: {
-    backgroundColor: '#0D1A1A',
-  },
+
   accentBar: {
     width: 36,
     height: 4,
@@ -294,14 +290,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#DAEEF0',
+
     borderRadius: 20,
     paddingVertical: 5,
     paddingHorizontal: 12,
   },
-  statPillDark: {
-    backgroundColor: '#112626',
-  },
+
   statDot: {
     width: 7,
     height: 7,

@@ -1,52 +1,33 @@
 import { useState, useCallback } from "react";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/lib/apiClient";
 
 export const useUploadCoordinates = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const uploadCoordinates = useCallback(
-        async (latitude: number, longitude: number, propertyId: string | number) => {
+        async (latitude: number, longitude: number, slug: string) => {
             setIsLoading(true);
             setError(null);
 
             try {
-                const token = await AsyncStorage.getItem("authToken");
-                if (!token) {
-                    throw new Error("Authentication token not found!");
-                }
-
-                // 🧩 Extract numeric ID if prefixed (e.g., "backend_137" → 137)
-                const numericPropertyId = Number(String(propertyId).replace("backend_", ""));
-                if (isNaN(numericPropertyId)) {
-                    throw new Error(`Invalid property ID format: ${propertyId}`);
+                if (!slug) {
+                    throw new Error("Missing property slug.");
                 }
 
                 const roundedLatitude = Number(Number(latitude).toFixed(6));
                 const roundedLongitude = Number(Number(longitude).toFixed(6));
 
                 const coordinatesPayload = {
-                    property: numericPropertyId, // ✅ clean numeric ID
-                    coordinates: [
-                        {
-                            latitude: roundedLatitude,
-                            longitude: roundedLongitude,
-                        },
-                    ],
+                    latitude: roundedLatitude,
+                    longitude: roundedLongitude,
                 };
 
                 console.log("📤 Sending coordinates payload:", coordinatesPayload);
 
-                await axios.post(
-                    "https://realvistamanagement.com/market/property/coordinates/",
-                    coordinatesPayload,
-                    {
-                        headers: {
-                            Authorization: `Token ${token}`,
-                            "Content-Type": "application/json",
-                        },
-                    }
+                await api.post(
+                    `/api/market/${slug}/coordinates/`,
+                    coordinatesPayload
                 );
 
                 return { success: true, message: "Coordinates uploaded successfully." };

@@ -1,11 +1,10 @@
 // hooks/useCreateMarketProperty.ts
 import { useState } from 'react';
-import axios from 'axios';
+import api from '@/lib/apiClient';
 import {
   CreateMarketPropertyPayload,
   CreateMarketPropertyResponse,
 } from '@/types/market/marketFeatures';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export function useCreateMarketProperty() {
   const [loading, setLoading] = useState(false);
@@ -16,25 +15,13 @@ export function useCreateMarketProperty() {
     payload: CreateMarketPropertyPayload,
   ): Promise<CreateMarketPropertyResponse | null> => {
     try {
-      const token = await AsyncStorage.getItem('authToken');
-
-      if (!token) {
-        throw new Error('Authentication token missing');
-      }
-
       setLoading(true);
       setError(null);
 
-      const response = await axios.post<CreateMarketPropertyResponse>(
-        `https://www.realvistamanagement.com/market/from-portfolio/${propertyId}/`,
+      // TODO: no /api/ equivalent for promote-to-market yet
+      const response = await api.post<CreateMarketPropertyResponse>(
+        `/market/from-portfolio/${propertyId}/`,
         payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            // 🔐 falls du auth nutzt
-            Authorization: `Token ${token}`,
-          },
-        },
       );
 
       return response.data;

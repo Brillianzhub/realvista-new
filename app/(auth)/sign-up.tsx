@@ -16,6 +16,7 @@ import images from '@/constants/images';
 import { useGlobalContext } from '../../context/GlobalProvider';
 import { Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import GoogleSignIn from '@/components/auth/GoogleSignIn';
@@ -55,27 +56,13 @@ interface ValidationResult {
   message?: string;
 }
 
-interface TokenData {
-  token: string;
-}
-
-interface UserData {
+// POST /api/auth/register/ only returns { id, name, email } — no tokens.
+// The account isn't email-verified yet, so no session can be issued
+// until verify-email.tsx completes the OTP step.
+interface RegisterResult {
   id: number;
-  email: string;
   name: string;
-  first_name: string;
-  auth_provider: string;
-  is_active: boolean;
-  is_staff: boolean;
-  date_joined: string;
-  profile: any;
-  subscription: any;
-  referral_code: string;
-  referrer: any;
-  referred_users_count: number;
-  total_referral_earnings: string;
-  preference: any;
-  groups: any[];
+  email: string;
 }
 
 interface GlobalContextType {
@@ -192,95 +179,30 @@ const RegistrationForm = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        'https://www.realvistamanagement.com/accounts/register_user/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: form.name,
-            first_name: form.first_name,
-            email: form.email,
-            password: form.password,
-            auth_provider: 'email',
-            referrer_code: form.referrer_code,
-            promotion_code: promotion ? promotion.code : '',
-            install_id: form.install_id,
-            device_id: form.device_id,
-          }),
-        },
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || result.message || 'Failed to sign up');
-      }
-
-      const tokenResponse = await fetch(
-        'https://www.realvistamanagement.com/portfolio/api-token-auth/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            username: form.email,
-            password: form.password,
-          }),
-        },
-      );
-
-      const tokenData: TokenData = await tokenResponse.json();
-
-      if (!tokenData.token) {
-        throw new Error('Authentication token not provided');
-      }
-
-      await AsyncStorage.setItem('authToken', tokenData.token);
-
-      const userResponse = await fetch(
-        'https://www.realvistamanagement.com/accounts/current-user/',
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Token ${tokenData.token}`,
-          },
-        },
-      );
-
-      if (!userResponse.ok) {
-        const errorData = await userResponse.json();
-        throw new Error(errorData.error || 'Failed to fetch user details');
-      }
-
-      const userData: UserData = await userResponse.json();
-
-      setUser({
-        id: userData.id,
-        email: userData.email,
-        name: userData.name,
-        firstName: userData.first_name,
-        authProvider: userData.auth_provider,
-        isActive: userData.is_active,
-        isStaff: userData.is_staff,
-        dateJoined: userData.date_joined,
-        profile: userData.profile,
-        subscription: userData.subscription,
-        referral_code: userData.referral_code,
-        referrer: userData.referrer,
-        referred_users_count: userData.referred_users_count,
-        total_referral_earnings: userData.total_referral_earnings,
-        preference: userData.preference,
-        groups: userData.groups,
+      const response = await api.post('/api/auth/register/', {
+        name: form.name,
+        first_name: form.first_name,
+        email: form.email,
+        password: form.password,
+        auth_provider: 'email',
+        referrer_code: form.referrer_code,
+        promotion_code: promotion ? promotion.code : '',
+        install_id: form.install_id,
+        device_id: form.device_id,
       });
-      setIsLogged(true);
-      router.replace('/verify-email');
+
+      const result: RegisterResult = response.data;
+
+      // No tokens are issued at registration — the account isn't verified
+      // yet. Hand off to verify-email.tsx with the id/email it needs;
+      // tokenStore.set/setUser/setIsLogged happen there once the OTP
+      // step succeeds and the backend actually issues a session.
+      router.replace({
+        pathname: '/verify-email',
+        params: { user_id: String(result.id), email: result.email },
+      });
     } catch (error: any) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error.response?.data?.error || error.response?.data?.message || error.message);
     } finally {
       setIsSubmitting(false);
     }

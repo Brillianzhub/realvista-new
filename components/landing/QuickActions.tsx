@@ -1,5 +1,5 @@
-// components/QuickActions.tsx (Gradient version)
-import React from 'react';
+// components/QuickActions.tsx (Round gradient icons with text outside)
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -8,126 +8,231 @@ import {
   Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import {
+  Ionicons,
+  MaterialCommunityIcons,
+  FontAwesome5,
+} from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
+import HelpSupportModal from '../navigation/HelpSupportModal';
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 42) / 2;
+const paddingHorizontal = 20;
+const gap = 12;
+//const iconSize = (width - paddingHorizontal * 2 - gap * 2) / 6;
+
+const iconSize = 56;
 
 interface Action {
   id: string;
   title: string;
   subtitle: string;
   icon: string;
-  iconSet: 'ionicons' | 'material';
-  route: string;
+  iconSet: 'ionicons' | 'material' | 'fa5';
+  route?: string; // Made optional since support doesn't use it
+  onPress?: () => void; // Added for custom handlers
+  colors: [string, string];
 }
-
-const brandColor = '#358B8B';
-const brandColorDark = '#2A6F6F';
-const brandColorLight = '#40A0A0';
 
 const actions: Action[] = [
   {
     id: 'add',
-    title: 'Manage property',
-    subtitle: 'Add a new asset',
+    title: 'Add property',
+    subtitle: 'New asset',
     icon: 'home-outline',
     iconSet: 'ionicons',
     route: '/(manage)',
+    colors: ['#358B8B', '#2A6F6F'], // Teal
   },
   {
     id: 'learn',
     title: 'Learn',
-    subtitle: 'Investing guides',
+    subtitle: 'Guides',
     icon: 'book-outline',
     iconSet: 'ionicons',
     route: '/(app)/(learn)',
+    colors: ['#8B5CF6', '#6D28D9'], // Purple
   },
   {
     id: 'news',
-    title: 'Market news',
-    subtitle: 'Trends & updates',
+    title: 'Trends',
+    subtitle: 'News & Updates',
     icon: 'newspaper-outline',
     iconSet: 'ionicons',
     route: '/(app)/(trends)',
+    colors: ['#F59E0B', '#D97706'], // Amber/Orange
   },
   {
     id: 'listing',
-    title: 'Manage listings',
-    subtitle: 'List property to Market',
+    title: 'Listings',
+    subtitle: 'Sell/rent',
     icon: 'business-outline',
     iconSet: 'ionicons',
     route: '/(app)/(listings)',
+    colors: ['#EF4444', '#DC2626'], // Red
+  },
+  {
+    id: 'target',
+    title: 'Target',
+    subtitle: 'Set Financial Goals',
+    icon: 'target',
+    iconSet: 'material',
+    route: '/(app)/(savings)',
+    colors: ['#06B6D4', '#0891B2'], // Cyan
+  },
+  {
+    id: 'support',
+    title: 'Support',
+    subtitle: 'Help',
+    icon: 'headset',
+    iconSet: 'material',
+    onPress: () => {}, // Placeholder - will be set in component
+    colors: ['#10B981', '#059669'], // Emerald Green
   },
 ];
 
 const QuickActions: React.FC = () => {
   const { colors } = useTheme();
 
-  const renderIcon = (action: Action) => {
-    const IconComponent =
-      action.iconSet === 'ionicons' ? Ionicons : MaterialCommunityIcons;
-    return (
-      <IconComponent name={action.icon as any} size={20} color="#FFFFFF" />
-    );
+  const [showHelpModal, setShowHelpModal] = useState(false);
+
+  const handleHelpSupportPress = () => {
+    setShowHelpModal(true);
   };
 
-  const handlePress = (route: string) => {
-    router.push(route as any);
+  // Update the support action with the actual handler
+  const actionsWithHandlers = actions.map((action) => {
+    if (action.id === 'support') {
+      return { ...action, onPress: handleHelpSupportPress };
+    }
+    return action;
+  });
+
+  const renderIcon = (action: Action) => {
+    switch (action.iconSet) {
+      case 'ionicons':
+        return <Ionicons name={action.icon as any} size={24} color="#FFFFFF" />;
+      case 'material':
+        return (
+          <MaterialCommunityIcons
+            name={action.icon as any}
+            size={24}
+            color="#FFFFFF"
+          />
+        );
+      case 'fa5':
+        return (
+          <FontAwesome5 name={action.icon as any} size={22} color="#FFFFFF" />
+        );
+      default:
+        return <Ionicons name="apps-outline" size={24} color="#FFFFFF" />;
+    }
   };
+
+  const handlePress = (action: Action) => {
+    if (action.onPress) {
+      action.onPress();
+    } else if (action.route) {
+      router.push(action.route as any);
+    }
+  };
+
+  // Split actions into rows of 3
+  const rows = [];
+  for (let i = 0; i < actionsWithHandlers.length; i += 3) {
+    rows.push(actionsWithHandlers.slice(i, i + 3));
+  }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container]}>
       <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-        Quick actions
+        Quick Actions
       </Text>
-      <View style={styles.grid}>
-        {actions.map((action) => (
-          <TouchableOpacity
-            key={action.id}
-            activeOpacity={0.8}
-            style={styles.actionCard}
-            onPress={() => handlePress(action.route)}
-          >
-            <LinearGradient
-              colors={[brandColorLight, brandColor]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.gradientCard}
-            >
-              <View style={styles.iconContainer}>{renderIcon(action)}</View>
-              <Text style={styles.actionTitle}>{action.title}</Text>
-              <Text style={styles.actionSubtitle}>{action.subtitle}</Text>
-            </LinearGradient>
-          </TouchableOpacity>
+
+      {/* Single background wrapper for all rows */}
+      <View
+        style={[
+          styles.allRowsWrapper,
+          { backgroundColor: colors.background.secondary },
+        ]}
+      >
+        {rows.map((row, rowIndex) => (
+          <View key={rowIndex} style={styles.row}>
+            {row.map((action) => (
+              <TouchableOpacity
+                key={action.id}
+                activeOpacity={0.8}
+                style={styles.actionItem}
+                onPress={() => handlePress(action)}
+              >
+                <LinearGradient
+                  colors={action.colors}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.iconCircle}
+                >
+                  {renderIcon(action)}
+                </LinearGradient>
+                <Text
+                  style={[styles.actionTitle, { color: colors.text.primary }]}
+                >
+                  {action.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.actionSubtitle,
+                    { color: colors.text.secondary },
+                  ]}
+                >
+                  {action.subtitle}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         ))}
       </View>
+
+      <HelpSupportModal
+        visible={showHelpModal}
+        onClose={() => setShowHelpModal(false)}
+      />
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: 16,
-    marginBottom: 14,
+    padding: 16,
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 15,
-    fontWeight: '500',
-    marginBottom: 10,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 16,
+    letterSpacing: -0.3,
   },
-  grid: {
+  allRowsWrapper: {
+    borderRadius: 20,
+    padding: 16,
+    paddingBottom: 4,
+  },
+  row: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
+    marginBottom: 20,
   },
-  actionCard: {
-    width: cardWidth,
-    borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#358B8B',
+  actionItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: iconSize,
+    height: iconSize,
+    borderRadius: iconSize / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    shadowColor: '#000',
     shadowOffset: {
       width: 0,
       height: 2,
@@ -136,28 +241,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  gradientCard: {
-    padding: 14,
-    alignItems: 'flex-start',
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
   actionTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
-    color: '#FFFFFF',
+    textAlign: 'center',
     marginBottom: 2,
   },
   actionSubtitle: {
-    fontSize: 11,
-    color: '#E0F0F0',
+    fontSize: 10,
+    color: '#666666',
+    textAlign: 'center',
   },
 });
 

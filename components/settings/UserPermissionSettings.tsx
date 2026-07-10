@@ -1,25 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, Switch, Modal, Pressable } from 'react-native';
 import { useGlobalContext } from '@/context/GlobalProvider';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/context/ThemeContext';
-
-interface UserPreference {
-  contact_by_email?: boolean;
-  contact_by_phone?: boolean;
-  contact_by_whatsapp?: boolean;
-}
-
-interface User {
-  preference?: UserPreference;
-}
-
-interface GlobalContext {
-  user?: User;
-  reloadProfile: () => void;
-}
 
 interface Preferences {
   email: boolean;
@@ -28,7 +12,7 @@ interface Preferences {
 }
 
 const UserPermissionSettings: React.FC = () => {
-  const { user, reloadProfile } = useGlobalContext() as GlobalContext;
+  const { user, reloadProfile } = useGlobalContext();
   const [preferences, setPreferences] = useState<Preferences>({
     email: false,
     phone: false,
@@ -39,11 +23,11 @@ const UserPermissionSettings: React.FC = () => {
   const { colors } = useTheme();
 
   useEffect(() => {
-    if (user?.preference) {
+    if (user?.preferences) {
       setPreferences({
-        email: user.preference.contact_by_email || false,
-        phone: user.preference.contact_by_phone || false,
-        whatsapp: user.preference.contact_by_whatsapp || false,
+        email: user.preferences.contact_by_email || false,
+        phone: user.preferences.contact_by_phone || false,
+        whatsapp: user.preferences.contact_by_whatsapp || false,
       });
     }
   }, [user]);
@@ -55,27 +39,15 @@ const UserPermissionSettings: React.FC = () => {
     try {
       const updatedPreferences = { ...preferences, [key]: value };
 
-      const token = await AsyncStorage.getItem('authToken');
-      if (!token) {
-        console.error('Token is required for this operation');
-        return;
-      }
-
-      const backendPreferences: UserPreference = {
+      const backendPreferences = {
         contact_by_email: updatedPreferences.email,
         contact_by_phone: updatedPreferences.phone,
         contact_by_whatsapp: updatedPreferences.whatsapp,
       };
 
-      const response = await axios.put(
-        'https://realvistamanagement.com/accounts/user/preferences/',
-        backendPreferences,
-        {
-          headers: {
-            Authorization: `Token ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+      const response = await api.put(
+        '/api/users/me/preferences/',
+        backendPreferences
       );
 
       if (response.status === 200) {

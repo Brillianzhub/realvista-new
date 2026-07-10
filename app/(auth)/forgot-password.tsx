@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import FormInput from '@/components/auth/FormInput';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '@/context/ThemeContext';
+import api from '@/lib/apiClient';
 
 const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState<string>('');
@@ -38,23 +39,7 @@ const ForgotPassword: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        'https://www.realvistamanagement.com/accounts/request-password-reset/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData: { error?: string } = await response.json();
-        throw new Error(
-          errorData.error || 'Failed to send reset email. Please try again.'
-        );
-      }
+      await api.post('/api/auth/forgot-password/', { email });
 
       // Show success message before navigation
       Alert.alert(
@@ -76,7 +61,8 @@ const ForgotPassword: React.FC = () => {
       console.error('Forgot Password Error:', error);
       Alert.alert(
         'Request Failed',
-        error.message ||
+        error.response?.data?.error ||
+          error.message ||
           'Something went wrong. Please check your email and try again.',
         [{ text: 'Try Again' }]
       );

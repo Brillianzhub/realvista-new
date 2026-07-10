@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { uploadFile } from '@/lib/apiClient';
 import useUserProperties from '@/hooks/portfolio/useUserProperty';
 import * as ImageManipulator from 'expo-image-manipulator';
 
@@ -197,34 +197,7 @@ const DocumentUploader: React.FC<DocumentUploaderProps> = ({
     });
 
     try {
-      const token = await AsyncStorage.getItem('authToken');
-
-      if (!token) {
-        Alert.alert(
-          'Authentication Required',
-          'Please log in to upload files.',
-        );
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(
-        'https://realvistamanagement.com/portfolio/upload-file-portfolio/',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-          body: formData,
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `Upload failed: ${response.statusText}`,
-        );
-      }
+      await uploadFile(`/api/portfolio/${selectedPropertyId}/files/`, formData);
 
       Alert.alert('Success', 'Documents uploaded successfully!');
       setDocuments([]);

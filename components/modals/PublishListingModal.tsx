@@ -13,6 +13,7 @@ import {
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStore } from '@/lib/tokenStore';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
 import { submitListingToServer } from '@/hooks/market/submitListingToServer';
 import { formatCurrency } from '@/utils/general/formatCurrency';
@@ -81,7 +82,9 @@ export default function PublishListingModal({
         }
 
         const mandatoryFields = ['city', 'country_of_residence', 'phone_number', 'street'];
-        const missingFields = mandatoryFields.filter(field => !user.profile[field]);
+        const missingFields = mandatoryFields.filter(
+            field => !(user.profile as Record<string, unknown>)[field]
+        );
 
         if (missingFields.length > 0) {
             Alert.alert(
@@ -139,7 +142,7 @@ export default function PublishListingModal({
             }
 
             // ✅ Get auth token
-            const token = await AsyncStorage.getItem("authToken");
+            const token = await tokenStore.get();
             if (!token) {
                 Alert.alert(
                     "Authentication Error",
@@ -149,7 +152,7 @@ export default function PublishListingModal({
             }
 
             // 🚀 Send data to backend
-            await submitListingToServer(listingId, token);
+            await submitListingToServer(listingId);
 
             // 🗑️ Remove the local draft listing
             const updatedListings = listings.filter((l) => l.id !== listingId);

@@ -48,11 +48,16 @@ export default function AddListingImagesModal({
 
   const { user } = useGlobalContext();
   const { properties } = useFetchVendorProperties(user?.email || null);
+  const [listingSlug, setListingSlug] = useState<string | null>(null);
 
   const {} = useListingLoader({
     listingId: listingId ?? null,
     properties,
     onListingLoaded: (listing) => {
+      if (listing) {
+        setListingSlug(listing.slug ?? null);
+      }
+
       if (listing && listing.images) {
         setImages(listing.images);
       }
@@ -180,8 +185,13 @@ export default function AddListingImagesModal({
                     imageUri,
                   );
 
+                  if (!listingSlug) {
+                    Alert.alert('Error', 'Unable to determine property slug.');
+                    return;
+                  }
+
                   // ✅ Use the delete hook
-                  const success = await deleteImage(fileId);
+                  const success = await deleteImage(listingSlug, fileId);
 
                   if (success) {
                     // Remove from local state only if deletion succeeded
@@ -291,13 +301,12 @@ export default function AddListingImagesModal({
     setLoading(true);
 
     try {
-      let backendId = listingId;
-
-      if (typeof backendId === 'string' && backendId.startsWith('backend_')) {
-        backendId = backendId.replace('backend_', '');
+      if (!listingSlug) {
+        Alert.alert('Error', 'Unable to determine property slug.');
+        return;
       }
 
-      await uploadImages(Number(backendId), pendingImages);
+      await uploadImages(listingSlug, pendingImages);
 
       Alert.alert('Success', 'Images updated succesfully');
       setPendingImages([]);

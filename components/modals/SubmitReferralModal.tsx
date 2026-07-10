@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import { useReferralPromotion } from '@/hooks/promotions/useReferralPromotion';
 
@@ -32,7 +32,6 @@ export default function SubmitReferralModal({
 
   const [referrerCode, setReferrerCode] = useState('');
   const [loading, setLoading] = useState(false);
-  const [authToken, setAuthToken] = useState<string | null>(null);
   const { reloadProfile } = useGlobalContext();
 
   const {
@@ -40,14 +39,6 @@ export default function SubmitReferralModal({
     loading: promoLoading,
     error: promoError,
   } = useReferralPromotion();
-
-  useEffect(() => {
-    const getToken = async () => {
-      const token = await AsyncStorage.getItem('authToken');
-      setAuthToken(token);
-    };
-    getToken();
-  }, []);
 
   useEffect(() => {
     if (!visible) {
@@ -66,32 +57,16 @@ export default function SubmitReferralModal({
 
     setLoading(true);
     try {
-      const response = await fetch(
-        'https://www.realvistamanagement.com/accounts/submit-referral/',
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Token ${authToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            referrer_code: referrerCode,
-            promotion_code: promotion?.code,
-          }),
-        },
-      );
+      await api.post('/api/auth/submit-referral-code/', {
+        referrer_code: referrerCode,
+        promotion_code: promotion?.code,
+      });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        reloadProfile();
-        Alert.alert('Success', 'Referral code submitted successfully!');
-        onClose();
-      } else {
-        Alert.alert('Error', data.message || 'Failed to submit referral code.');
-      }
-    } catch (error) {
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      reloadProfile();
+      Alert.alert('Success', 'Referral code submitted successfully!');
+      onClose();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }

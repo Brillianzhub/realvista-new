@@ -23,19 +23,13 @@ export default function TabLayout() {
     text: isDark ? '#F3F4F6' : '#1C1C1E',
     iconColor: isDark ? '#FB902E' : '#358B8B',
     tabBarActive: '#FB902E',
-    tabBarInactive: '#358B8B',
+    tabBarInactive: isDark ? '#FFFFFF' : '#358B8B',
   };
 
   const toggleDrawer = () => navigation.dispatch(DrawerActions.toggleDrawer());
 
   return (
     <>
-      {/*
-        light  → dark icons/text on the status bar (for light backgrounds)
-        dark   → white icons/text on the status bar (for dark backgrounds)
-        expo-status-bar reads the prop name as the icon style, opposite to
-        React Native's StatusBar barStyle convention.
-      */}
       <StatusBar style={isDark ? 'light' : 'dark'} />
 
       <Tabs

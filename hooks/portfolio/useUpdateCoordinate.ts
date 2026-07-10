@@ -1,6 +1,6 @@
 // hooks/portfolio/useUpdateCoordinate.ts
 import { useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 
 export type UpdateCoordinatePayload = {
   latitude?: number;
@@ -24,34 +24,15 @@ export function useUpdateCoordinate() {
     setSuccess(false);
 
     try {
-      const token = await AsyncStorage.getItem('authToken');
-
-      if (!token) {
-        throw new Error('Authentication token missing');
-      }
-
-      const response = await fetch(
-        `https://www.realvistamanagement.com/portfolio/property/${coordinateId}/update-coordinate/`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Token ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
+      const response = await api.patch(
+        `/api/portfolio/${coordinateId}/coordinates/`,
+        payload
       );
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data?.detail || 'Failed to update coordinate');
-      }
-
       setSuccess(true);
-      return data;
+      return response.data;
     } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+      setError(err.response?.data?.detail || err.message || 'Something went wrong');
       throw err;
     } finally {
       setLoading(false);

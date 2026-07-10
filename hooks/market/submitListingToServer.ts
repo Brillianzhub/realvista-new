@@ -1,9 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api, { uploadFile } from '@/lib/apiClient';
 
+// TODO: remove token arg from external callers — no longer needed
 export const submitListingToServer = async (
   listingId: string,
-  token: string,
 ) => {
   try {
     const storedListings = await AsyncStorage.getItem('marketplaceListings');
@@ -52,19 +52,17 @@ export const submitListingToServer = async (
     };
 
     // console.log("📤 Sending basic property data...");
-    const basicResponse = await axios.post(
-      `https://www.realvistamanagement.com/market/list-property/`,
+    const basicResponse = await api.post(
+      `/api/market/create/`,
       basicPayload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Token ${token}`,
-        },
-      },
     );
 
     const propertyId = basicResponse.data?.data?.id;
     if (!propertyId) throw new Error('Property ID not returned from API.');
+    // TODO: the new API addresses listings by slug for coordinates/features/
+    // file-upload sub-resources (/api/market/${slug}/...). Not wired up here
+    // since the create response's slug field hasn't been confirmed — the
+    // 3 calls below stay on the legacy id-based endpoints for now.
 
     // ===============================
     // 2️⃣ POST COORDINATES
@@ -85,15 +83,9 @@ export const submitListingToServer = async (
 
     // console.log("📤 Sending coordinates payload:", coordinatesPayload);
 
-    await axios.post(
-      'https://realvistamanagement.com/market/property/coordinates/',
+    await api.post(
+      '/market/property/coordinates/',
       coordinatesPayload,
-      {
-        headers: {
-          Authorization: `Token ${token}`,
-          'Content-Type': 'application/json',
-        },
-      },
     );
 
     // console.log("✅ Coordinates uploaded.");
@@ -107,15 +99,9 @@ export const submitListingToServer = async (
     };
 
     // console.log("📤 Sending features...");
-    await axios.post(
-      `https://realvistamanagement.com/market/property/${propertyId}/features/`,
+    await api.post(
+      `/market/property/${propertyId}/features/`,
       featuresPayload,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Token ${token}`,
-        },
-      },
     );
     // console.log("✅ Features uploaded.");
 
@@ -134,16 +120,7 @@ export const submitListingToServer = async (
           type: 'image/jpeg',
         } as any);
 
-        await axios.post(
-          'https://realvistamanagement.com/market/upload-file-market/',
-          formData,
-          {
-            headers: {
-              Authorization: `Token ${token}`,
-              'Content-Type': 'multipart/form-data',
-            },
-          },
-        );
+        await uploadFile('/market/upload-file-market/', formData);
       }
 
       // console.log(`✅ Uploaded ${listing.images.length} file(s).`);

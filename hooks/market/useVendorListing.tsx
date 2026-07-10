@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { useState, useEffect } from 'react';
 
 export default function useFetchVendorProperties(email: string | null) {
@@ -17,24 +17,14 @@ export default function useFetchVendorProperties(email: string | null) {
         setError(null);
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
-            if (!token) {
-                throw new Error('Authentication token not found');
-            }
-
-            const response = await fetch(
-                `https://www.realvistamanagement.com/market/fetch-properties-by-email/?email=${email}`,
-                {
-                    headers: { Authorization: `Token ${token}` },
-                }
-            );
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch properties');
-            }
-
-            const data = await response.json();
-            setProperties(data);
+            // NOTE: /api/market/my/ only returns the AUTHENTICATED user's own
+            // listings — it ignores `email` entirely. This is a real behavior
+            // change from the legacy "look up any vendor's listings by email"
+            // endpoint, which has no new equivalent. If this hook is used to
+            // view a different vendor's storefront (not just "my own"
+            // listings), it will silently return the wrong data.
+            const response = await api.get('/api/market/my/');
+            setProperties(response.data);
         } catch (err: any) {
             console.error('Error fetching vendor properties:', err);
             setError(err.message || 'Failed to fetch properties');

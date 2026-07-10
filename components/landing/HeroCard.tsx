@@ -1,3 +1,4 @@
+// components/landing/HeroCard.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -9,26 +10,12 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, {
-  Line,
-  Polyline,
-  Polygon,
-  Circle,
-  Text as SvgText,
-} from 'react-native-svg';
-import { useHeroCard, ChartPoint } from '@/hooks/landing/useHeroCard';
+import { useRouter } from 'expo-router';
+import { useHeroCard } from '@/hooks/landing/useHeroCard';
 import QuickStats from '@/components/landing/QuickStats';
 
-// ── Layout constants ──────────────────────────────────────────────────────────
 const CARD_PADDING = 16;
 const CARD_MARGIN_H = 16;
-const screenWidth = Dimensions.get('window').width;
-const cardWidth = screenWidth - CARD_MARGIN_H * 2;
-const chartWidth = cardWidth - CARD_PADDING * 2;
-const chartHeight = 100;
-const leftPadding = 44;
-const plotWidth = chartWidth - leftPadding;
-
 const BRAND = '#358B8B';
 const BRAND_DARK = '#2A6F6F';
 
@@ -68,46 +55,46 @@ const formatCurrency = (
   }).format(value);
 };
 
-// ── Chart geometry ────────────────────────────────────────────────────────────
-interface SvgPoint {
-  x: number;
-  y: number;
-}
+// ── Empty portfolio state ─────────────────────────────────────────────────────
+const EmptyPortfolio: React.FC = () => {
+  const router = useRouter();
+  return (
+    <LinearGradient
+      colors={[BRAND_DARK, BRAND]}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.card}
+    >
+      {/* Decorative rings */}
+      <View style={styles.emptyRingOuter} pointerEvents="none" />
+      <View style={styles.emptyRingInner} pointerEvents="none" />
 
-interface ChartGeometry {
-  svgPoints: SvgPoint[];
-  linePoints: string;
-  areaPoints: string;
-  gridMin: number;
-  gridMax: number;
-}
+      <View style={styles.emptyContent}>
+        <View style={styles.emptyIconWrap}>
+          <Ionicons name="business-outline" size={34} color="#FFFFFF" />
+        </View>
 
-const buildChartGeometry = (chartData: ChartPoint[]): ChartGeometry => {
-  const values = chartData.map((p) => parseFloat(p.value) || 0);
-  const gridMin = Math.min(...values);
-  const gridMax = Math.max(...values);
-  const range = gridMax - gridMin || 1;
-  const n = chartData.length;
+        <Text style={styles.emptyTitle}>No Portfolio Found</Text>
+        <Text style={styles.emptyBody}>
+          You don't have any properties in your portfolio yet.{'\n'}
+          Add your first property now and track{'\n'}
+          the value of your investments.
+        </Text>
 
-  const svgPoints: SvgPoint[] = values.map((val, i) => ({
-    x: leftPadding + (i / Math.max(n - 1, 1)) * plotWidth,
-    y: chartHeight - ((val - gridMin) / range) * chartHeight,
-  }));
-
-  const linePoints = svgPoints
-    .map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`)
-    .join(' ');
-
-  const areaPoints = [
-    ...svgPoints.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`),
-    `${svgPoints[svgPoints.length - 1].x.toFixed(2)},${chartHeight}`,
-    `${svgPoints[0].x.toFixed(2)},${chartHeight}`,
-  ].join(' ');
-
-  return { svgPoints, linePoints, areaPoints, gridMin, gridMax };
+        <TouchableOpacity
+          style={styles.emptyBtn}
+          onPress={() => router.push('/(app)/(manage)')}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="add-circle-outline" size={17} color={BRAND} />
+          <Text style={styles.emptyBtnText}>Add First Property</Text>
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
 };
 
-// ── Component ─────────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 const HeroCard: React.FC = () => {
   const { data, loading, error, refetch } = useHeroCard();
   const [valVisible, setValVisible] = useState(true);
@@ -117,68 +104,61 @@ const HeroCard: React.FC = () => {
   // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <>
-        <LinearGradient
-          colors={[BRAND_DARK, BRAND]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.card, styles.cardCenter]}
-        >
-          <ActivityIndicator color="#fff" size="small" />
-          <Text style={styles.statusText}>Loading portfolio…</Text>
-        </LinearGradient>
-      </>
+      <LinearGradient
+        colors={[BRAND_DARK, BRAND]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.card, styles.cardCenter]}
+      >
+        <ActivityIndicator color="#fff" size="small" />
+        <Text style={styles.statusText}>Loading portfolio…</Text>
+      </LinearGradient>
     );
   }
 
   // ── Error ──────────────────────────────────────────────────────────────────
   if (error || !data) {
     return (
-      <>
-        <LinearGradient
-          colors={[BRAND_DARK, BRAND]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={[styles.card, styles.cardCenter]}
+      <LinearGradient
+        colors={[BRAND_DARK, BRAND]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.card, styles.cardCenter]}
+      >
+        <Ionicons name="alert-circle-outline" size={26} color="#fff" />
+        <Text style={styles.statusText}>{error ?? 'No data available'}</Text>
+        <TouchableOpacity
+          style={styles.retryBtn}
+          onPress={refetch}
+          activeOpacity={0.8}
         >
-          <Ionicons name="alert-circle-outline" size={26} color="#fff" />
-          <Text style={styles.statusText}>{error ?? 'No data available'}</Text>
-          <TouchableOpacity
-            style={styles.retryBtn}
-            onPress={refetch}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.retryText}>Retry</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-      </>
+          <Text style={styles.retryText}>Try again</Text>
+        </TouchableOpacity>
+      </LinearGradient>
     );
   }
 
-  // ── Derived values ─────────────────────────────────────────────────────────
+  // ── Empty portfolio (new user) ─────────────────────────────────────────────
+  if (data.total_properties === 0) {
+    return <EmptyPortfolio />;
+  }
+
+  // ── Derived values (all DRF fields are strings) ────────────────────────────
   const currency = data.currency ?? 'NGN';
   const totalValue = parseFloat(data.total_current_value) || 0;
   const appreciationPct = parseFloat(data.appreciation_percentage) || 0;
   const monthlyIncome = parseFloat(data.monthly_income) || 0;
+  const totalAppreciation = parseFloat(data.total_appreciation) || 0;
+  const occupancyRate = parseFloat(data.occupancy_rate) || 0;
 
   const totalValueStr = formatCurrency(totalValue, currency);
   const monthlyStr = formatCurrency(monthlyIncome, currency, true);
+  const appreciationStr = formatCurrency(totalAppreciation, currency, true);
   const pctStr = `${appreciationPct >= 0 ? '+' : ''}${appreciationPct.toFixed(1)}%`;
   const arrow = appreciationPct >= 0 ? '↑' : '↓';
   const pctColor = appreciationPct >= 0 ? '#9FE1CB' : '#FFB3AF';
 
-  // ── Chart ──────────────────────────────────────────────────────────────────
-  const { svgPoints, linePoints, areaPoints, gridMin, gridMax } =
-    buildChartGeometry(data.chart_data);
-
-  const gridYPositions = [0, 33, 66, 100];
-  const yPixelToValue = (yPx: number) =>
-    gridMin + (1 - yPx / chartHeight) * (gridMax - gridMin);
-
-  const lastPt = svgPoints[svgPoints.length - 1];
-
   return (
-    // Wrap both card and QuickStats in a fragment so they flow together
     <>
       <LinearGradient
         colors={[BRAND_DARK, BRAND]}
@@ -188,7 +168,7 @@ const HeroCard: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.headerRow}>
-          <Text style={styles.label}>Total portfolio value</Text>
+          <Text style={styles.label}>Total Portfolio Value</Text>
           <TouchableOpacity
             onPress={() => setValVisible((v) => !v)}
             style={styles.eyeButton}
@@ -217,99 +197,93 @@ const HeroCard: React.FC = () => {
           </Text>
         </View>
 
-        {/* Chart */}
-        <View style={styles.chartWrapper}>
-          <Svg
-            height={chartHeight + 20}
-            width={chartWidth + CARD_PADDING}
-            viewBox={`0 0 ${chartWidth + CARD_PADDING} ${chartHeight + 20}`}
-          >
-            {gridYPositions.map((yPx) => (
-              <React.Fragment key={yPx}>
-                <Line
-                  x1={leftPadding}
-                  y1={yPx}
-                  x2={chartWidth + CARD_PADDING}
-                  y2={yPx}
-                  stroke="#FFFFFF"
-                  strokeOpacity="0.13"
-                  strokeWidth="0.8"
-                  strokeDasharray="3,4"
-                />
-                <SvgText
-                  x={0}
-                  y={yPx === 0 ? 9 : yPx + 4}
-                  fontSize="8"
-                  fill="#FFFFFF"
-                  fillOpacity="0.65"
-                  textAnchor="start"
-                >
-                  {valVisible
-                    ? formatCurrency(yPixelToValue(yPx), currency, true)
-                    : '••••'}
-                </SvgText>
-              </React.Fragment>
-            ))}
+        {/* Highlight cards */}
+        <View style={styles.highlightsContainer}>
+          <View style={styles.highlightCard}>
+            <Ionicons name="business-outline" size={20} color="#E0F0F0" />
+            <Text style={styles.highlightValue}>
+              {valVisible ? data.total_properties : '••'}
+            </Text>
+            <Text style={styles.highlightLabel}>Properties</Text>
+          </View>
 
-            <Polygon points={areaPoints} fill={BRAND} fillOpacity="0.35" />
+          <View style={styles.highlightCard}>
+            <Ionicons name="people-outline" size={20} color="#E0F0F0" />
+            <Text style={styles.highlightValue}>
+              {valVisible ? `${occupancyRate.toFixed(0)}%` : '••%'}
+            </Text>
+            <Text style={styles.highlightLabel}>Occupancy</Text>
+          </View>
 
-            <Polyline
-              points={linePoints}
-              fill="none"
-              stroke="#FFFFFF"
-              strokeWidth="2.5"
-              strokeLinejoin="round"
-              strokeLinecap="round"
+          <View style={styles.highlightCard}>
+            <Ionicons
+              name={
+                appreciationPct >= 0
+                  ? 'trending-up-outline'
+                  : 'trending-down-outline'
+              }
+              size={20}
+              color={pctColor}
             />
+            <Text style={[styles.highlightValue, { color: pctColor }]}>
+              {valVisible ? pctStr : '•••'}
+            </Text>
+            <Text style={styles.highlightLabel}>Growth</Text>
+          </View>
 
-            <Circle
-              cx={lastPt.x}
-              cy={lastPt.y}
-              r="5"
-              fill="#FFFFFF"
-              fillOpacity="0.25"
-            />
-            <Circle cx={lastPt.x} cy={lastPt.y} r="3" fill="#FFFFFF" />
+          <View style={styles.highlightCard}>
+            <Ionicons name="cash-outline" size={20} color="#E0F0F0" />
+            <Text style={styles.highlightValue}>
+              {valVisible ? appreciationStr : mask(appreciationStr)}
+            </Text>
+            <Text style={styles.highlightLabel}>Appreciation</Text>
+          </View>
+        </View>
 
-            {/* X-axis year labels — show all, yearly data is always sparse */}
-            {data.chart_data.map((pt, idx) => {
-              const x =
-                leftPadding +
-                (idx / Math.max(data.chart_data.length - 1, 1)) * plotWidth;
-              return (
-                <SvgText
-                  key={idx}
-                  x={x}
-                  y={chartHeight + 14}
-                  fontSize="8.5"
-                  fill="#FFFFFF"
-                  fillOpacity="0.7"
-                  fontWeight="500"
-                  textAnchor="middle"
-                >
-                  {pt.month}
-                </SvgText>
-              );
-            })}
-          </Svg>
+        {/* Metrics row */}
+        <View style={styles.metricsRow}>
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>Purchase Price</Text>
+            <Text style={styles.metricValue}>
+              {valVisible
+                ? formatCurrency(
+                    parseFloat(data.total_initial_cost) || 0,
+                    currency,
+                    true,
+                  )
+                : '••••'}
+            </Text>
+          </View>
+          <View style={styles.metricDivider} />
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>Occupied</Text>
+            <Text style={styles.metricValue}>
+              {valVisible ? data.occupied_count : '••'}
+            </Text>
+          </View>
+          <View style={styles.metricDivider} />
+          <View style={styles.metricItem}>
+            <Text style={styles.metricLabel}>Total Gain</Text>
+            <Text style={styles.metricValue}>
+              {valVisible ? appreciationStr : mask(appreciationStr)}
+            </Text>
+          </View>
         </View>
       </LinearGradient>
-
-      {/* Stats rendered outside and below the card */}
-      <QuickStats />
     </>
   );
 };
 
+// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: CARD_MARGIN_H,
-    marginVertical: 20,
-    marginBottom: 0, // QuickStats provides its own marginBottom: 16
+    marginTop: 20,
+    marginBottom: 0,
     borderRadius: 20,
     paddingTop: CARD_PADDING,
     paddingHorizontal: CARD_PADDING,
-    paddingBottom: 8,
+    paddingBottom: CARD_PADDING,
     overflow: 'hidden',
   },
   cardCenter: {
@@ -318,6 +292,8 @@ const styles = StyleSheet.create({
     minHeight: 180,
     gap: 10,
   },
+
+  // ── Loading / error ────────────────────────────────────────────────────────
   statusText: {
     fontSize: 13,
     color: '#E0F0F0',
@@ -331,11 +307,73 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     paddingHorizontal: 20,
   },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '600',
+  retryText: { color: '#FFFFFF', fontSize: 13, fontWeight: '600' },
+
+  // ── Empty state ────────────────────────────────────────────────────────────
+  emptyRingOuter: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.07)',
+    top: -40,
+    right: -50,
   },
+  emptyRingInner: {
+    position: 'absolute',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    top: -10,
+    right: -10,
+  },
+  emptyContent: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 8,
+    gap: 10,
+  },
+  emptyIconWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  emptyBody: {
+    fontSize: 13,
+    color: '#C8E8E8',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  emptyBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 20,
+    marginTop: 8,
+  },
+  emptyBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: BRAND,
+  },
+
+  // ── Header ────────────────────────────────────────────────────────────────
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -349,10 +387,9 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     fontWeight: '500',
   },
-  eyeButton: {
-    padding: 4,
-    marginRight: -4,
-  },
+  eyeButton: { padding: 4, marginRight: -4 },
+
+  // ── Values ────────────────────────────────────────────────────────────────
   value: {
     fontSize: 28,
     fontWeight: '700',
@@ -364,20 +401,59 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 12,
+    marginBottom: 20,
     flexWrap: 'wrap',
   },
-  pctText: {
-    fontSize: 13,
-    fontWeight: '600',
+  pctText: { fontSize: 13, fontWeight: '600' },
+  secondaryText: { fontSize: 13, color: '#E0F0F0', fontWeight: '500' },
+
+  // ── Highlights ────────────────────────────────────────────────────────────
+  highlightsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 14,
   },
-  secondaryText: {
-    fontSize: 13,
+  highlightCard: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    alignItems: 'center',
+    gap: 5,
+  },
+  highlightValue: { fontSize: 14, fontWeight: '700', color: '#FFFFFF' },
+  highlightLabel: {
+    fontSize: 9,
     color: '#E0F0F0',
-    fontWeight: '500',
+    opacity: 0.8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
-  chartWrapper: {
-    marginLeft: -CARD_PADDING / 8,
+
+  // ── Metrics row ───────────────────────────────────────────────────────────
+  metricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+  },
+  metricItem: { flex: 1, alignItems: 'center' },
+  metricLabel: {
+    fontSize: 10,
+    color: '#E0F0F0',
+    opacity: 0.7,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+  },
+  metricValue: { fontSize: 13, fontWeight: '600', color: '#FFFFFF' },
+  metricDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255,255,255,0.15)',
   },
 });
 

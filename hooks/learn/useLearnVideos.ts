@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import api from '@/lib/apiClient';
 
 export interface LearnVideo {
     youtube_id: any;
@@ -36,16 +37,11 @@ export function useLearnVideos(options: UseLearnVideosOptions = {}) {
             if (options.search) params.append('search', options.search);
             if (options.ordering) params.append('ordering', options.ordering);
 
-            const response = await fetch(
-                `https://www.realvistamanagement.com/learn/list/?${params.toString()}`
+            const response = await api.get(
+                `/api/learn/?${params.toString()}`
             );
 
-            if (!response.ok) {
-                throw new Error(`Error fetching videos: ${response.status}`);
-            }
-
-            const data = await response.json();
-            setVideos(data);
+            setVideos(response.data);
         } catch (err: any) {
             setError(err.message || 'Something went wrong while fetching videos.');
         } finally {

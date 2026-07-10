@@ -14,6 +14,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
+import api from '@/lib/apiClient';
 
 
 type PostDetail = {
@@ -60,29 +61,19 @@ export default function PostDetail() {
         try {
             setError(null);
 
-
-            const response = await fetch(
-                `https://www.realvistamanagement.com/trends/reports/${slug}/`,
-                {
-                    method: 'GET',
-
-                }
-            );
-
-            if (!response.ok) {
-                if (response.status === 404) {
-                    setError('Post not found');
-                } else {
-                    throw new Error('Failed to fetch post');
-                }
-                return;
-            }
-
-            const data: PostDetail = await response.json();
-            setPost(data);
+            // NOTE: real new path keeps the "reports/" segment
+            // (/api/trends/reports/${slug}/) per trends/urls_users.py —
+            // NOT /api/trends/${slug}/ as an earlier mapping suggested;
+            // verified via reverse() against the actual backend.
+            const response = await api.get<PostDetail>(`/api/trends/reports/${slug}/`);
+            setPost(response.data);
         } catch (err: any) {
             console.error('Error fetching post:', err);
-            setError('Failed to load post. Please try again.');
+            if (err.response?.status === 404) {
+                setError('Post not found');
+            } else {
+                setError('Failed to load post. Please try again.');
+            }
         } finally {
             setLoading(false);
         }

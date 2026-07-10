@@ -1,50 +1,24 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios, { AxiosError } from 'axios';
+import api from '@/lib/apiClient';
+import { AxiosError } from 'axios';
 import { Alert } from 'react-native';
 
 interface BookmarkResponse {
-    message?: string;
-    error?: string;
+    bookmarked: boolean;
 }
 
-export const handleAddBookmark = async (propertyId: string | number): Promise<boolean> => {
+export const handleAddBookmark = async (slug: string): Promise<boolean> => {
     try {
-        const token = await AsyncStorage.getItem('authToken');
-
-        if (!token) {
-            Alert.alert('Error', 'Authentication token is missing.');
-            return false;
-        }
-
-        const response = await axios.post<BookmarkResponse>(
-            `https://www.realvistamanagement.com/market/bookmark-property/${propertyId}/`,
-            {},
-            {
-                headers: {
-                    Authorization: `Token ${token}`,
-                },
-            }
+        const response = await api.post<BookmarkResponse>(
+            `/api/market/${slug}/bookmark/`,
+            {}
         );
 
-        const isBookmarked =
-            response.data.message === 'Property successfully added to your favorite collections.';
-
-        return isBookmarked;
+        return response.data.bookmarked;
     } catch (err) {
-        const error = err as AxiosError<BookmarkResponse>;
-        const errorMessage = error.response?.data?.message;
-
-        if (
-            error.response?.status === 400 &&
-            (errorMessage === 'Property is already added to your favorite collections.' ||
-                errorMessage === 'Property is already added to your favorite collections.')
-        ) {
-            Alert.alert('Info', 'This property is already added to your favorite collections.');
-            return true;
-        }
+        const error = err as AxiosError<{ error?: string; detail?: string }>;
 
         console.error(
-            'Error adding property to your favorite collections:',
+            'Error updating bookmark:',
             error.response?.data || error.message
         );
 
@@ -54,7 +28,8 @@ export const handleAddBookmark = async (propertyId: string | number): Promise<bo
             Alert.alert(
                 'Error',
                 error.response?.data?.error ||
-                'An error occurred while adding the property to your favorite collections.'
+                error.response?.data?.detail ||
+                'An error occurred while updating your favorite collections.'
             );
         }
 

@@ -1,9 +1,9 @@
 import { useState, useCallback } from "react";
-import axios, { AxiosError } from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AxiosError } from "axios";
+import api from "@/lib/apiClient";
 
 interface UseDeleteImageResult {
-    deleteImage: (fileId: number) => Promise<boolean>;
+    deleteImage: (slug: string, imageId: number) => Promise<boolean>;
     loading: boolean;
     error: string | null;
 }
@@ -12,22 +12,14 @@ export const useDeleteImage = (): UseDeleteImageResult => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const deleteImage = useCallback(async (fileId: number): Promise<boolean> => {
+    const deleteImage = useCallback(async (slug: string, imageId: number): Promise<boolean> => {
         setLoading(true);
         setError(null);
 
         try {
-            const token = await AsyncStorage.getItem("authToken");
-            if (!token) {
-                setError("Authentication token not found. Please log in.");
-                return false;
-            }
+            await api.delete(`/api/market/${slug}/images/${imageId}/`);
 
-            await axios.delete(`https://realvistamanagement.com/market/delete-file/${fileId}/`, {
-                headers: { Authorization: `Token ${token}` },
-            });
-
-            console.log("✅ Image deleted successfully:", fileId);
+            console.log("✅ Image deleted successfully:", imageId);
             return true;
         } catch (error) {
             const axiosError = error as AxiosError<{ detail?: string }>;

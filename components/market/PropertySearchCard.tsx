@@ -14,6 +14,7 @@ import { formatCurrency } from '@/utils/general/formatCurrency';
 
 interface PropertySearchResult {
     id: number;
+    slug: string;
     title: string;
     city: string;
     state: string;
@@ -23,7 +24,7 @@ interface PropertySearchResult {
     property_type: string;
     category: string;
     listing_purpose: string;
-    preview_images: Array<{ image: string }>;
+    preview_images: string[];
 
 }
 
@@ -49,16 +50,16 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
         return colors[purpose.toLowerCase()] || { bg: '#F3F4F6', text: '#374151' };
     };
 
-    const handlePropertyPress = (id: number) => {
+    const handlePropertyPress = (slug: string) => {
         router.push({
             pathname: "/market/marketdetails",
-            params: { selectedItemId: id },
+            params: { slug },
         });
     };
 
     const previewImage: string | null =
         property.preview_images && property.preview_images.length > 0
-            ? property.preview_images[0].image
+            ? property.preview_images[0]
             : null;
 
 
@@ -68,7 +69,7 @@ export default function PropertySearchCard({ property }: PropertySearchCardProps
         <TouchableOpacity
             style={[styles.card, isDark && styles.cardDark]}
             activeOpacity={0.7}
-            onPress={() => handlePropertyPress(property.id)}
+            onPress={() => handlePropertyPress(property.slug)}
         >
             <View style={styles.imageContainer}>
                 {previewImage ? (

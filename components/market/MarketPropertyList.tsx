@@ -36,15 +36,15 @@ const MarketPropertyList: React.FC<MarketPropertyListProps> = ({
   const { colors } = useTheme();
 
   const isPropertyBookmarked = (propertyId: number) => {
-    return bookmarks?.some((b) => b.property_id === propertyId);
+    return bookmarks?.some((b) => b.property === propertyId);
   };
 
   // 💖 Toggle bookmark
-  const onAddBookmark = async (propertyId: number) => {
-    if (!propertyId) return;
+  const onAddBookmark = async (slug: string) => {
+    if (!slug) return;
 
     try {
-      const status = await handleAddBookmark(propertyId);
+      const status = await handleAddBookmark(slug);
       await refetch();
     } catch (error) {
       console.error('Bookmark update failed:', error);
@@ -55,7 +55,7 @@ const MarketPropertyList: React.FC<MarketPropertyListProps> = ({
     await handleViewProperty(property.id);
     router.push({
       pathname: '/market/marketdetails',
-      params: { selectedItemId: property.id.toString() },
+      params: { slug: property.slug },
     });
   };
 
@@ -154,7 +154,7 @@ const MarketPropertyList: React.FC<MarketPropertyListProps> = ({
                   </Text>
 
                   {/* ❤️ Bookmark toggle */}
-                  <TouchableOpacity onPress={() => onAddBookmark(property.id)}>
+                  <TouchableOpacity onPress={() => onAddBookmark(property.slug)}>
                     <Ionicons
                       name={bookmarked ? 'heart' : 'heart-outline'}
                       size={26}

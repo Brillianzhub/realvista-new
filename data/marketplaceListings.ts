@@ -15,6 +15,7 @@ export type PropertyFeatures = {
 export type MarketplaceListing = {
     image_objects(image_objects: any): unknown;
     id: string;
+    slug?: string;
     user_id: string;
     property_id?: string;
     category: 'corporate' | 'p2p';

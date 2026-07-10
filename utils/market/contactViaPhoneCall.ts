@@ -1,5 +1,4 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import api from "@/lib/apiClient";
 import { Alert, Linking } from "react-native";
 
 // ---- Types ----
@@ -9,6 +8,7 @@ type Owner = {
 
 type Property = {
     id: string | number;
+    slug: string;
     owner?: Owner;
     [key: string]: any;
 };
@@ -38,7 +38,7 @@ export const contactViaPhoneCall = async ({
     setIsRecordingInquiry?.(true);
 
     try {
-        await recordInquiry(property.id);
+        await recordInquiry(property.slug);
     } catch (error: any) {
         console.error("Error recording inquiry:", error.response?.data || error.message);
         Alert.alert("Error", "Unable to record inquiry. Please try again.");
@@ -61,23 +61,9 @@ export const contactViaPhoneCall = async ({
 };
 
 // ---- Helper ----
-const recordInquiry = async (propertyId: string | number): Promise<void> => {
+const recordInquiry = async (slug: string): Promise<void> => {
     try {
-        const token = await AsyncStorage.getItem("authToken");
-
-        if (!token) {
-            Alert.alert("Error", "Authentication token is missing.");
-            return;
-        }
-
-        await axios.get(
-            `https://www.realvistamanagement.com/market/inquiry-on-property/${propertyId}/`,
-            {
-                headers: {
-                    Authorization: `Token ${token}`,
-                },
-            }
-        );
+        await api.post(`/api/market/${slug}/inquiry/`);
     } catch (error: any) {
         console.error("Error recording inquiry:", error.response?.data || error.message);
         throw new Error(

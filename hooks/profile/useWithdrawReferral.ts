@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import axios, { AxiosError } from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AxiosError } from 'axios';
+import api from '@/lib/apiClient';
 
 type PaymentMethod = 'bank';
 
@@ -38,17 +38,9 @@ export default function useWithdrawReferral() {
     setError(null);
 
     try {
-      const token = await AsyncStorage.getItem('authToken');
-
-      const response = await axios.post<WithdrawResponse>(
-        'https://www.realvistamanagement.com/accounts/referrals/payout/',
-        payload,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Token ${token}`,
-          },
-        }
+      const response = await api.post<WithdrawResponse>(
+        '/api/referrals/me/payout/',
+        payload
       );
 
       setData(response.data);

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import useUserProperties from '@/hooks/portfolio/useUserProperty';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 
 const statesOfNigeria = [
     { label: 'Abia', value: 'abia' },
@@ -301,36 +301,13 @@ const UpdatePropertyForm: React.FC<UpdatePropertyFormProps> = ({ onSubmit }) => 
         setIsSubmitting(true);
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
-
-            if (!token) {
-                Alert.alert('Error', 'Authentication token required!');
-                setIsSubmitting(false);
-                return;
-            }
-
             const submissionData = {
                 ...formData,
                 initial_cost: removeCommas(formData.initial_cost),
                 current_value: removeCommas(formData.current_value),
             };
 
-            const response = await fetch(
-                'https://www.realvistamanagement.com/portfolio/properties/add/',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Token ${token}`,
-                    },
-                    body: JSON.stringify(submissionData),
-                }
-            );
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Failed to update property. Please try again.');
-            }
+            await api.patch(`/api/portfolio/${selectedPropertyId}/`, submissionData);
 
             Alert.alert('Success', 'Property updated successfully!');
 
@@ -356,7 +333,7 @@ const UpdatePropertyForm: React.FC<UpdatePropertyFormProps> = ({ onSubmit }) => 
             if (onSubmit) onSubmit(submissionData);
         } catch (error: any) {
             console.error('Error updating property:', error);
-            Alert.alert('Error', error.message || 'Failed to update property. Please try again.');
+            Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to update property. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

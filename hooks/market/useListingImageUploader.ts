@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { uploadFile } from '@/lib/apiClient';
 import { Alert } from 'react-native';
 
 export const useImageUploader = () => {
@@ -9,11 +8,11 @@ export const useImageUploader = () => {
 
     /**
      * Uploads image(s) to the backend for a specific property.
-     * 
-     * @param propertyId number | string — the backend property ID (not prefixed with backend_)
+     *
+     * @param slug string — the backend property slug
      * @param imageUris string[] — list of local file URIs to upload
      */
-    const uploadImages = async (propertyId: number | string, imageUris: string[]) => {
+    const uploadImages = async (slug: string, imageUris: string[]) => {
         if (!imageUris?.length) {
             console.warn('No images provided for upload.');
             return;
@@ -31,37 +30,17 @@ export const useImageUploader = () => {
         setProgress(0);
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
-            if (!token) {
-                Alert.alert('Error', 'Authentication token required!');
-                return;
-            }
-
             for (let i = 0; i < localImages.length; i++) {
                 const fileUri = localImages[i];
 
                 const formData = new FormData();
-                formData.append('property', String(propertyId));
-                formData.append('file', {
+                formData.append('image', {
                     uri: fileUri,
                     name: fileUri.split('/').pop(),
                     type: 'image/jpeg',
                 } as any);
 
-                await axios.post(
-                    'https://realvistamanagement.com/market/upload-file-market/',
-                    formData,
-                    {
-                        headers: {
-                            Authorization: `Token ${token}`,
-                            'Content-Type': 'multipart/form-data',
-                        },
-                        onUploadProgress: (progressEvent) => {
-                            const percent = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-                            setProgress(percent);
-                        },
-                    }
-                );
+                await uploadFile(`/api/market/${slug}/images/`, formData);
 
                 console.log(`✅ Uploaded local image ${i + 1}/${localImages.length}`);
             }

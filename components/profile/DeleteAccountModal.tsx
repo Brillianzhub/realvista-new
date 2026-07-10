@@ -7,7 +7,7 @@ import {
     ActivityIndicator,
     StyleSheet
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/lib/apiClient";
 
 interface DeleteAccountModalProps {
     visible: boolean;
@@ -20,36 +20,14 @@ const DeleteAccountModal: React.FC<DeleteAccountModalProps> = ({ visible, onClos
     const handleDeleteAccount = async (): Promise<void> => {
         try {
             setLoading(true);
-            const token = await AsyncStorage.getItem("authToken");
-
-            if (!token) {
-                alert("Authentication token not found. Please log in again.");
-                setLoading(false);
-                return;
-            }
-
-            const deleteAccountUrl = "https://realvistamanagement.com/accounts/delete-account/";
-
-            const response = await fetch(deleteAccountUrl, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Token ${token}`,
-                    "Content-Type": "application/json",
-                },
-            });
-
-            const data = await response.json();
+            const response = await api.post("/api/auth/delete-account/");
             setLoading(false);
 
-            if (response.ok) {
-                alert("Success: " + (data.success ?? "Your request was processed successfully."));
-                onClose(); // Close the modal after successful deletion request
-            } else {
-                alert("Error: " + (data.error || "Failed to process your request."));
-            }
-        } catch (error) {
+            alert("Success: " + (response.data.success ?? "Your request was processed successfully."));
+            onClose(); // Close the modal after successful deletion request
+        } catch (error: any) {
             console.error("Fetch Error:", error);
-            alert("Something went wrong. Please try again.");
+            alert("Error: " + (error.response?.data?.error || "Failed to process your request."));
             setLoading(false);
         }
     };

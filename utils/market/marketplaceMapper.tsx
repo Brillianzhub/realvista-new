@@ -5,58 +5,50 @@ import {
 
 export type BackendProperty = {
   id: number;
+  slug: string;
   title: string;
-  description: string;
   property_type: string;
   price: string;
   currency: string;
   listing_purpose: string;
   category: string;
-  address: string;
   city: string;
   state: string;
-  zip_code: string;
   availability: string;
-  availability_date: string | null;
   bedrooms: number | null;
   bathrooms: number | null;
   square_feet: number | null;
-  lot_size: string | null;
-  year_built: number | null;
   views: number;
   inquiries: number;
   bookmarked: number;
   listed_date: string;
-  updated_date: string;
-  coordinate_url: string | null;
-  images: any[];
-  image_objects: { id: number; url: string }[];
-  image_files: Array<{
+  owner_name: string;
+  owner_email: string;
+  status?: string;
+  // Card-serializer fields (/api/market/, /api/market/my/)
+  cover_image?: string | null;
+  short_description?: string;
+  preview_images?: string[];
+  // Detail-serializer-only fields (/api/market/<slug>/) — undefined when this
+  // object comes from a card response (e.g. /api/market/my/).
+  description?: string;
+  address?: string;
+  zip_code?: string;
+  availability_date?: string | null;
+  lot_size?: string | null;
+  year_built?: number | null;
+  updated_date?: string;
+  coordinate_url?: string | null;
+  images?: Array<{ id: number; image: string | null; image_url: string | null }>;
+  files?: Array<{
     id: number;
     name: string;
-    file: string;
+    file: string | null;
     image_url: string | null;
     file_type: string;
     uploaded_at: string;
   }>;
-  documents: any[];
-  videos: any[];
-  owner: {
-    id: number;
-    owner_bio: string;
-    owner_rating: number | null;
-    email: string;
-    phone_number: string;
-    owner_name: string;
-    owner_photo: string;
-    contact_by_email: boolean;
-    contact_by_whatsapp: boolean;
-    contact_by_phone: boolean;
-    active_since: string;
-    base_city: string;
-    base_state: string;
-  };
-  features: Array<{
+  features?: Array<{
     negotiable: string;
     furnished: boolean;
     pet_friendly: boolean;
@@ -71,8 +63,7 @@ export type BackendProperty = {
     additional_features: string | null;
     verified_user: boolean;
   }>;
-  payment_plans: any[];
-  market_coordinates: Array<{
+  coordinates?: Array<{
     id: number;
     latitude: number;
     longitude: number;
@@ -82,17 +73,8 @@ export type BackendProperty = {
 export function mapBackendToFrontend(
   backendProperty: BackendProperty
 ): MarketplaceListing {
-  const features =
-    Array.isArray(backendProperty.features) &&
-    backendProperty.features.length > 0
-      ? backendProperty.features[0]
-      : undefined;
-
-  const coordinates =
-    Array.isArray(backendProperty.market_coordinates) &&
-    backendProperty.market_coordinates.length > 0
-      ? backendProperty.market_coordinates[0]
-      : undefined;
+  // Features only available on detail view — fetch /api/market/<slug>/ for full data
+  const features = backendProperty.features?.[0];
 
   const mappedFeatures: PropertyFeatures = {
     negotiable: features?.negotiable ?? 'no',
@@ -108,53 +90,57 @@ export function mapBackendToFrontend(
     security: features?.security ?? false,
   };
 
-  const imageFiles = Array.isArray(backendProperty.image_files)
-    ? backendProperty.image_files
-    : [];
+  // Coordinates only available on detail view — fetch /api/market/<slug>/ for full data
+  const coordinates = backendProperty.coordinates?.[0];
 
-  const imageData = imageFiles.map((img) => ({ id: img.id, url: img.file }));
-
-  const imageUrls = imageFiles.map((img) => img.file);
-  const thumbnailUrl = imageUrls.length > 0 ? imageUrls[0] : undefined;
+  // Card serializer returns preview_images as plain URL strings (max 4);
+  // detail-only image_files/id data isn't present on card responses.
+  const previewImages = backendProperty.preview_images ?? [];
+  const imageData = previewImages.map((url, i) => ({ id: i, url }));
+  const thumbnailUrl =
+    backendProperty.cover_image ?? previewImages[0] ?? undefined;
 
   const propertyValue = parseFloat(backendProperty.price);
 
   return {
     id: `backend_${backendProperty.id}`,
-    user_id: backendProperty.owner.email,
+    slug: backendProperty.slug,
+    user_id: backendProperty.owner_email ?? '',
     category: backendProperty.category,
     property_name: backendProperty.title,
     property_type: capitalizePropertyType(backendProperty.property_type),
-    location: backendProperty.address,
+    location: backendProperty.address ?? '',
     city: backendProperty.city,
     state: backendProperty.state,
     currency: backendProperty.currency,
-    description: backendProperty.description,
+    description: backendProperty.description ?? backendProperty.short_description ?? '',
+    short_description: backendProperty.short_description ?? '',
     property_value: propertyValue,
     bedrooms: backendProperty.bedrooms,
     bathrooms: backendProperty.bathrooms,
     square_feet: backendProperty.square_feet,
-    lot_size: backendProperty.lot_size,
-    year_built: backendProperty.year_built,
+    lot_size: backendProperty.lot_size ?? null,
+    year_built: backendProperty.year_built ?? null,
     market_type: backendProperty.listing_purpose === 'sale' ? 'Sale' : 'Rent',
     roi_percentage: 0,
     estimated_yield: 0,
     latitude: coordinates?.latitude,
     longitude: coordinates?.longitude,
     thumbnail_url: thumbnailUrl,
-    images: imageUrls,
+    images: previewImages,
     image_objects: imageData,
     features: mappedFeatures,
     status: 'Published',
     completion_percentage: 100,
     current_step: 5,
     created_at: backendProperty.listed_date,
-    updated_at: backendProperty.updated_date,
+    updated_at: backendProperty.updated_date ?? backendProperty.listed_date,
     published_at: backendProperty.listed_date,
     backendData: backendProperty,
   } as unknown as MarketplaceListing & {
     backendData?: BackendProperty;
     image_objects?: { id: number; url: string }[];
+    short_description?: string;
   };
 }
 

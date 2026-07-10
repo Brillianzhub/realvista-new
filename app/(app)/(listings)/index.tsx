@@ -339,6 +339,7 @@ export default function ManageListings() {
             <RemoveListingModal
                 visible={showRemoveModal}
                 listingId={selectedListingId}
+                listingSlug={selectedListing?.slug ?? null}
                 onClose={() => {
                     setShowRemoveModal(false);
                     setSelectedListingId(null);

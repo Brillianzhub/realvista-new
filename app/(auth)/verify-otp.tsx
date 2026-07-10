@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import FormInput from '@/components/auth/FormInput';
 import { useTheme } from '@/context/ThemeContext';
+import api from '@/lib/apiClient';
 
 const { width } = Dimensions.get('window');
 
@@ -102,28 +103,12 @@ const VerifyOtp: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch(
-        'https://www.realvistamanagement.com/accounts/verify-otp/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, otp }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        triggerShake();
-        throw new Error(data.error || 'OTP verification failed.');
-      }
+      await api.post('/api/auth/verify-otp/', { email, otp });
 
       router.replace({ pathname: '/reset-password', params: { email } });
-    } catch (err: unknown) {
-      const error = err as Error;
-      Alert.alert('Verification Failed', error.message);
+    } catch (err: any) {
+      triggerShake();
+      Alert.alert('Verification Failed', err.response?.data?.error || err.message || 'OTP verification failed.');
     } finally {
       setIsSubmitting(false);
     }
@@ -136,30 +121,14 @@ const VerifyOtp: React.FC = () => {
     setTimer(120);
 
     try {
-      const response = await fetch(
-        'https://www.realvistamanagement.com/accounts/request-password-reset/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to resend OTP.');
-      }
+      await api.post('/api/auth/forgot-password/', { email });
 
       Alert.alert(
         'Code Resent',
-        'A new verification code has been sent to your email.'
+        'A new verification code has been sent to your email.',
       );
-    } catch (err: unknown) {
-      const error = err as Error;
-      Alert.alert('Error', error.message);
+    } catch (err: any) {
+      Alert.alert('Error', err.response?.data?.error || err.message || 'Failed to resend OTP.');
       setCanResend(true);
     }
   };

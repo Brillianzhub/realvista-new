@@ -18,7 +18,7 @@ import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useGlobalContext } from '../../context/GlobalProvider';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { useTheme } from '@/context/ThemeContext';
 
 interface User {
@@ -87,10 +87,10 @@ const ResetPassword: React.FC = () => {
     setRequirements(newRequirements);
 
     const allValid = Object.values(newRequirements).every(
-      (req) => req === true
+      (req) => req === true,
     );
     setIsValid(
-      allValid && text === confirmPassword && confirmPassword.length > 0
+      allValid && text === confirmPassword && confirmPassword.length > 0,
     );
   };
 
@@ -98,7 +98,7 @@ const ResetPassword: React.FC = () => {
     if (confirmPassword.length > 0) {
       setIsValid(
         Object.values(requirements).every((req) => req === true) &&
-          password === confirmPassword
+          password === confirmPassword,
       );
     }
   };
@@ -118,7 +118,7 @@ const ResetPassword: React.FC = () => {
     if (!isValid) {
       Alert.alert(
         'Invalid Password',
-        'Please ensure your password meets all requirements and both fields match.'
+        'Please ensure your password meets all requirements and both fields match.',
       );
       return;
     }
@@ -126,100 +126,24 @@ const ResetPassword: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Reset password
-      const response = await fetch(
-        'https://www.realvistamanagement.com/accounts/password-reset/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-
-      const data: { error?: string } = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to reset password.');
-      }
-
-      // Authenticate user to get token
-      const tokenResponse = await fetch(
-        'https://www.realvistamanagement.com/portfolio/api-token-auth/',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: email, password }),
-        }
-      );
-
-      const tokenData: { token?: string; non_field_errors?: string[] } =
-        await tokenResponse.json();
-
-      if (!tokenData.token) {
-        throw new Error(
-          tokenData.non_field_errors?.[0] || 'Authentication token not provided'
-        );
-      }
-
-      await AsyncStorage.setItem('authToken', tokenData.token);
-
-      // Fetch current user
-      const userResponse = await fetch(
-        'https://www.realvistamanagement.com/accounts/current-user/',
-        {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Token ${tokenData.token}`,
-          },
-        }
-      );
-
-      if (!userResponse.ok) {
-        const errorData: { error?: string } = await userResponse.json();
-        throw new Error(errorData.error || 'Failed to fetch user details');
-      }
-
-      const userData = await userResponse.json();
-
-      const mappedUser: User = {
-        id: userData.id,
-        email: userData.email,
-        name: userData.name,
-        firstName: userData.first_name,
-        authProvider: userData.auth_provider,
-        isActive: userData.is_active,
-        isStaff: userData.is_staff,
-        dateJoined: userData.date_joined,
-        profile: userData.profile,
-        preference: userData.preference,
-        groups: userData.groups,
-      };
-
-      setUser(mappedUser);
-      setIsLogged(true);
+      await api.post('/api/auth/reset-password/', { email, password });
 
       triggerSuccessAnimation();
 
-      // Show success message
       Alert.alert(
         'Password Reset Successful!',
-        'Your password has been reset, continue to login with your new password.',
+        'Your password has been reset. Please log in with your new password.',
         [
           {
             text: 'Continue',
-            onPress: () => {
-              router.replace('/sign-in');
-            },
+            onPress: () => router.replace('/sign-in'),
           },
-        ]
+        ],
       );
     } catch (error: any) {
       Alert.alert(
         'Error',
-        error.message || 'Something went wrong. Please try again.'
+        error.response?.data?.error || error.message || 'Something went wrong. Please try again.',
       );
     } finally {
       setIsSubmitting(false);
@@ -396,8 +320,8 @@ const ResetPassword: React.FC = () => {
                         isSubmitting
                           ? '#D1D5DB'
                           : isFocused.password
-                          ? '#3B82F6'
-                          : '#9CA3AF'
+                            ? '#3B82F6'
+                            : '#9CA3AF'
                       }
                     />
                   </TouchableOpacity>
@@ -462,8 +386,8 @@ const ResetPassword: React.FC = () => {
                         isSubmitting
                           ? '#D1D5DB'
                           : isFocused.confirm
-                          ? '#3B82F6'
-                          : '#9CA3AF'
+                            ? '#3B82F6'
+                            : '#9CA3AF'
                       }
                     />
                   </TouchableOpacity>

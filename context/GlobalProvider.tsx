@@ -7,15 +7,10 @@ import React, {
     Dispatch,
     SetStateAction,
 } from "react";
-import { getCurrentUser } from "@/lib/userService";
+import { hydrateUser, type HydratedUser } from "@/lib/userHydration";
+import { tokenStore } from "@/lib/tokenStore";
 
-// Define User type (update with actual shape of your user object)
-type User = {
-    id: string | number;
-    email: string;
-    name?: string;
-    [key: string]: any;
-};
+export type User = HydratedUser;
 
 type GlobalContextType = {
     isLogged: boolean;
@@ -50,7 +45,14 @@ const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
     const fetchGroups = async () => {
         setLoading(true);
         try {
-            const res = await getCurrentUser();
+            const token = await tokenStore.get();
+            if (!token) {
+                setIsLogged(false);
+                setUser(null);
+                return;
+            }
+
+            const res = await hydrateUser();
             if (res) {
                 setIsLogged(true);
                 setUser(res);

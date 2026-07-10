@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import useUserProperties from '@/hooks/portfolio/useUserProperty';
 
 interface Property {
@@ -47,39 +47,18 @@ export default function RemovePropertyModal({
             return;
         }
 
-        const token = await AsyncStorage.getItem('authToken');
-
-        if (!token) {
-            Alert.alert('Error', 'User token required to complete this operation');
-            return;
-        }
-
         try {
             setIsLoading(true);
-            const response = await fetch(
-                `https://www.realvistamanagement.com/portfolio/delete-property/${selectedPropertyId}/`,
-                {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Token ${token}`,
-                    },
-                }
-            );
+            await api.delete(`/api/portfolio/${selectedPropertyId}/`);
 
-            if (response.ok) {
-                Alert.alert('Success', 'Property has been deleted successfully.');
-                setSelectedPropertyId(null);
-                setConfirmationText('');
-                setReason('');
-                onClose();
-            } else {
-                const error = await response.json();
-                Alert.alert('Error', error.error || 'Failed to delete property.');
-            }
-        } catch (error) {
+            Alert.alert('Success', 'Property has been deleted successfully.');
+            setSelectedPropertyId(null);
+            setConfirmationText('');
+            setReason('');
+            onClose();
+        } catch (error: any) {
             console.error('Error deleting property:', error);
-            Alert.alert('Error', 'Something went wrong.');
+            Alert.alert('Error', error.response?.data?.error || 'Something went wrong.');
         } finally {
             setIsLoading(false);
         }

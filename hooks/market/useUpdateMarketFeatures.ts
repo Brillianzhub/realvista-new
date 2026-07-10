@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { Alert } from 'react-native';
 
 export interface MarketFeatureData {
@@ -22,32 +21,20 @@ export const useUpdateMarketFeatures = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const updateMarketFeatures = async (
-        propertyId: string | number,
+        slug: string,
         featuresData: MarketFeatureData
     ) => {
-        if (!propertyId) {
-            Alert.alert('Error', 'Property ID is required.');
+        if (!slug) {
+            Alert.alert('Error', 'Property slug is required.');
             return;
         }
 
         setIsLoading(true);
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
-            if (!token) {
-                Alert.alert('Error', 'Authentication token required.');
-                return;
-            }
-
-            const response = await axios.post(
-                `https://realvistamanagement.com/market/property/${propertyId}/features/`,
-                featuresData,
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Token ${token}`,
-                    },
-                }
+            const response = await api.patch(
+                `/api/market/${slug}/features/`,
+                featuresData
             );
 
             Alert.alert('Success', 'Features updated successfully!');

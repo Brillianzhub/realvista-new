@@ -4,7 +4,7 @@ export default {
   expo: {
     name: 'Realvista',
     slug: 'realvista',
-    version: '1.0.7',
+    version: '1.0.8',
     orientation: 'portrait',
     icon: './assets/images/icon.png',
     platforms: ['ios', 'android'],
@@ -67,6 +67,7 @@ export default {
       'expo-document-picker',
       'expo-apple-authentication',
       'expo-web-browser',
+      'expo-secure-store',
     ],
     experiments: {
       typedRoutes: true,

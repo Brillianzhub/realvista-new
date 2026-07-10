@@ -54,6 +54,7 @@ export default function AddCoordinatesModal({
     const [utmX, setUtmX] = useState('');
     const [utmY, setUtmY] = useState('');
     const [utmZone, setUtmZone] = useState('32');
+    const [listingSlug, setListingSlug] = useState<string | null>(null);
 
     const { } = useListingLoader({
         listingId: listingId ?? null,
@@ -62,6 +63,7 @@ export default function AddCoordinatesModal({
             if (listing) {
                 setLatitude(listing.latitude?.toString() || '');
                 setLongitude(listing.longitude?.toString() || '');
+                setListingSlug(listing.slug ?? null);
             }
         },
     });
@@ -226,7 +228,12 @@ export default function AddCoordinatesModal({
 
             } else if (mode === 'update') {
 
-                const response = await uploadCoordinates(lat, lng, finalId);
+                if (!listingSlug) {
+                    Alert.alert('Error', 'Unable to determine property slug.');
+                    return;
+                }
+
+                const response = await uploadCoordinates(lat, lng, listingSlug);
 
                 if (response.success) {
                     Alert.alert("Success", "Coordinates updated successfully")

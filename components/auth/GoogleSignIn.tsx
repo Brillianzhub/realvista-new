@@ -1,35 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { Alert,  ActivityIndicator, View, StyleSheet, TouchableOpacity, Text } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/lib/apiClient";
+import { tokenStore } from "@/lib/tokenStore";
+// NOTE: lib/googleAuthSignIn.tsx is an unused, dead alternate implementation
+// of this same flow (confirmed via project-wide grep — nothing imports it).
+// This component is the one actually wired into sign-in/sign-up screens.
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { router } from "expo-router";
 import Constants from 'expo-constants';
 import { FontAwesome } from "@expo/vector-icons";
 import { useTheme } from '@/context/ThemeContext';
+import { hydrateUser, type HydratedUser } from "@/lib/userHydration";
 
 WebBrowser.maybeCompleteAuthSession();
 
-// User interface based on backend response
-interface User {
-    id: number;
-    email: string;
-    name: string;
-    authProvider: string;
-    isActive: boolean;
-    isStaff: boolean;
-    profile: any;
-    groups: any[];
-    preference: any;
-    subscription: any;
-    referral_code: string;
-    referrer: string | null;
-    referred_users_count: number;
-    total_referral_earnings: number;
-}
-
 interface GoogleSignInProps {
-    setUser: (user: User) => void;
+    setUser: (user: HydratedUser) => void;
     setIsLogged: (logged: boolean) => void;
 }
 
@@ -56,67 +43,54 @@ const GoogleSignIn: React.FC<GoogleSignInProps> = ({ setUser, setIsLogged }) => 
                 try {
                     setIsSubmitting(true);
 
-                    // Send token to backend
-                    const responseApi = await fetch(
-                        "https://www.realvistamanagement.com/accounts/register_google_user/",
+                    // Unlike the legacy endpoint, /api/auth/google/ does NOT
+                    // resolve the Google access token into a profile itself —
+                    // it expects google_id/email/name/first_name already
+                    // resolved client-side. Fetch Google's userinfo endpoint
+                    // with the access token to get them.
+                    const profileResponse = await fetch(
+                        "https://www.googleapis.com/userinfo/v2/me",
                         {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                token: response.authentication.accessToken,
-                                auth_provider: "google",
-                            }),
+                            headers: { Authorization: `Bearer ${response.authentication.accessToken}` },
+                        }
+                    );
+                    if (!profileResponse.ok) {
+                        throw new Error("Failed to fetch Google profile.");
+                    }
+                    const googleProfile = await profileResponse.json();
+
+                    // /api/auth/google/ returns a partial user payload +
+                    // access/refresh directly (accounts._user_payload).
+                    // hydrateUser() (GET /api/users/me/) below fills in the rest.
+                    const responseApi = await api.post(
+                        "/api/auth/google/",
+                        {
+                            google_id: googleProfile.id,
+                            email: googleProfile.email,
+                            name: googleProfile.name,
+                            first_name: googleProfile.given_name,
                         }
                     );
 
-                    if (!responseApi.ok) {
-                        throw new Error("Failed to register with Google");
+                    const userData = responseApi.data;
+                    await tokenStore.set(userData.access);
+                    if (userData.refresh) {
+                        await tokenStore.setRefresh(userData.refresh);
                     }
 
-                    const resultApi = await responseApi.json();
-                    await AsyncStorage.setItem("authToken", resultApi.token);
-
-                    // Fetch current user
-                    const userResponse = await fetch(
-                        "https://www.realvistamanagement.com/accounts/current-user/",
-                        {
-                            method: "GET",
-                            headers: {
-                                "Content-Type": "application/json",
-                                Authorization: `Token ${resultApi.token}`,
-                            },
-                        }
-                    );
-
-                    if (!userResponse.ok) {
-                        const errorData = await userResponse.json();
-                        throw new Error(errorData.error || "Failed to fetch user details");
+                    // Fetch the full, authoritative user object instead of
+                    // hand-mapping this endpoint's (partial) response.
+                    const hydratedUser = await hydrateUser();
+                    if (!hydratedUser) {
+                        Alert.alert("Google Sign-In Error", "Signed in, but failed to load your account. Please try again.");
+                        return;
                     }
 
-                    const userData = await userResponse.json();
-
-                    const mappedUser: User = {
-                        id: userData.id,
-                        email: userData.email,
-                        name: userData.name,
-                        authProvider: "google",
-                        isActive: userData.is_active,
-                        isStaff: userData.is_staff,
-                        profile: userData.profile,
-                        groups: userData.groups,
-                        preference: userData.preference,
-                        subscription: userData.subscription,
-                        referral_code: userData.referral_code,
-                        referrer: userData.referrer,
-                        referred_users_count: userData.referred_users_count,
-                        total_referral_earnings: userData.total_referral_earnings,
-                    };
-
-                    setUser(mappedUser);
+                    setUser(hydratedUser);
                     setIsLogged(true);
                     router.replace("/(app)/(tabs)");
                 } catch (error: any) {
-                    Alert.alert("Google Sign-In Error", error.message);
+                    Alert.alert("Google Sign-In Error", error.response?.data?.error || error.message);
                 } finally {
                     setIsSubmitting(false);
                 }

@@ -57,6 +57,7 @@ export default function AddFeaturesModal({
 
   const { updateMarketFeatures, isLoading: isSubmitting } =
     useUpdateMarketFeatures();
+  const [listingSlug, setListingSlug] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<PropertyFeatures>({
     negotiable: 'no',
@@ -78,6 +79,9 @@ export default function AddFeaturesModal({
     onListingLoaded: (listing) => {
       if (listing?.features) {
         setFormData(listing.features as PropertyFeatures);
+      }
+      if (listing) {
+        setListingSlug(listing.slug ?? null);
       }
     },
   });
@@ -149,9 +153,9 @@ export default function AddFeaturesModal({
         Alert.alert('Success', 'Features saved successfully');
         onClose();
       } else if (mode === 'update') {
-        let backendId = listingId;
-        if (typeof backendId === 'string' && backendId.startsWith('backend_')) {
-          backendId = backendId.replace('backend_', '');
+        if (!listingSlug) {
+          Alert.alert('Error', 'Unable to determine property slug.');
+          return;
         }
 
         // Map negotiable and electricity_proximity to the API-accepted values
@@ -179,7 +183,7 @@ export default function AddFeaturesModal({
         };
 
         // cast to any to satisfy the hook's expected type if needed
-        await updateMarketFeatures(backendId, payload as any);
+        await updateMarketFeatures(listingSlug, payload as any);
 
         Alert.alert('Success', 'Features updated successfully');
       }

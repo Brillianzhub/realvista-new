@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Alert, ActivityIndicator, View, TouchableOpacity, Text, StyleSheet } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/lib/apiClient";
+import { tokenStore } from "@/lib/tokenStore";
 import { useRouter } from "expo-router";
 import { jwtDecode } from "jwt-decode";
 import { FontAwesome } from "@expo/vector-icons";
-import axios from "axios";
 import { useTheme } from '@/context/ThemeContext';
+import { hydrateUser, type HydratedUser } from "@/lib/userHydration";
 
 interface AppleTokenPayload {
     sub: string;
@@ -14,25 +15,8 @@ interface AppleTokenPayload {
     email_verified?: boolean;
 }
 
-interface User {
-    id: number;
-    email: string;
-    name: string;
-    authProvider: string;
-    isActive: boolean;
-    isStaff: boolean;
-    profile: any;
-    groups: any[];
-    preference: any;
-    subscription: any;
-    referral_code: string;
-    referrer: string | null;
-    referred_users_count: number;
-    total_referral_earnings: number;
-}
-
 interface AppleLoginProps {
-    setUser: (user: User) => void;
+    setUser: (user: HydratedUser) => void;
     setIsLogged: (logged: boolean) => void;
 }
 
@@ -65,58 +49,36 @@ const AppleLogin: React.FC<AppleLoginProps> = ({ setUser, setIsLogged }) => {
                 apple_user: decoded.sub,
                 email: decoded.email ?? null,
                 first_name: credential.fullName?.givenName || "",
-                last_name: credential.fullName?.familyName || "",
+                // Backend reads `name`, not `last_name` — see accounts.views_users_auth.apple_sign_in
+                name: credential.fullName?.familyName || "",
                 identity_token: credential.identityToken,
             };
 
-            // Step 3: Send to backend
-            const response = await axios.post(
-                "https://www.realvistamanagement.com/accounts/login/apple/",
+            // Step 3: Send to backend — /api/auth/apple/ returns a partial
+            // user payload + access/refresh directly (accounts._user_payload).
+            // hydrateUser() (GET /api/users/me/) below fills in the rest.
+            const response = await api.post(
+                "/api/auth/apple/",
                 payload
             );
 
-            const { token, user } = response.data;
+            const userData = response.data;
 
-            // Step 4: Store token + user
-            await AsyncStorage.setItem("authToken", token);
-
-            const userResponse = await fetch(
-                "https://www.realvistamanagement.com/accounts/current-user/",
-                {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Token ${token}`,
-                    },
-                }
-            );
-
-            if (!userResponse.ok) {
-                const errorData = await userResponse.json();
-                throw new Error(errorData.error || "Failed to fetch user details");
+            // Step 4: Store tokens
+            await tokenStore.set(userData.access);
+            if (userData.refresh) {
+                await tokenStore.setRefresh(userData.refresh);
             }
 
-            const userData = await userResponse.json();
+            // Step 5: Fetch the full, authoritative user object instead of
+            // hand-mapping this endpoint's (partial) response.
+            const hydratedUser = await hydrateUser();
+            if (!hydratedUser) {
+                Alert.alert("Apple Login Error", "Signed in, but failed to load your account. Please try again.");
+                return;
+            }
 
-            // Step 5: Map user & update state
-            const mappedUser: User = {
-                id: userData.id,
-                email: userData.email,
-                name: userData.name,
-                authProvider: "apple",
-                isActive: userData.is_active,
-                isStaff: userData.is_staff,
-                profile: userData.profile,
-                groups: userData.groups,
-                preference: userData.preference,
-                subscription: userData.subscription,
-                referral_code: userData.referral_code,
-                referrer: userData.referrer,
-                referred_users_count: userData.referred_users_count,
-                total_referral_earnings: userData.total_referral_earnings,
-            };
-
-            setUser(mappedUser);
+            setUser(hydratedUser);
             setIsLogged(true);
 
             // Step 6: Navigate
@@ -124,7 +86,7 @@ const AppleLogin: React.FC<AppleLoginProps> = ({ setUser, setIsLogged }) => {
         } catch (error: any) {
             if (error.code === "ERR_CANCELED") return;
             console.error("Apple login failed", error);
-            Alert.alert("Apple Login Error", error.message || "Something went wrong.");
+            Alert.alert("Apple Login Error", error.response?.data?.error || error.message || "Something went wrong.");
         } finally {
             setLoading(false);
         }

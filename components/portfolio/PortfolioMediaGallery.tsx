@@ -18,7 +18,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { useTheme } from '@/context/ThemeContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -61,16 +61,6 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const getAuthToken = async (): Promise<string | null> => {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
-      return token;
-    } catch (error) {
-      console.error('Error getting auth token:', error);
-      return null;
-    }
-  };
-
   const handleDeleteFile = async (
     fileId: number,
     fileType: 'image' | 'video',
@@ -111,69 +101,48 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
     setDeletingFileId(fileId);
 
     try {
-      const token = await getAuthToken();
+      await api.delete(`/api/portfolio/${propertyId}/files/${fileId}/`);
 
-      if (!token) {
-        Alert.alert('Error', 'Authentication required. Please log in again.');
-        return;
-      }
+      // Successfully deleted
+      Alert.alert(
+        'Success',
+        `${fileType === 'image' ? 'Image' : 'Video'} deleted successfully`,
+        [
+          {
+            text: 'OK',
+            onPress: async () => {
+              // Callback to parent component with file ID
+              if (onFileDeleted) {
+                onFileDeleted(fileId);
+              }
 
-      const response = await fetch(
-        `https://www.realvistamanagement.com/portfolio/delete-file/${fileId}/`,
-        {
-          method: 'DELETE',
-          headers: {
-            Authorization: `Token ${token}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
+              // Refetch data from main page
+              await refetchData();
 
-      if (response.ok) {
-        // Successfully deleted
-        Alert.alert(
-          'Success',
-          `${fileType === 'image' ? 'Image' : 'Video'} deleted successfully`,
-          [
-            {
-              text: 'OK',
-              onPress: async () => {
-                // Callback to parent component with file ID
-                if (onFileDeleted) {
-                  onFileDeleted(fileId);
-                }
-
-                // Refetch data from main page
-                await refetchData();
-
-                // If we're in the modal viewing the deleted file, close it
-                const currentMedia = allMedia[selectedIndex];
-                if (currentMedia?.id === fileId) {
-                  setModalVisible(false);
-                }
-              },
+              // If we're in the modal viewing the deleted file, close it
+              const currentMedia = allMedia[selectedIndex];
+              if (currentMedia?.id === fileId) {
+                setModalVisible(false);
+              }
             },
-          ],
-        );
-      } else if (response.status === 403) {
+          },
+        ],
+      );
+    } catch (error: any) {
+      if (error.response?.status === 403) {
         Alert.alert(
           'Permission Denied',
           'You do not have permission to delete this file.',
         );
-      } else if (response.status === 404) {
+      } else if (error.response?.status === 404) {
         Alert.alert(
           'Not Found',
           'The file you are trying to delete does not exist.',
         );
       } else {
-        const errorData = await response.text();
-        throw new Error(
-          `Failed to delete file: ${response.status} ${errorData}`,
-        );
+        console.error('Delete error:', error);
+        Alert.alert('Error', 'Failed to delete file. Please try again.');
       }
-    } catch (error) {
-      console.error('Delete error:', error);
-      Alert.alert('Error', 'Failed to delete file. Please try again.');
     } finally {
       setIsDeleting(false);
       setDeletingFileId(null);

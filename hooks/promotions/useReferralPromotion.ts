@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
+import api from '@/lib/apiClient';
 import {
   ActiveReferralPromotionResponse,
   ReferralPromotion,
 } from '@/types/promotions/promotion';
-
-const API_URL =
-  'https://www.realvistamanagement.com/promotions/active-referral-promotion/';
 
 export function useReferralPromotion() {
   const [promotion, setPromotion] = useState<ReferralPromotion | null>(null);
@@ -16,12 +14,10 @@ export function useReferralPromotion() {
     try {
       setLoading(true);
 
-      const response = await fetch(API_URL);
-      const data: ActiveReferralPromotionResponse = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to fetch promotion');
-      }
+      const response = await api.get<ActiveReferralPromotionResponse>(
+        '/api/promotions/active-referral-promotion/'
+      );
+      const data = response.data;
 
       if (data.active && data.promotion) {
         setPromotion(data.promotion);

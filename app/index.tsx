@@ -15,21 +15,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import images from '@/constants/images';
 import { useTheme } from '@/context/ThemeContext';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Crypto from 'expo-crypto';
-import { getDeviceId } from '@/utils/device/deviceUtils';
-import useDeviceUpdate from '@/hooks/landing/useDeviceUpdate';
-
-export const getInstallId = async () => {
-  let installId = await AsyncStorage.getItem('install_id');
-
-  if (!installId) {
-    installId = Crypto.randomUUID();
-    await AsyncStorage.setItem('install_id', installId);
-  }
-
-  return installId;
-};
+import { getDevicePayload } from '@/utils/device/deviceUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -84,15 +70,19 @@ const OnboardingScreen = () => {
   };
 
   useEffect(() => {
-    const initIds = async () => {
+    const initDevice = async () => {
       try {
-        await getInstallId();
+        await getDevicePayload();
       } catch (error) {
-        console.error('Error loading IDs:', error);
+        console.error('Device init failed:', error);
       }
     };
 
-    initIds();
+    const timer = setTimeout(() => {
+      initDevice();
+    }, 500); // ⬅️ small delay is key
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {

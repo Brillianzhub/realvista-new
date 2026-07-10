@@ -1,36 +1,38 @@
-import { useState, useCallback } from 'react';
+import { useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDevicePayload } from '@/utils/device/deviceUtils';
 import apiClient from '@/lib/apiClient';
 
-type DevicePayload = {
-  device_id?: string;
-  install_id?: string;
+const DEVICE_SYNCED_KEY = 'device_synced';
+
+const useDeviceUpdate = () => {
+  useEffect(() => {
+    const syncDevice = async () => {
+      try {
+        // 1. Schon synchronisiert?
+        const alreadySynced = await AsyncStorage.getItem(DEVICE_SYNCED_KEY);
+        if (alreadySynced === 'true') return;
+
+        // 2. IDs holen
+        const { device_id, install_id } = await getDevicePayload();
+        if (!device_id && !install_id) return;
+
+        // 3. API aufrufen
+        await apiClient.patch('accounts/update-device/', {
+          device_id,
+          install_id,
+        });
+
+        // 4. Flag setzen — wird nie wieder aufgerufen
+        await AsyncStorage.setItem(DEVICE_SYNCED_KEY, 'true');
+      } catch (error) {
+        // Kein Flag setzen bei Fehler → nächstes Mal erneut versuchen
+        console.error('Device sync failed:', error);
+      }
+    };
+
+    syncDevice();
+  }, []);
 };
 
-export default function useDeviceUpdate() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-
-  const updateDevice = useCallback(async (payload: DevicePayload) => {
-    try {
-      setLoading(true);
-      setError(null);
-      setSuccess(false);
-
-      await apiClient.patch('/users/update-device/', payload);
-
-      setSuccess(true);
-    } catch (err: any) {
-      setError(err?.readableMessage || 'Failed to update device information');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  return {
-    updateDevice,
-    loading,
-    error,
-    success,
-  };
-}
+export default useDeviceUpdate;

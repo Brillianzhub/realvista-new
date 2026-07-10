@@ -16,9 +16,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { useGlobalContext } from '@/context/GlobalProvider';
-import axios from 'axios';
 
 const currencies = [
     { label: '₦ (NGN)', value: 'NGN' },
@@ -143,15 +142,6 @@ export default function AddTargetModal({ visible, onClose }: AddTargetModalProps
         setIsSubmitting(true);
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
-
-            if (!token) {
-                console.error('No authentication token found.');
-                Alert.alert('Error', 'No authentication token found. Please log in again.');
-                setIsSubmitting(false);
-                return;
-            }
-
             // Format numeric values
             const target = parseFloat(removeCommas(targetAmount));
             const current = parseFloat(removeCommas(currentSavings));
@@ -182,15 +172,9 @@ export default function AddTargetModal({ visible, onClose }: AddTargetModalProps
             };
 
             // Send to your Django backend
-            const response = await axios.post(
-                'https://www.realvistamanagement.com/analyser/financial-targets/',
-                payload,
-                {
-                    headers: {
-                        Authorization: `Token ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
+            const response = await api.post(
+                '/api/analyser/financial-targets/',
+                payload
             );
 
             console.log('✅ Target Saved:', response.data);

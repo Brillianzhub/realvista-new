@@ -21,9 +21,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as Clipboard from 'expo-clipboard';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStore } from '@/lib/tokenStore';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/context/GlobalProvider';
-import axios from 'axios';
+import api from '@/lib/apiClient';
 import { formatCurrency } from '@/utils/general/formatCurrency';
 import usePortfolioDetail from '@/hooks/portfolio/usePortfolioDetail';
 import SubmitReferralModal from '@/components/modals/SubmitReferralModal';
@@ -34,6 +35,24 @@ import { usePro } from '@/context/ProProvider';
 
 import { restoreProSubscription } from '@/utils/subscriptions/proSubscription';
 import { openStoreSubscriptionSettings } from '@/utils/subscriptions/manageSubscription';
+
+interface Withdrawal {
+  id: number;
+  amount: string;
+  payment_method: 'bank';
+  account_details: string;
+  status: 'pending' | 'approved' | 'rejected' | 'processed';
+  created_at: string;
+  processed_at?: string | null;
+  admin_notes?: string | null;
+}
+
+const WITHDRAWAL_STATUS_STYLES: Record<Withdrawal['status'], { color: string; backgroundColor: string }> = {
+  pending: { color: '#d97706', backgroundColor: '#fffbeb' },
+  approved: { color: '#2563eb', backgroundColor: '#eff6ff' },
+  processed: { color: '#16a34a', backgroundColor: '#f0fdf4' },
+  rejected: { color: '#dc2626', backgroundColor: '#fef2f2' },
+};
 
 export default function Profile() {
   const colorScheme = useColorScheme();
@@ -59,6 +78,25 @@ export default function Profile() {
   const [amount, setAmount] = useState<number>(0);
   const [accountDetails, setAccountDetails] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<'bank'>('bank');
+
+  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
+
+  const fetchWithdrawals = async () => {
+    try {
+      const response = await api.get<Withdrawal[]>('/api/referrals/me/payouts/');
+      setWithdrawals(response.data);
+    } catch (error) {
+      console.error('Error fetching withdrawal history:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchWithdrawals();
+  }, []);
+
+  const hasOpenWithdrawal = withdrawals.some(
+    (w) => w.status === 'pending' || w.status === 'approved',
+  );
 
   /*const handleRestoreSubscription = async () => {
     try {
@@ -115,9 +153,7 @@ export default function Profile() {
 
   const signOut = async (): Promise<boolean> => {
     try {
-      const response = await axios.post(
-        'https://www.realvistamanagement.com/accounts/logout/',
-      );
+      const response = await api.post('/api/auth/logout/', { refresh: await tokenStore.getRefresh() });
       if (response.status === 200) {
         return true;
       } else {
@@ -136,7 +172,8 @@ export default function Profile() {
         const success = await signOut();
         if (!success) return;
       }
-      await AsyncStorage.removeItem('authToken');
+      await tokenStore.clear();
+      await AsyncStorage.removeItem('device_synced');
       setUser(null);
       setIsLogged(false);
       router.replace('/(auth)/sign-in');
@@ -199,11 +236,15 @@ export default function Profile() {
     }
 
     try {
-      await withdrawReferralEarnings({
+      const newWithdrawal = await withdrawReferralEarnings({
         amount: numericAmount,
         payment_method: paymentMethod,
         account_details: accountDetails,
       });
+
+      // Prepend without refetching — avoids an extra round trip right
+      // after the one that just created it.
+      setWithdrawals((prev) => [newWithdrawal as Withdrawal, ...prev]);
 
       Alert.alert('Success', 'Your withdrawal request has been submitted');
 
@@ -248,7 +289,7 @@ export default function Profile() {
         <View style={styles.avatarContainer}>
           {user?.profile ? (
             <Image
-              source={{ uri: user.profile.avatar }}
+              source={{ uri: user.profile.avatar_url ?? undefined }}
               style={styles.avatar}
             />
           ) : (
@@ -372,7 +413,7 @@ export default function Profile() {
             </Text>
           </View>
 
-          {user?.referrer && (
+          {user?.referrer_email && (
             <View style={styles.referralRow}>
               <Text
                 style={[
@@ -388,7 +429,7 @@ export default function Profile() {
                   isDark && styles.referralValueDark,
                 ]}
               >
-                {user?.referrer}
+                {user?.referrer_email}
               </Text>
             </View>
           )}
@@ -444,17 +485,69 @@ export default function Profile() {
             <TouchableOpacity
               style={[
                 styles.withdrawButton,
-                { backgroundColor: canWithdraw ? '#358B8B' : '#9CA3AF' },
-                !canWithdraw && { opacity: 0.5 },
+                { backgroundColor: canWithdraw && !hasOpenWithdrawal ? '#358B8B' : '#9CA3AF' },
+                (!canWithdraw || hasOpenWithdrawal) && { opacity: 0.5 },
               ]}
-              disabled={!canWithdraw}
+              disabled={!canWithdraw || hasOpenWithdrawal}
               onPress={() => setShowWithdrawModal(true)}
             >
               <Text style={styles.withdrawButtonText}>Withdraw</Text>
             </TouchableOpacity>
           </View>
 
-          {!user?.referrer && (
+          {hasOpenWithdrawal && (
+            <Text style={styles.withdrawTooltip}>
+              You have a pending withdrawal request
+            </Text>
+          )}
+
+          {withdrawals.length > 0 && (
+            <View style={styles.withdrawalHistorySection}>
+              <Text
+                style={[
+                  styles.withdrawalHistoryTitle,
+                  isDark && styles.referralLabelDark,
+                ]}
+              >
+                Withdrawal History
+              </Text>
+              {withdrawals.map((w) => {
+                const badge = WITHDRAWAL_STATUS_STYLES[w.status];
+                return (
+                  <View key={w.id} style={styles.withdrawalRow}>
+                    <Text
+                      style={[
+                        styles.withdrawalAmount,
+                        isDark && styles.referralValueDark,
+                      ]}
+                    >
+                      {formatCurrency(Number(w.amount), 'NGN')}
+                    </Text>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: badge.backgroundColor },
+                      ]}
+                    >
+                      <Text style={[styles.statusBadgeText, { color: badge.color }]}>
+                        {w.status.charAt(0).toUpperCase() + w.status.slice(1)}
+                      </Text>
+                    </View>
+                    <Text
+                      style={[
+                        styles.withdrawalDate,
+                        isDark && styles.referralLabelDark,
+                      ]}
+                    >
+                      {new Date(w.created_at).toLocaleDateString()}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+
+          {!user?.referrer_email && (
             <TouchableOpacity
               style={[
                 styles.referralButton,
@@ -681,7 +774,7 @@ export default function Profile() {
           Realvista Properties
         </Text>
         <Text style={[styles.footerText, isDark && styles.footerTextDark]}>
-          Version 1.0.7
+          Version 1.0.8
         </Text>
       </View>
       <SubmitReferralModal
@@ -932,6 +1025,53 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 14,
     fontWeight: '600',
+  },
+  withdrawTooltip: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    textAlign: 'right',
+    marginTop: -8,
+    marginBottom: 8,
+  },
+  withdrawalHistorySection: {
+    marginTop: 8,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  withdrawalHistoryTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  withdrawalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    gap: 8,
+  },
+  withdrawalAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  withdrawalDate: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    minWidth: 80,
+    textAlign: 'right',
   },
 
   menuItem: {

@@ -24,18 +24,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import images from '../../constants/images';
 import { useTheme } from '@/context/ThemeContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
+import { tokenStore } from '@/lib/tokenStore';
+import { hydrateUser } from '@/lib/userHydration';
 
 const { width } = Dimensions.get('window');
 
-type User = {
-  id: string | number;
-  email: string;
-};
-
 const VerifyEmail: React.FC = () => {
-  const { user } = useGlobalContext() as {
-    user: User | null;
-  };
+  const { user, setUser, setIsLogged } = useGlobalContext();
 
   const { colors } = useTheme();
   const [code, setCode] = useState<string[]>(['', '', '', '', '']);
@@ -139,41 +135,50 @@ const VerifyEmail: React.FC = () => {
     }
 
     try {
-      const response = await fetch(
-        `https://www.realvistamanagement.com/accounts/verify-email/${userId}/?code=${verificationCode}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        },
-      );
+      const response = await api.post(`/api/auth/verify-email/${userId}/?code=${verificationCode}`);
+      const result = response.data;
 
-      if (response.ok) {
-        await response.json();
+      // verify-email returns the full user payload + access/refresh
+      // (accounts._user_payload) — this is where the session actually gets
+      // created for email/password signups, since register never issues
+      // tokens (the account isn't verified yet at that point).
+      if (result.access) {
+        await tokenStore.set(result.access);
+        if (result.refresh) {
+          await tokenStore.setRefresh(result.refresh);
+        }
+      }
 
-        await AsyncStorage.multiRemove(['verificationResent', 'emailVerified']);
+      // Fetch the full, authoritative user object now that tokens are stored,
+      // instead of hand-mapping this endpoint's response.
+      const hydratedUser = await hydrateUser();
+      if (hydratedUser) {
+        setUser(hydratedUser);
+        setIsLogged(true);
+      }
 
-        Animated.timing(successAnimation, {
-          toValue: 1,
-          duration: 500,
-          useNativeDriver: true,
-        }).start(() => {
-          setModalVisible(true);
-        });
-      } else {
-        const errorData = await response.json();
+      await AsyncStorage.multiRemove(['verificationResent', 'emailVerified']);
+
+      Animated.timing(successAnimation, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }).start(() => {
+        setModalVisible(true);
+      });
+    } catch (err: any) {
+      if (err.response) {
         triggerShake();
         Alert.alert(
           'Verification Failed',
-          errorData.error || 'Invalid verification code.',
+          err.response.data?.error || 'Invalid verification code.',
+        );
+      } else {
+        Alert.alert(
+          'Network Error',
+          'Something went wrong. Please check your connection and try again.',
         );
       }
-    } catch (err: unknown) {
-      Alert.alert(
-        'Network Error',
-        'Something went wrong. Please check your connection and try again.',
-      );
     } finally {
       setIsSubmitting(false);
     }
@@ -195,20 +200,10 @@ const VerifyEmail: React.FC = () => {
     }
 
     try {
-      const response = await fetch(
-        'https://www.realvistamanagement.com/accounts/resend_token/',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ email }),
-        },
-      );
+      const response = await api.post('/api/auth/resend-verification/', { email });
+      const data = response.data;
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
+      if (data.success) {
         Alert.alert(
           'Code Resent',
           data.message ||
@@ -222,11 +217,18 @@ const VerifyEmail: React.FC = () => {
           data.error || 'Failed to resend verification code.',
         );
       }
-    } catch (err) {
-      Alert.alert(
-        'Network Error',
-        'Unable to resend code. Please check your connection and try again.',
-      );
+    } catch (err: any) {
+      if (err.response) {
+        Alert.alert(
+          'Error',
+          err.response.data?.error || 'Failed to resend verification code.',
+        );
+      } else {
+        Alert.alert(
+          'Network Error',
+          'Unable to resend code. Please check your connection and try again.',
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }

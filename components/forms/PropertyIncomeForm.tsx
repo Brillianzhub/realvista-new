@@ -16,7 +16,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import useUserProperties from '@/hooks/portfolio/useUserProperty';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 
 interface Property {
     id: string;
@@ -105,35 +105,13 @@ const PropertyIncomeForm: React.FC<PropertyIncomeFormProps> = ({ onSubmit }) => 
 
         try {
 
-            const token = await AsyncStorage.getItem('authToken');
-
-            if (!token) {
-                Alert.alert('Authentication Required', 'Authentication token is missing. Please log in again.');
-                setIsSubmitting(false);
-                return;
-            }
-
             const submissionData = {
                 ...formData,
                 amount: removeCommas(formData.amount),
             };
 
-            const response = await fetch(
-                'https://www.realvistamanagement.com/portfolio/user-property/add-income/',
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Token ${token}`,
-                    },
-                    body: JSON.stringify(submissionData),
-                }
-            );
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Failed to add income. Please try again.');
-            }
+            // property id comes from formData.property (bound to the property picker below)
+            await api.post(`/api/portfolio/${formData.property}/income/`, submissionData);
 
             Alert.alert('Success', 'Income added successfully!');
 
@@ -150,7 +128,7 @@ const PropertyIncomeForm: React.FC<PropertyIncomeFormProps> = ({ onSubmit }) => 
             if (onSubmit) onSubmit(submissionData);
         } catch (error: any) {
             console.error('Error adding income:', error);
-            Alert.alert('Error', error.message || 'Failed to add income. Please try again.');
+            Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to add income. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

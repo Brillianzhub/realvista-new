@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
+import api from "@/lib/apiClient";
 import { useCurrency } from "@/context/CurrencyContext";
 
 // ---- Types ----
@@ -60,21 +59,8 @@ const usePortfolioDetail = (): UsePortfolioDetailReturn => {
     const fetchPortfolioDetails = async (): Promise<void> => {
         if (!refreshing) setLoading(true);
         try {
-            const token = await AsyncStorage.getItem("authToken");
-
-            if (!token) {
-                console.log("This operation requires verified user!");
-                return;
-            }
-
-            const response = await axios.get<PortfolioData>(
-                `https://www.realvistamanagement.com/portfolio/portfolio-analysis/?currency=${currency}`,
-                {
-                    headers: {
-                        Authorization: `Token ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                }
+            const response = await api.get<PortfolioData>(
+                `/api/portfolio/analytics/?currency=${currency}`
             );
 
             setPortfolioData(response.data);

@@ -9,8 +9,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import PropertyForm, { PropertyFormData } from '@/components/forms/PropertyForm';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '@/lib/apiClient';
 
 type AddPropertyModalProps = {
     visible: boolean;
@@ -26,22 +25,7 @@ export default function AddPropertyModal({
 
     const handleSubmit = async (data: PropertyFormData) => {
         try {
-            const token = await AsyncStorage.getItem('authToken');
-            if (!token) {
-                Alert.alert('Error', 'Authentication token required!');
-                return;
-            }
-
-            const response = await axios.post(
-                'https://www.realvistamanagement.com/portfolio/properties/add/',
-                data,
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Token ${token}`,
-                    },
-                }
-            );
+            await api.post('/api/portfolio/', data);
 
             Alert.alert('Success', 'Property added successfully!');
             onClose();

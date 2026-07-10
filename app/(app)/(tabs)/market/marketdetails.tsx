@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,7 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
-  Linking,
-  Animated,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -17,9 +16,7 @@ import Carousel from 'react-native-reanimated-carousel';
 import { usePropertyDetails } from '@/hooks/market/usePropertyDetails';
 import { formatCurrency } from '@/utils/general/formatCurrency';
 import MapViewer from '@/components/general/MapViewer';
-import ContactOwnerModal from '@/components/modals/ContactOwnerModal';
 import { handleAddBookmark } from '@/utils/market/handleAddBookmarks';
-import useUserBookmark, { type Bookmark } from '@/hooks/market/useUserBookmark';
 import { handleRecordInquiry } from '@/utils/market/handleRecordInquiry';
 import { useTheme } from '@/context/ThemeContext';
 
@@ -82,74 +79,36 @@ const getAmenityIcon = (amenity: string): string => {
 export default function MarketDetailScreen() {
   const router = useRouter();
   const [activeSlide, setActiveSlide] = useState(0);
-  const [contactModalVisible, setContactModalVisible] = useState(false);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
-  const { selectedItemId } = useLocalSearchParams<{ selectedItemId: string }>();
-  const { property, loading, error } = usePropertyDetails(selectedItemId);
-  const { bookmarks, refetch } = useUserBookmark();
+  const { slug } = useLocalSearchParams<{ slug: string }>();
+  const { property, loading, error } = usePropertyDetails(slug);
 
   const { colors } = useTheme();
 
   const [isBookmarked, setIsBookmarked] = useState(false);
 
-  const slideAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (contactModalVisible) {
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 100,
-        friction: 8,
-      }).start();
-    }
-  }, [contactModalVisible]);
-
-  const closeModal = () => {
-    Animated.timing(slideAnim, {
-      toValue: 500,
-      duration: 300,
-      useNativeDriver: true,
-    }).start(() => {
-      setContactModalVisible(false);
-      slideAnim.setValue(0);
-    });
-  };
-
-  const handleContactOwner = async (propertyId: number) => {
-    await handleRecordInquiry(propertyId);
-    slideAnim.setValue(500);
-    setContactModalVisible(true);
-  };
-
-  const formatDate = (dateString: string): string => {
-    if (!dateString) return '—';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+  const handleMessageOwner = async (propertySlug: string) => {
+    await handleRecordInquiry(propertySlug);
+    Alert.alert('Coming Soon', 'In-app messaging coming soon!');
   };
 
   // 🧭 Set initial bookmark state for this property
   useEffect(() => {
-    if (property?.id && bookmarks.length > 0) {
-      const found = bookmarks.some((b) => b.property_id === property.id);
-      setIsBookmarked(found);
+    if (property) {
+      setIsBookmarked(property.is_bookmarked);
     }
-  }, [bookmarks, property]);
+  }, [property]);
 
   // 💖 Toggle bookmark
   const onAddBookmark = async () => {
-    if (!property || !property.id) {
+    if (!property || !property.slug) {
       console.warn('No property available to bookmark');
       return;
     }
 
     try {
-      const bookmarkStatus = await handleAddBookmark(property.id);
+      const bookmarkStatus = await handleAddBookmark(property.slug);
       setIsBookmarked(bookmarkStatus);
-      await refetch();
     } catch (error) {
       console.error('Bookmark update failed:', error);
     }
@@ -182,24 +141,6 @@ export default function MarketDetailScreen() {
     );
   }
 
-  const handleContactMethod = (method: 'whatsapp' | 'email' | 'phone') => {
-    closeModal();
-
-    setTimeout(() => {
-      switch (method) {
-        case 'whatsapp':
-          Linking.openURL(`https://wa.me/${property.owner.phone_number}`);
-          break;
-        case 'email':
-          Linking.openURL(`mailto:${property.owner.email}`);
-          break;
-        case 'phone':
-          Linking.openURL(`tel:${property.owner.phone_number}`);
-          break;
-      }
-    }, 300);
-  };
-
   const renderCarouselItem = ({ item }: { item: string }) => (
     <View style={styles.carouselItem}>
       {item ? (
@@ -214,7 +155,10 @@ export default function MarketDetailScreen() {
     </View>
   );
 
-  const imageUrls = property.image_files?.map((img) => img.file) || [];
+  const imageUrls =
+    property.images?.map(
+      (img) => img.image_url_resolved ?? img.image_url ?? '',
+    ) || [];
 
   return (
     <ScrollView
@@ -260,7 +204,7 @@ export default function MarketDetailScreen() {
         </Text>
         <View style={styles.headerStats}>
           <Text style={[styles.currentValue, { color: colors.text.primary }]}>
-            {formatCurrency(property.price, property.currency)}
+            {formatCurrency(Number(property.price), property.currency)}
           </Text>
           <TouchableOpacity style={styles.roiContainer} onPress={onAddBookmark}>
             <Ionicons
@@ -327,59 +271,17 @@ export default function MarketDetailScreen() {
         >
           <View style={styles.ownerHeader}>
             <View style={styles.avatarContainer}>
-              {property.owner.owner_photo ? (
-                <Image
-                  source={{ uri: property.owner.owner_photo }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View style={[styles.avatar, styles.avatarPlaceholder]}>
-                  <Text
-                    style={[styles.avatarText, { color: colors.text.primary }]}
-                  >
-                    {getInitials(property.owner.owner_name)}
-                  </Text>
-                </View>
-              )}
-              {property.owner && (
-                <View style={styles.verifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={20} color="#358B8B" />
-                </View>
-              )}
+              <View style={[styles.avatar, styles.avatarPlaceholder]}>
+                <Text
+                  style={[styles.avatarText, { color: colors.text.primary }]}
+                >
+                  {getInitials(property.owner_name)}
+                </Text>
+              </View>
             </View>
             <View style={styles.ownerInfo}>
               <Text style={[styles.ownerName, { color: colors.text.primary }]}>
-                {property.owner.owner_name}
-              </Text>
-              <Text
-                style={[styles.ownerMeta, { color: colors.text.secondary }]}
-              >
-                Member since {formatDate(property.owner.active_since)}
-              </Text>
-
-              {property.owner && (
-                <Text
-                  style={[
-                    styles.verifiedText,
-                    { color: colors.text.secondary },
-                  ]}
-                >
-                  Verified Member
-                </Text>
-              )}
-            </View>
-          </View>
-          <View style={styles.ownerContact}>
-            <View style={styles.contactItem}>
-              <Ionicons
-                name="mail-outline"
-                size={16}
-                color={colors.icon.default}
-              />
-              <Text
-                style={[styles.contactText, { color: colors.text.secondary }]}
-              >
-                {property.owner.email}
+                {property.owner_name}
               </Text>
             </View>
           </View>
@@ -408,10 +310,10 @@ export default function MarketDetailScreen() {
         <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
           Location
         </Text>
-        {property.market_coordinates?.length > 0 ? (
+        {property.coordinates?.length > 0 ? (
           <MapViewer
-            latitude={property.market_coordinates[0].latitude}
-            longitude={property.market_coordinates[0].longitude}
+            latitude={property.coordinates[0].latitude}
+            longitude={property.coordinates[0].longitude}
             title={property.title}
           />
         ) : (
@@ -422,23 +324,13 @@ export default function MarketDetailScreen() {
       </View>
       <View style={styles.ctaSection}>
         <TouchableOpacity
-          style={styles.contactButton}
-          onPress={() => handleContactOwner(property.id)}
+          style={styles.messageButton}
+          onPress={() => handleMessageOwner(property.slug)}
         >
-          <Ionicons name="mail-outline" size={20} color="#358B8B" />
-          <Text style={styles.contactButtonText}>Contact Owner</Text>
+          <Ionicons name="chatbubble-outline" size={20} color="#FFFFFF" />
+          <Text style={styles.messageButtonText}>Message Owner</Text>
         </TouchableOpacity>
-        {/* <TouchableOpacity style={styles.buyButton} onPress={handleBuyNow}>
-                    <Text style={styles.buyButtonText}>Buy Now / Make Offer</Text>
-                </TouchableOpacity> */}
       </View>
-
-      <ContactOwnerModal
-        visible={contactModalVisible}
-        onClose={closeModal}
-        owner={property.owner}
-        onContactMethod={handleContactMethod}
-      />
     </ScrollView>
   );
 }
@@ -716,19 +608,17 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
     gap: 12,
   },
-  contactButton: {
+  messageButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#348b8b',
     paddingVertical: 14,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#358B8B',
   },
-  contactButtonText: {
-    color: '#358B8B',
+  messageButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
   },

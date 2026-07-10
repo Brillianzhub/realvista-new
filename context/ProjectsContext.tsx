@@ -5,7 +5,8 @@ import React, {
     useContext,
     ReactNode,
 } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/lib/apiClient";
+import { tokenStore } from '@/lib/tokenStore';
 
 // Define the Project type based on your API response
 export interface Project {
@@ -49,39 +50,26 @@ export const ProjectsProvider: React.FC<ProjectsProviderProps> = ({
 
     const fetchProjects = async () => {
         try {
-            const token = await AsyncStorage.getItem("authToken");
-
-            if (!token) {
-                console.error("No authentication token found");
-                return;
-            }
-
-            const response = await fetch(
-                "https://www.realvistamanagement.com/projects/projects_list/",
-                {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Token ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                }
+            // NOTE: real new path is bare /api/projects/ (list route registered
+            // at '' in projects/urls_users.py) — NOT /api/projects/projects/
+            // as an earlier mapping suggested; verified via reverse() against
+            // the actual backend.
+            const response = await api.get<Project[]>(
+                "/api/projects/"
             );
-
-            if (!response.ok) {
-                throw new Error(
-                    `Error ${response.status}: ${response.statusText}`
-                );
-            }
-
-            const data: Project[] = await response.json();
-            setProjects(data);
+            setProjects(response.data);
         } catch (error) {
             console.error("Unable to fetch data now", error);
         }
     };
 
     useEffect(() => {
-        fetchProjects();
+        const run = async () => {
+            const token = await tokenStore.get();
+            if (!token) return;
+            fetchProjects();
+        };
+        run();
     }, []);
 
     return (

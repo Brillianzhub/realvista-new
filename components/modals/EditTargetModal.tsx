@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 
 const currencies = [
     { label: '₦ (NGN)', value: 'NGN' },
@@ -170,15 +170,6 @@ export default function EditTargetModal({ visible, target, onClose }: EditTarget
         setIsSubmitting(true);
 
         try {
-
-            const token = await AsyncStorage.getItem('authToken');
-
-            if (!token) {
-                Alert.alert('Error', 'Authentication required');
-                setIsSubmitting(false);
-                return;
-            }
-
             const targetVal = parseFloat(removeCommas(targetAmount));
             const current = parseFloat(removeCommas(currentSavings));
             const months = parseInt(timeFrameMonths);
@@ -191,28 +182,16 @@ export default function EditTargetModal({ visible, target, onClose }: EditTarget
                 timeframe: months,
             };
 
-            const response = await fetch(
-                `https://www.realvistamanagement.com/analyser/financial-targets/${target.id}/`,
-                {
-                    method: 'PUT',
-                    headers: {
-                        Authorization: `Token ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload),
-                }
+            await api.put(
+                `/api/analyser/financial-targets/${target.id}/`,
+                payload
             );
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Failed to update savings target');
-            }
 
             Alert.alert('Success', 'Savings target updated successfully!');
             onClose();
         } catch (error: any) {
             console.error('Error updating target:', error);
-            Alert.alert('Error', error.message || 'Failed to update savings target. Please try again.');
+            Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to update savings target. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

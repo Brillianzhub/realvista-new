@@ -5,10 +5,14 @@ import HeroCard from '@/components/landing/HeroCard';
 import QuickActions from '@/components/landing/QuickActions';
 import NewsFeed from '@/components/landing/NewsFeed';
 import PropertiesList from '@/components/landing/PropertiesList';
+import useDeviceUpdate from '@/hooks/landing/useDeviceUpdate';
+import ReferralCard from '@/components/landing/ReferralCard';
 
 import { useTheme } from '@/context/ThemeContext';
 
 export default function App() {
+  useDeviceUpdate();
+
   const { colors } = useTheme();
   return (
     <View
@@ -22,9 +26,10 @@ export default function App() {
         contentContainerStyle={styles.scrollContent}
       >
         <HeroCard />
-        <PropertiesList />
         <QuickActions />
-        <NewsFeed />
+        <PropertiesList />
+
+        <ReferralCard />
       </ScrollView>
     </View>
   );

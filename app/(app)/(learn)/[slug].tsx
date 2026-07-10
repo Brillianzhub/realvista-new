@@ -15,6 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useLearnVideos, LearnVideo } from '@/hooks/learn/useLearnVideos';
 import YouTubePlayer from '@/components/utils/YoutubePlayer';
+import api from '@/lib/apiClient';
 
 export default function LearnDetail() {
     const colorScheme = useColorScheme();
@@ -60,18 +61,11 @@ export default function LearnDetail() {
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`https://www.realvistamanagement.com/learn/${slug}/`);
-            if (!response.ok) {
-                throw new Error('Failed to fetch video detail');
-            }
-
-            const data = await response.json();
-            setContent(data);
+            const response = await api.get(`/api/learn/${slug}/`);
+            setContent(response.data);
 
             // Increment backend view count
-            await fetch(`https://www.realvistamanagement.com/learn/${slug}/increment-view/`, {
-                method: 'POST',
-            });
+            await api.post(`/api/learn/${slug}/increment-view/`);
         } catch (err: any) {
             console.error('Error loading content:', err);
             setError(err.message || 'Failed to load content');

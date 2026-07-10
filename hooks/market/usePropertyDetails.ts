@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
+import api from "@/lib/apiClient";
 
-interface ImageFile {
+export interface PropertyImage {
+    id: number;
+    image: string;
+    image_url: string | null;
+    image_url_resolved: string | null;
+    uploaded_at: string;
+}
+
+export interface PropertyFile {
     id: number;
     name: string;
     file: string;
@@ -9,32 +18,8 @@ interface ImageFile {
     uploaded_at: string;
 }
 
-interface VideoFile {
+export interface PropertyFeature {
     id: number;
-    name: string;
-    file: string;
-    image_url: string | null;
-    file_type: string;
-    uploaded_at: string;
-}
-
-interface Owner {
-    id: number;
-    owner_bio: string;
-    owner_rating: number | null;
-    email: string;
-    phone_number: string;
-    owner_name: string;
-    owner_photo: string;
-    contact_by_email: boolean;
-    contact_by_whatsapp: boolean;
-    contact_by_phone: boolean;
-    active_since: string;
-    base_city: string;
-    base_state: string;
-}
-
-interface Feature {
     negotiable: string;
     furnished: boolean;
     pet_friendly: boolean;
@@ -50,39 +35,48 @@ interface Feature {
     verified_user: boolean;
 }
 
+export interface PropertyCoordinate {
+    id: number;
+    latitude: number;
+    longitude: number;
+}
+
 export interface PropertyDetails {
     id: number;
     title: string;
+    slug: string;
     description: string;
-    property_type: string;
-    price: number;
-    currency: string;
+    status: string;
     listing_purpose: string;
+    category: string;
+    property_type: string;
+    price: string;
+    currency: string;
     address: string;
     city: string;
     state: string;
     zip_code: string;
-    availability: string;
-    availability_date: string | null;
     bedrooms: number;
     bathrooms: string;
     square_feet: number;
     lot_size: string;
     year_built: number;
+    availability: string;
+    availability_date: string | null;
+    coordinate_url: string | null;
+    youtube_url: string | null;
     views: number;
     inquiries: number;
     bookmarked: number;
     listed_date: string;
     updated_date: string;
-    coordinate_url: string | null;
-    images: string[];
-    image_files: ImageFile[];
-    documents: any[];
-    videos: VideoFile[];
-    owner: Owner;
-    features: Feature[];
-    payment_plans: any[];
-    market_coordinates: any[];
+    owner_name: string;
+    owner_email: string;
+    is_bookmarked: boolean;
+    images: PropertyImage[];
+    files: PropertyFile[];
+    features: PropertyFeature[];
+    coordinates: PropertyCoordinate[];
 }
 
 interface UsePropertyDetailsReturn {
@@ -92,27 +86,20 @@ interface UsePropertyDetailsReturn {
     refetch: () => void;
 }
 
-const BASE_URL = "https://realvistamanagement.com/market/properties";
-
-export const usePropertyDetails = (selectedItemId: string | number | null): UsePropertyDetailsReturn => {
+export const usePropertyDetails = (slug: string | null): UsePropertyDetailsReturn => {
     const [property, setProperty] = useState<PropertyDetails | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
 
     const fetchPropertyDetails = async () => {
-        if (!selectedItemId) return;
+        if (!slug) return;
 
         try {
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`${BASE_URL}/${selectedItemId}/`);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch property with ID ${selectedItemId}`);
-            }
-
-            const data: PropertyDetails = await response.json();
-            setProperty(data);
+            const response = await api.get<PropertyDetails>(`/api/market/${slug}/`);
+            setProperty(response.data);
         } catch (err: any) {
             setError(err.message || "Something went wrong while fetching property details.");
         } finally {
@@ -122,7 +109,7 @@ export const usePropertyDetails = (selectedItemId: string | number | null): UseP
 
     useEffect(() => {
         fetchPropertyDetails();
-    }, [selectedItemId]);
+    }, [slug]);
 
     return { property, loading, error, refetch: fetchPropertyDetails };
 };

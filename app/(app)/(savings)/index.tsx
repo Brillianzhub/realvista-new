@@ -15,7 +15,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import AddTargetModal from '@/components/modals/AddTargetModal';
 import EditTargetModal from '@/components/modals/EditTargetModal';
 import AddContributionModal from '@/components/modals/AddContributionModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { useTheme } from '@/context/ThemeContext';
 
 interface SavingsTarget {
@@ -65,30 +65,9 @@ export default function SavingsTab() {
     try {
       setIsLoading(true);
 
-      const token = await AsyncStorage.getItem('authToken');
+      const response = await api.get('/api/analyser/financial-targets/');
 
-      if (!token) {
-        setTargets([]);
-        return;
-      }
-
-      const response = await fetch(
-        'https://www.realvistamanagement.com/analyser/financial-targets/',
-        {
-          headers: {
-            Authorization: `Token ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch targets');
-      }
-
-      const data = await response.json();
-
-      setTargets(data || []);
+      setTargets(response.data || []);
     } catch (error) {
       console.error('Error fetching targets:', error);
       Alert.alert('Error', 'Failed to load savings targets.');
@@ -108,27 +87,7 @@ export default function SavingsTab() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const token = await AsyncStorage.getItem('authToken');
-
-              if (!token) {
-                Alert.alert('Error', 'Authentication required');
-                return;
-              }
-
-              const response = await fetch(
-                `https://www.realvistamanagement.com/analyser/financial-targets/${targetId}/`,
-                {
-                  method: 'DELETE',
-                  headers: {
-                    Authorization: `Token ${token}`,
-                    'Content-Type': 'application/json',
-                  },
-                }
-              );
-
-              if (!response.ok) {
-                throw new Error('Failed to delete target');
-              }
+              await api.delete(`/api/analyser/financial-targets/${targetId}/`);
 
               Alert.alert('Success', 'Target deleted successfully!');
               fetchTargets();

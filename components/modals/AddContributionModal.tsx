@@ -18,7 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { useTheme } from '@/context/ThemeContext';
 
 type AddContributionModalProps = {
@@ -111,14 +111,6 @@ export default function AddContributionModal({
     setIsSubmitting(true);
 
     try {
-      const token = await AsyncStorage.getItem('authToken');
-
-      if (!token) {
-        Alert.alert('Error', 'Authentication required');
-        setIsSubmitting(false);
-        return;
-      }
-
       const formattedDate = selectedDate.toISOString().split('T')[0];
       const cleanAmount = removeCommas(amount);
 
@@ -127,22 +119,7 @@ export default function AddContributionModal({
         date: formattedDate,
       };
 
-      const response = await fetch(
-        `https://www.realvistamanagement.com/analyser/add-contribution/${targetId}/`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Token ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to add contribution');
-      }
+      await api.post(`/api/analyser/add-contribution/${targetId}/`, payload);
 
       Alert.alert('Success', 'Contribution added successfully!');
       setAmount('');
@@ -153,7 +130,7 @@ export default function AddContributionModal({
       console.error('Error adding contribution:', error);
       Alert.alert(
         'Error',
-        error.message || 'Failed to add contribution. Please try again.'
+        error.response?.data?.message || error.message || 'Failed to add contribution. Please try again.'
       );
     } finally {
       setIsSubmitting(false);

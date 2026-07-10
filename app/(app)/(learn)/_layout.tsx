@@ -32,8 +32,8 @@ const LearnLayout = () => {
           options={{
             presentation: 'card',
             animation: 'slide_from_right',
-            headerTitleAlign: 'center',
-            title: 'Expert Learn',
+            headerTitleAlign: 'left',
+            title: 'Learn',
             headerLeft: () => (
               <TouchableOpacity onPress={() => router.replace('/(app)/(tabs)')}>
                 <Ionicons name="arrow-back" size={24} color={colors.brand} />

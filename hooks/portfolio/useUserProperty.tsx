@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '@/lib/apiClient';
 
 interface Property {
     id: number;
@@ -23,21 +22,7 @@ const useUserProperties = (): UseUserPropertiesResult => {
     const fetchUserProperties = useCallback(async (): Promise<void> => {
         setLoading(true);
         try {
-            const token = await AsyncStorage.getItem('authToken');
-            if (!token) {
-                console.error('Token is required for this operation');
-                return;
-            }
-
-            const response = await axios.get<Property[]>(
-                'https://www.realvistamanagement.com/portfolio/properties/',
-                {
-                    headers: {
-                        Authorization: `Token ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
+            const response = await api.get<Property[]>('/api/portfolio/');
 
             setProperties(response.data);
         } catch (error: any) {

@@ -14,7 +14,8 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { BASE_URL } from '@/lib/apiClient';
+import { tokenStore } from '@/lib/tokenStore';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import { router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -43,7 +44,7 @@ interface Errors {
 }
 
 interface UserProfile {
-    avatar?: string;
+    avatar_url?: string;
     phone_number?: string;
     country_of_residence?: string;
     state?: string;
@@ -88,7 +89,7 @@ const ProfileForm: React.FC = () => {
     useEffect(() => {
         if (user?.profile) {
             setProfile({
-                avatar: user.profile.avatar ? { uri: user.profile.avatar } : '',
+                avatar: user.profile.avatar_url ? { uri: user.profile.avatar_url } : '',
                 phone_number: user.profile.phone_number || '',
                 country_of_residence: user.profile.country_of_residence || '',
                 state: user.profile.state || '',
@@ -238,16 +239,16 @@ const ProfileForm: React.FC = () => {
         formData.append('birth_date', profile.birth_date.trim() || '');
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
+            const token = await tokenStore.get();
             if (!token) {
                 Alert.alert('Error', 'Authentication token not found');
                 return;
             }
 
-            const response = await fetch('https://realvistamanagement.com/accounts/profile/create/', {
+            const response = await fetch(`${BASE_URL}/api/users/me/profile/`, {
                 method: 'PUT',
                 headers: {
-                    Authorization: `Token ${token}`,
+                    Authorization: `Bearer ${token}`,
                 },
                 body: formData,
             });

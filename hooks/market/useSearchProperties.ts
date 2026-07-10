@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/lib/apiClient";
 
 export interface SearchFilters {
     title: string;
@@ -10,6 +10,7 @@ export interface SearchFilters {
 
 export interface PropertySearchResult {
     id: number;
+    slug: string;
     title: string;
     city: string;
     state: string;
@@ -53,9 +54,6 @@ export const useSearchProperties = () => {
                 else setLoading(true);
                 setError(null);
 
-                const token = await AsyncStorage.getItem("authToken");
-                if (!token) throw new Error("Authentication required");
-
                 const queryParams = new URLSearchParams();
                 if (filters.title.trim())
                     queryParams.append("title", filters.title.trim());
@@ -66,19 +64,11 @@ export const useSearchProperties = () => {
                 if (filters.max_price.trim())
                     queryParams.append("max_price", filters.max_price.trim());
 
-                const url = `https://www.realvistamanagement.com/market/search-property/?${queryParams.toString()}`;
+                const url = `/api/market/?${queryParams.toString()}`;
 
-                const response = await fetch(url, {
-                    method: "GET",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Token ${token}`,
-                    },
-                });
+                const response = await api.get(url);
 
-                if (!response.ok) throw new Error("Failed to fetch properties");
-
-                const data = await response.json();
+                const data = response.data;
                 const results = Array.isArray(data.results) ? data.results : data;
 
                 setProperties(results);

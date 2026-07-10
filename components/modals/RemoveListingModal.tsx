@@ -15,17 +15,20 @@ import {
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { type MarketplaceListing } from '@/data/marketplaceListings';
 
 type RemoveListingModalProps = {
     visible: boolean;
     listingId: string | null;
+    listingSlug?: string | null;
     onClose: () => void;
 };
 
 export default function RemoveListingModal({
     visible,
     listingId,
+    listingSlug,
     onClose,
 }: RemoveListingModalProps) {
     const colorScheme = useColorScheme();
@@ -117,57 +120,26 @@ export default function RemoveListingModal({
 
         try {
             setIsLoading(true);
-            const token = await AsyncStorage.getItem('authToken');
-            if (!token) {
-                Alert.alert('Error', 'Authentication token is missing.');
-                return;
-            }
 
-            // ✅ Extract numeric ID (ensure it's a number)
-            const numericId = parseInt(
-                (typeof listingId === 'string' && listingId.startsWith('backend_'))
-                    ? listingId.replace('backend_', '')
-                    : String(listingId),
-                10
-            );
-
-            if (isNaN(numericId)) {
-                Alert.alert('Error', 'Invalid backend property ID.');
+            if (!listingSlug) {
+                Alert.alert('Error', 'Unable to determine property slug.');
                 return;
             }
 
             // ✅ Perform DELETE request
-            const response = await fetch(
-                `https://www.realvistamanagement.com/market/delete-property/${numericId}/`,
-                {
-                    method: 'DELETE',
-                    headers: {
-                        'Authorization': `Token ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                }
-            );
+            await api.delete(`/api/market/${listingSlug}/`);
 
-            // ✅ Handle response properly
-            if (response.ok) {
-                Alert.alert('✅ Success', 'Property deleted successfully.', [
-                    { text: 'OK', onPress: onClose },
-                ]);
-            } else {
-                let errorText = '';
-                try {
-                    const data = await response.json();
-                    errorText = data?.error || data?.detail || JSON.stringify(data);
-                } catch {
-                    errorText = await response.text();
-                }
+            Alert.alert('✅ Success', 'Property deleted successfully.', [
+                { text: 'OK', onPress: onClose },
+            ]);
+        } catch (error: any) {
+            const errorText =
+                error.response?.data?.error ||
+                error.response?.data?.detail ||
+                (error.response?.data ? JSON.stringify(error.response.data) : null);
 
-                console.log('❌ Backend delete failed:', errorText);
-                Alert.alert('Error', errorText || 'Failed to delete property.');
-            }
-        } catch (error) {
-            console.error('❌ Error deleting backend property:', error);
-            Alert.alert('Error', 'An unexpected error occurred while deleting the property.');
+            console.log('❌ Backend delete failed:', errorText || error.message);
+            Alert.alert('Error', errorText || 'Failed to delete property.');
         } finally {
             setIsLoading(false);
         }

@@ -277,42 +277,7 @@ const PropertiesList: React.FC = () => {
 
   // ---------------- EMPTY STATE ----------------
   if (!allProperties.length) {
-    return (
-      <View
-        style={[
-          styles.container,
-          { backgroundColor: colors.background.primary },
-        ]}
-      >
-        <View style={styles.emptyStateContainer}>
-          <View style={styles.emptyIconContainer}>
-            <Ionicons name="home-outline" size={48} color={BRAND} />
-          </View>
-          <Text style={[styles.emptyTitle, { color: colors.text.primary }]}>
-            No Properties Yet
-          </Text>
-          <Text
-            style={[styles.emptySubtitle, { color: colors.text.secondary }]}
-          >
-            Add your first property to start tracking
-          </Text>
-          <TouchableOpacity
-            style={styles.addPropertyButton}
-            onPress={() => router.push('/(manage)' as any)}
-          >
-            <LinearGradient
-              colors={[BRAND, BRAND_DARK]}
-              style={styles.addPropertyGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              <Ionicons name="add-circle-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.addPropertyText}>Add Property</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
+    return null;
   }
 
   // ---------------- UI ----------------
@@ -321,32 +286,22 @@ const PropertiesList: React.FC = () => {
       style={[styles.container, { backgroundColor: colors.background.primary }]}
     >
       {/* Header Section */}
-      <View style={styles.header}>
-        <View>
-          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
-            Your Properties
-          </Text>
-          <Text
-            style={[styles.sectionSubtitle, { color: colors.text.secondary }]}
-          >
-            Total {allProperties.length}{' '}
-            {allProperties.length === 1 ? 'property' : 'properties'}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.seeAllButton}
-          onPress={() => router.push('/(app)/(tabs)/properties' as any)}
-        >
-          <Text style={[styles.viewAll, { color: BRAND }]}>See All</Text>
-          <Ionicons name="arrow-forward" size={14} color={BRAND} />
-        </TouchableOpacity>
-      </View>
 
       {/* Recent Properties Section */}
       <View style={styles.recentSection}>
-        <Text style={[styles.recentTitle, { color: colors.text.secondary }]}>
-          Recent Properties
-        </Text>
+        <View style={styles.header}>
+          <Text style={[styles.recentTitle, { color: colors.text.secondary }]}>
+            Recent Properties
+          </Text>
+          <TouchableOpacity
+            style={styles.seeAllButton}
+            onPress={() => router.push('/(app)/(tabs)/properties' as any)}
+          >
+            <Text style={[styles.viewAll, { color: BRAND }]}>See All</Text>
+            <Ionicons name="arrow-forward" size={14} color={BRAND} />
+          </TouchableOpacity>
+        </View>
+
         {properties.map((property, index) => (
           <PropertyCard
             key={property.id}

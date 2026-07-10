@@ -1,37 +1,85 @@
-// lib/apiClient.ts
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import { tokenStore } from './tokenStore';
 
-export const BASE_URL = 'https://www.realvistamanagement.com/';
+export const BASE_URL =
+  process.env.EXPO_PUBLIC_API_URL ?? 'https://api.realvistaproperties.com';
 
-const apiClient = axios.create({
+console.log('[apiClient] BASE_URL =', BASE_URL);
+
+const WS_BASE = (
+  process.env.EXPO_PUBLIC_API_URL ?? 'https://api.realvistaproperties.com'
+).replace(/^http/, 'ws');
+
+const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
-  timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  },
+  timeout: 30000,
+  headers: { 'Content-Type': 'application/json' },
 });
 
-let authToken: string | null = null;
+api.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+  const token = await tokenStore.get();
+  if (token && config.headers) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
 
-export const setAuthToken = (token: string | null) => {
-  authToken = token;
-};
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
 
-apiClient.interceptors.request.use(
-  async (config) => {
-    if (!authToken) {
-      authToken = await AsyncStorage.getItem('authToken');
+    // Never retry refresh endpoint itself or already-retried requests
+    if (
+      originalRequest?.url?.includes('/api/auth/refresh/') ||
+      originalRequest?._retry
+    ) {
+      await tokenStore.clear();
+      await tokenStore.clearRefresh();
+      return Promise.reject(error);
     }
 
-    if (authToken) {
-      config.headers.Authorization = `Token ${authToken}`;
+    if (error.response?.status === 401) {
+      console.log('[apiClient] 401 on:', error.config?.url);
+      originalRequest._retry = true;
+
+      const refreshToken = await tokenStore.getRefresh();
+      if (!refreshToken) {
+        // No refresh token — user needs to log in
+        await tokenStore.clear();
+        return Promise.reject(error);
+      }
+
+      try {
+        const { data } = await api.post('/api/auth/refresh/', {
+          refresh: refreshToken,
+        });
+        await tokenStore.set(data.access);
+        originalRequest.headers['Authorization'] = `Bearer ${data.access}`;
+        return api(originalRequest);
+      } catch {
+        await tokenStore.clear();
+        await tokenStore.clearRefresh();
+        return Promise.reject(error);
+      }
     }
 
-    return config;
+    return Promise.reject(error);
   },
-  (error) => Promise.reject(error),
 );
 
-export default apiClient;
+export default api;
+
+export async function uploadFile(
+  path: string,
+  formData: FormData,
+): Promise<any> {
+  const token = await tokenStore.get();
+  const response = await fetch(`${BASE_URL}/${path.replace(/^\//, '')}`, {
+    method: 'POST',
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (!response.ok) throw new Error(`Upload failed: ${response.status}`);
+  return response.json();
+}

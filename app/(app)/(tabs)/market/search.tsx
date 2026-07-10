@@ -70,14 +70,7 @@ export default function Search() {
     };
 
     const renderPropertyCard = ({ item }: { item: PropertySearchResult }) => {
-        // Convert preview_images from string[] to { image: string }[]
-        const mappedProperty = {
-            ...item,
-            preview_images: Array.isArray(item.preview_images)
-                ? item.preview_images.map((img: string) => ({ image: img }))
-                : [],
-        };
-        return <PropertySearchCard property={mappedProperty} />;
+        return <PropertySearchCard property={item} />;
     };
 
     const renderFooter = () => {

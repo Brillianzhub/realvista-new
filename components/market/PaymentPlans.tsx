@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View, ActivityIndicator, FlatList } from 'react-native';
 import React, { useEffect, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { formatCurrency } from '@/utils/general/formatCurrency';
 
 interface PaymentPlan {
@@ -21,30 +21,8 @@ const PaymentPlans: React.FC<PaymentPlansProps> = ({ actual_price, currency }) =
     useEffect(() => {
         const fetchPaymentPlans = async () => {
             try {
-                const token = await AsyncStorage.getItem('authToken'); // Retrieve token
-
-                if (!token) {
-                    console.error('No authentication token found');
-                    return;
-                }
-
-                const response = await fetch(
-                    'https://realvistamanagement.com/purchases/payment-plans/',
-                    {
-                        method: 'GET',
-                        headers: {
-                            Authorization: `Token ${token}`,
-                            'Content-Type': 'application/json',
-                        },
-                    }
-                );
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
-                }
-
-                const data: PaymentPlan[] = await response.json();
-                setPaymentPlans(data);
+                const response = await api.get<PaymentPlan[]>('/api/subscriptions/plans/');
+                setPaymentPlans(response.data);
             } catch (error) {
                 console.error('Error fetching payment plans:', error);
             } finally {

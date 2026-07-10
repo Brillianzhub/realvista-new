@@ -1,48 +1,26 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
+import api from '@/lib/apiClient';
 
 interface UseUpdateListingReturn {
-    updateListing: (values: any) => Promise<any>;
+    updateListing: (slug: string, values: any) => Promise<any>;
     isUpdating: boolean;
 }
 
 export default function useUpdateListing(): UseUpdateListingReturn {
     const [isUpdating, setIsUpdating] = useState(false);
 
-    const updateListing = async (values: any): Promise<any> => {
+    const updateListing = async (slug: string, values: any): Promise<any> => {
         setIsUpdating(true);
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
-            if (!token) {
-                Alert.alert('Error', 'Authentication token required!');
-                throw new Error('Missing authentication token');
-            }
-
-            // 🧩 Extract backend numeric ID if prefixed with "backend_"
-            let backendId = values.id;
-            if (typeof backendId === 'string' && backendId.startsWith('backend_')) {
-                backendId = Number(backendId.replace('backend_', ''));
-            }
-
-            const payload = {
-                ...values,
-                property_id: backendId, // send the pure backend ID to server
-            };
+            const { id, ...payload } = values;
 
             console.log(`payload: ${JSON.stringify(payload, null, 2)}`)
 
-            const response = await axios.put(
-                'https://www.realvistamanagement.com/market/update-property/',
-                payload,
-                {
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Token ${token}`,
-                    },
-                }
+            const response = await api.patch(
+                `/api/market/${slug}/`,
+                payload
             );
 
             if (response.status === 200) {

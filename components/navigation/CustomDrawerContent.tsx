@@ -15,14 +15,12 @@ import {
   UserIcon,
   UserPen,
   GlobeLock,
-  NotepadText,
   Handshake,
   Save,
   Settings,
   CircleHelp as HelpCircle,
   Briefcase,
   FileQuestion,
-  Calculator,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/context/GlobalProvider';
@@ -38,18 +36,17 @@ interface DrawerItem {
 }
 
 export default function CustomDrawerContent(
-  props: DrawerContentComponentProps
+  props: DrawerContentComponentProps,
 ) {
   const { user } = useGlobalContext();
   const [showHelpModal, setShowHelpModal] = useState(false);
 
   const name = user?.name || user?.first_name || 'Unnamed User';
-  const email = user?.email || user?.agent?.user || 'No email';
-  const avatarUrl =
-    user?.profile?.avatar ||
-    user?.agent?.avatar ||
-    'https://via.placeholder.com/150';
-  const agencyName = user?.agent?.agency_name || null;
+  const email = user?.email || 'No email';
+  const avatarUrl = user?.profile?.avatar_url || 'https://via.placeholder.com/150';
+  // Agent business details (e.g. agency name) aren't returned by MeSerializer —
+  // only is_agent/agent_id are available. No substitute data source exists yet.
+  const agencyName = null;
 
   const handleHelpSupportPress = () => {
     props.navigation.closeDrawer();
@@ -73,18 +70,7 @@ export default function CustomDrawerContent(
       icon: Save,
       onPress: () => router.push('/(app)/(favorites)'),
     },
-    {
-      id: '3',
-      title: 'Property Management',
-      icon: NotepadText,
-      onPress: () => router.push('/(app)/(services)'),
-    },
-    {
-      id: '4',
-      title: 'Property Estimator',
-      icon: Calculator,
-      onPress: () => router.push('/(app)/(estimator)'),
-    },
+
     {
       id: '5',
       title: 'Manage Portfolio',

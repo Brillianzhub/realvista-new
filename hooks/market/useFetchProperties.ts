@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/lib/apiClient";
 
 // Define a type for a Property (adjust based on API response)
 interface Property {
     id: number;
+    slug: string;
     title: string;
     description: string;
     city: string;
@@ -50,19 +50,7 @@ const useFetchProperties = (): UseFetchPropertiesResult => {
         setError(null);
 
         try {
-            const token = await AsyncStorage.getItem("authToken");
-            if (!token) {
-                throw new Error("Authentication token not found!");
-            }
-
-            const url =
-                "https://www.realvistamanagement.com/market/fetch-listed-properties";
-
-            const response = await axios.get(url, {
-                headers: {
-                    Authorization: `Token ${token}`,
-                    "Content-Type": "application/json",
-                },
+            const response = await api.get("/api/market/", {
                 params: {
                     description: filters.description,
                     city: filters.city,

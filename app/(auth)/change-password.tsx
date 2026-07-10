@@ -12,7 +12,7 @@ import {
     useColorScheme,
     ActivityIndicator,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -97,29 +97,11 @@ const ChangePassword: React.FC = () => {
         setIsSubmitting(true);
 
         try {
-            const token = await AsyncStorage.getItem('authToken');
-            if (!token) {
-                Alert.alert('Error', 'Authentication token not found.');
-                return;
-            }
-
-            const response = await fetch('https://www.realvistamanagement.com/accounts/change-password/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Token ${token}`,
-                },
-                body: JSON.stringify({
-                    old_password: oldPassword,
-                    new_password: newPassword,
-                    confirm_password: confirmNewPassword,
-                }),
+            await api.post('/api/auth/change-password/', {
+                old_password: oldPassword,
+                new_password: newPassword,
+                confirm_password: confirmNewPassword,
             });
-
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error((data as { error?: string }).error || 'Failed to change password.');
-            }
 
             Alert.alert('Success', 'Your password has been changed successfully.', [
                 {
@@ -132,7 +114,7 @@ const ChangePassword: React.FC = () => {
             setNewPassword('');
             setConfirmNewPassword('');
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Something went wrong. Please try again.');
+            Alert.alert('Error', error.response?.data?.error || error.message || 'Something went wrong. Please try again.');
         } finally {
             setIsSubmitting(false);
         }

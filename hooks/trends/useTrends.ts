@@ -35,7 +35,7 @@ export default function useTrends() {
       setError(null);
       setLoading(true);
 
-      const response = await apiClient.get<ApiResponse>('/trends/reports/');
+      const response = await apiClient.get<ApiResponse>('/api/trends/reports/');
 
       setPosts(response.data.results || []);
       setNextUrl(response.data.next);
@@ -77,7 +77,7 @@ export default function useTrends() {
   // ---------------- VIEW COUNT ----------------
   const incrementViews = useCallback(async (slug: string) => {
     try {
-      await apiClient.post(`/trends/reports/${slug}/increment-views/`);
+      await apiClient.post(`/api/trends/reports/${slug}/increment-views/`);
     } catch {
       // silent fail
     }

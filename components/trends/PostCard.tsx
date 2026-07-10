@@ -8,6 +8,7 @@ import {
   useColorScheme,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/context/ThemeContext';
 
 type PostCardProps = {
   id: string;
@@ -33,6 +34,8 @@ export default function PostCard({
 }: PostCardProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+
+  const { colors } = useTheme();
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
@@ -71,14 +74,22 @@ export default function PostCard({
         </View>
       )}
 
-      <View style={styles.content}>
+      <View
+        style={[
+          styles.content,
+          { backgroundColor: colors.background.secondary },
+        ]}
+      >
         {/* Category pill */}
         {category && (
           <View
-            style={[styles.categoryPill, isDark && styles.categoryPillDark]}
+            style={[
+              styles.categoryPill,
+              { backgroundColor: colors.background.primary },
+            ]}
           >
             <Text
-              style={[styles.categoryText, isDark && styles.categoryTextDark]}
+              style={[styles.categoryText, { color: colors.text.secondary }]}
             >
               {category}
             </Text>
@@ -87,7 +98,7 @@ export default function PostCard({
 
         {/* Title */}
         <Text
-          style={[styles.title, isDark && styles.titleDark]}
+          style={[styles.title, { color: colors.text.secondary }]}
           numberOfLines={2}
         >
           {title}
@@ -95,7 +106,7 @@ export default function PostCard({
 
         {/* Excerpt */}
         <Text
-          style={[styles.excerpt, isDark && styles.excerptDark]}
+          style={[styles.excerpt, { color: colors.text.secondary }]}
           numberOfLines={3}
         >
           {excerpt}
@@ -107,9 +118,9 @@ export default function PostCard({
             <Ionicons
               name="time-outline"
               size={13}
-              color={isDark ? '#6AABAB' : '#5A8A8A'}
+              color={colors.text.secondary}
             />
-            <Text style={[styles.dateText, isDark && styles.dateTextDark]}>
+            <Text style={[styles.dateText, { color: colors.text.secondary }]}>
               {formatDate(publishedDate)}
             </Text>
           </View>
@@ -173,48 +184,32 @@ const styles = StyleSheet.create({
   // ── Category pill ─────────────────────────────────────────────────────────
   categoryPill: {
     alignSelf: 'flex-start',
-    backgroundColor: '#DAEEF0',
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 20,
     marginBottom: 10,
   },
-  categoryPillDark: {
-    backgroundColor: '#1A3535',
-  },
   categoryText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#2A6F6F',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  categoryTextDark: {
-    color: '#7ABFBF',
   },
 
   // ── Title ─────────────────────────────────────────────────────────────────
   title: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#0D2626',
     marginBottom: 8,
     lineHeight: 22,
     letterSpacing: -0.1,
-  },
-  titleDark: {
-    color: '#E8F5F5',
   },
 
   // ── Excerpt ───────────────────────────────────────────────────────────────
   excerpt: {
     fontSize: 13,
-    color: '#5A8A8A',
     lineHeight: 19,
     marginBottom: 14,
-  },
-  excerptDark: {
-    color: '#6AABAB',
   },
 
   // ── Footer ────────────────────────────────────────────────────────────────

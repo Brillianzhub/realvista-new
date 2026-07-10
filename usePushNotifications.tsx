@@ -4,10 +4,7 @@ import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { setupNotificationChannels } from './notificationChannels';
 import { useGlobalContext } from './context/GlobalProvider';
-
-const API_BASE_URL = 'https://www.realvistamanagement.com/notifications';
-const UNREGISTER_URL = 'https://www.brillianzhub.com/notifications/unregister-token/';
-
+import api from './lib/apiClient';
 
 export interface PushNotificationState {
     expoPushToken?: Notifications.ExpoPushToken;
@@ -86,11 +83,7 @@ export const usePushNotifications = (): PushNotificationState => {
             await setupNotificationChannels();
 
             // Send the token to the backend
-            await fetch(`${API_BASE_URL}/register-token/`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: token.data, user_id: userId }),
-            });
+            await api.post('/api/notifications/register-token/', { token: token.data, user_id: userId });
 
             return token;
         } catch (error) {
@@ -106,13 +99,7 @@ export const usePushNotifications = (): PushNotificationState => {
     const disableNotifications = async () => {
         try {
             if (expoPushToken) {
-                await fetch(UNREGISTER_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ token: expoPushToken.data }),
-                });
+                await api.post('/api/notifications/unregister-token/', { token: expoPushToken.data });
             }
 
             setExpoPushToken(undefined);

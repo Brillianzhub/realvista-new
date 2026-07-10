@@ -15,6 +15,7 @@ import Svg, {
   Rect,
   Line,
   Text as SvgText,
+  TSpan,
   G,
   Circle,
   Path,
@@ -85,7 +86,10 @@ const PeriodSelector = ({
   <View
     style={[
       styles.periodRow,
-      { backgroundColor: colors.background.tertiary },
+      {
+        backgroundColor:
+          colors.background.tertiary || colors.background.secondary,
+      },
       isDark && styles.periodRowDark,
     ]}
   >
@@ -138,7 +142,7 @@ const KPICard = ({
         styles.kpiCard,
         {
           backgroundColor: colors.background.secondary,
-          borderColor: colors.border.default,
+          borderColor: colors.border?.default || colors.border,
         },
         isDark && styles.kpiCardDark,
       ]}
@@ -157,25 +161,25 @@ const KPICard = ({
 };
 
 // ── Bar chart ─────────────────────────────────────────────────────────────────
-const BAR_CHART_H = 140;
-const BAR_CHART_W = SCREEN_W - H_PAD * 2;
-const BAR_LEFT_PAD = 46;
-const BAR_BOTTOM_PAD = 22;
-const BAR_PLOT_W = BAR_CHART_W - BAR_LEFT_PAD - 8;
-const BAR_PLOT_H = BAR_CHART_H - BAR_BOTTOM_PAD - 8;
-
 const BarChart = ({
   data,
   currency,
   isDark,
-  colors,
+  containerWidth,
 }: {
   data: MonthlyIncomePoint[];
   currency: string;
   isDark: boolean;
-  colors: any;
+  containerWidth: number;
 }) => {
   if (!data.length) return null;
+
+  const BAR_CHART_H = 140;
+  const BAR_CHART_W = containerWidth - 32; // Subtract section padding (16px on each side)
+  const BAR_LEFT_PAD = 46;
+  const BAR_BOTTOM_PAD = 22;
+  const BAR_PLOT_W = BAR_CHART_W - BAR_LEFT_PAD - 8;
+  const BAR_PLOT_H = BAR_CHART_H - BAR_BOTTOM_PAD - 8;
 
   const allVals = data.flatMap((d) => [
     parseFloat(d.rental),
@@ -341,23 +345,35 @@ const DonutChart = ({
           {/* Centre label - Fixed positioning to prevent overlap */}
           <SvgText
             x={DONUT_CX}
-            y={DONUT_CY - 8}
-            fontSize="10"
-            fontWeight="600"
-            fill={isDark ? BRAND_LIGHTER : BRAND}
+            y={DONUT_CY - 10} // start a bit higher
             textAnchor="middle"
           >
-            {mix.reduce((s, m) => s + m.count, 0)} props
-          </SvgText>
-          <SvgText
-            x={DONUT_CX}
-            y={DONUT_CY + 8}
-            fontSize="12"
-            fontWeight="700"
-            fill={isDark ? '#E8F5F5' : BRAND_DARK}
-            textAnchor="middle"
-          >
-            {fmt(totalValue, currency, true)}
+            {/* COUNT */}
+            <TSpan
+              x={DONUT_CX}
+              dy="0"
+              fontSize="12"
+              fontWeight="700"
+              fill={isDark ? BRAND_LIGHTER : BRAND}
+            >
+              {mix.reduce((s, m) => s + m.count, 0)}
+            </TSpan>
+
+            {/* LABEL */}
+            <TSpan x={DONUT_CX} dy="12" fontSize="9" fill="#8E8E93">
+              props
+            </TSpan>
+
+            {/* VALUE */}
+            <TSpan
+              x={DONUT_CX}
+              dy="14"
+              fontSize="11"
+              fontWeight="700"
+              fill={isDark ? '#E8F5F5' : BRAND_DARK}
+            >
+              {fmt(totalValue, currency, true)}
+            </TSpan>
           </SvgText>
         </Svg>
       </View>
@@ -382,7 +398,7 @@ const DonutChart = ({
             <View
               style={[
                 styles.progressTrack,
-                { backgroundColor: colors.progressTrack },
+                { backgroundColor: colors.background.tertiary || '#E8F0F0' },
                 isDark && styles.progressTrackDark,
               ]}
             >
@@ -418,7 +434,10 @@ const PerformanceTable = ({
   <View>
     {/* Header */}
     <View
-      style={[styles.tableHeader, { borderBottomColor: colors.border.default }]}
+      style={[
+        styles.tableHeader,
+        { borderBottomColor: colors.border?.default || colors.border },
+      ]}
     >
       <Text
         style={[
@@ -459,10 +478,9 @@ const PerformanceTable = ({
             styles.tableRow,
             isDark && styles.tableRowDark,
             i < data.length - 1 && styles.tableRowBorder,
-            i < data.length - 1 &&
-              (isDark
-                ? styles.tableRowBorderDark
-                : { borderBottomColor: colors.border.default }),
+            i < data.length - 1 && {
+              borderBottomColor: colors.border?.default || colors.border,
+            },
           ]}
         >
           <View style={{ flex: 2 }}>
@@ -509,19 +527,22 @@ const Section = ({
   children,
   isDark,
   colors,
+  onLayout,
 }: {
   title: string;
   right?: React.ReactNode;
   children: React.ReactNode;
   isDark: boolean;
   colors: any;
+  onLayout?: (event: any) => void;
 }) => (
   <View
+    onLayout={onLayout}
     style={[
       styles.section,
       {
         backgroundColor: colors.background.secondary,
-        borderColor: colors.border.default,
+        borderColor: colors.border?.default || colors.border,
       },
     ]}
   >
@@ -557,6 +578,7 @@ const Skeleton = ({ isDark, colors }: { isDark: boolean; colors: any }) => (
 // ── Main screen ───────────────────────────────────────────────────────────────
 export default function AnalyticsScreen() {
   const isDark = useColorScheme() === 'dark';
+  const [sectionWidth, setSectionWidth] = React.useState(SCREEN_W - H_PAD * 2);
 
   const { colors } = useTheme();
   const { data, loading, error, period, setPeriod, refetch } =
@@ -571,8 +593,8 @@ export default function AnalyticsScreen() {
           style={[
             styles.topBar,
             {
-              backgroundColor: colors.background.secondary,
-              borderBottomColor: colors.border.subtle,
+              backgroundColor: colors.background.primary,
+              borderBottomColor: colors.border?.default || colors.border,
             },
             isDark && styles.topBarDark,
           ]}
@@ -636,7 +658,7 @@ export default function AnalyticsScreen() {
           styles.topBar,
           {
             backgroundColor: colors.background.primary,
-            borderBottomColor: colors.border.subtle,
+            borderBottomColor: colors.border?.default || colors.border,
           },
           isDark && styles.topBarDark,
         ]}
@@ -709,6 +731,10 @@ export default function AnalyticsScreen() {
           title="Monthly income"
           isDark={isDark}
           colors={colors}
+          onLayout={(event) => {
+            const { width } = event.nativeEvent.layout;
+            setSectionWidth(width);
+          }}
           right={
             <View style={styles.legendRow}>
               <View style={[styles.legendDot, { backgroundColor: BRAND }]} />
@@ -732,7 +758,7 @@ export default function AnalyticsScreen() {
             data={monthly_income_chart}
             currency={currency}
             isDark={isDark}
-            colors={colors}
+            containerWidth={sectionWidth}
           />
         </Section>
 

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
-import axios from "axios";
+import api from "@/lib/apiClient";
 
 export interface Listing {
     id: number;
+    slug: string;
     title: string;
     city: string;
     state: string;
@@ -14,7 +15,7 @@ export interface Listing {
 }
 
 export const useAgentListings = () => {
-    const BASE_URL = "https://www.realvistamanagement.com/market/fetch-listing/";
+    const BASE_URL = "/api/market/";
 
     const [properties, setProperties] = useState<Listing[]>([]);
     const [loading, setLoading] = useState(false);
@@ -29,7 +30,7 @@ export const useAgentListings = () => {
             setLoading(true);
 
             try {
-                const res = await axios.get(url);
+                const res = await api.get(url);
                 const data = res.data;
 
                 const listings: Listing[] = data.results || data;

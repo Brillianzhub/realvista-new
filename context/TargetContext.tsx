@@ -5,8 +5,8 @@ import React, {
     useEffect,
     ReactNode,
 } from "react";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import api from "@/lib/apiClient";
+import { tokenStore } from '@/lib/tokenStore';
 
 // Define the shape of a Target (based on your API response)
 export interface Target {
@@ -50,20 +50,8 @@ export const TargetProvider: React.FC<TargetProviderProps> = ({ children }) => {
     const fetchTargets = async () => {
         setLoading(true);
         try {
-            const token = await AsyncStorage.getItem("authToken");
-            if (!token) {
-                console.error("No authentication token found.");
-                return;
-            }
-
-            const response = await axios.get<Target[]>(
-                "https://www.realvistamanagement.com/analyser/financial-targets/",
-                {
-                    headers: {
-                        Authorization: `Token ${token}`,
-                        "Content-Type": "application/json",
-                    },
-                }
+            const response = await api.get<Target[]>(
+                "/api/analyser/financial-targets/"
             );
 
             setTargets(response.data);
@@ -84,7 +72,12 @@ export const TargetProvider: React.FC<TargetProviderProps> = ({ children }) => {
     };
 
     useEffect(() => {
-        fetchTargets();
+        const run = async () => {
+            const token = await tokenStore.get();
+            if (!token) return;
+            fetchTargets();
+        };
+        run();
     }, []);
 
     return (

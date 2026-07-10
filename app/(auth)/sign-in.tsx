@@ -15,6 +15,9 @@ import {
 } from 'react-native';
 import { useGlobalContext } from '@/context/GlobalProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { tokenStore } from '@/lib/tokenStore';
+import api from '@/lib/apiClient';
+import { hydrateUser } from '@/lib/userHydration';
 import { ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import FingerprintAuth from '@/components/auth/FingerprintAuth';
@@ -44,55 +47,26 @@ interface FormData {
   password: string;
 }
 
-interface UserData {
-  id: number;
-  email: string;
-  is_email_verified: boolean;
-  name: string;
-  first_name: string;
-  auth_provider: string;
-  is_active: boolean;
-  is_staff: boolean;
-  date_joined: string;
-  profile: any;
-  subscription: any;
-  referral_code: string;
-  referrer: any;
-  referred_users_count: number;
-  total_referral_earnings: string;
-  preference: any;
-  groups: any[];
-}
-
+// Matches accounts._user_payload() — flat user fields + access/refresh (+ legacy `token`).
+// When the account isn't email-verified yet, login_view returns a smaller shape
+// with no tokens: { success: false, is_email_verified: false, id, message }.
 interface SignInResult {
-  is_email_verified: any;
-  token: string;
   id: number;
-  email: string;
-  name: string;
-  first_name: string;
-  auth_provider: string;
-  is_active: boolean;
-  is_staff: boolean;
-  date_joined: string;
-  profile: any;
-  subscription: any;
-  referral_code: string;
-  referrer: any;
-  referred_users_count: number;
-  total_referral_earnings: string;
-  preference: any;
-  groups: any[];
-}
-
-interface TokenData {
-  token: string;
-}
-
-interface GlobalContextType {
-  setUser: (user: any) => void;
-  isLogged: boolean;
-  setIsLogged: (isLogged: boolean) => void;
+  email?: string;
+  name?: string;
+  first_name?: string;
+  auth_provider?: string;
+  is_active?: boolean;
+  is_staff?: boolean;
+  is_agent?: boolean;
+  is_email_verified: boolean;
+  date_joined?: string;
+  profile?: any;
+  referral_code?: string;
+  preference?: any;
+  access?: string;
+  refresh?: string;
+  message?: string;
 }
 
 const { googleWebClientId, googleIosClientId } =
@@ -104,70 +78,31 @@ const signIn = async (
   password: string,
 ): Promise<SignInResult | null> => {
   try {
-    const response = await fetch(
-      'https://www.realvistamanagement.com/accounts/signin/',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      },
-    );
+    // /api/auth/login/ returns a partial user payload (id, name, email, ...)
+    // together with access/refresh in one response. The caller still follows
+    // up with hydrateUser() (GET /api/users/me/) once tokens are stored, since
+    // this response is missing several MeSerializer fields. If the account
+    // isn't verified yet, it instead returns
+    // { success: false, is_email_verified: false, id, message } with no tokens.
+    const response = await api.post('/api/auth/login/', { email, password });
+    const result: SignInResult = response.data;
 
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to sign in');
+    if (result.access) {
+      await tokenStore.set(result.access);
+      if (result.refresh) {
+        await tokenStore.setRefresh(result.refresh);
+      }
     }
 
-    // get token
-    const tokenResponse = await fetch(
-      'https://www.realvistamanagement.com/portfolio/api-token-auth/',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          username: email,
-          password: password,
-        }),
-      },
-    );
-
-    const tokenData: TokenData = await tokenResponse.json();
-    if (!tokenData.token) {
-      throw new Error('Authentication token not provided');
-    }
-
-    await AsyncStorage.setItem('authToken', tokenData.token);
-
-    // fetch user
-    const userResponse = await fetch(
-      'https://www.realvistamanagement.com/accounts/current-user/',
-      {
-        headers: {
-          Authorization: `Token ${tokenData.token}`,
-        },
-      },
-    );
-
-    if (!userResponse.ok) {
-      throw new Error('Failed to fetch user details');
-    }
-
-    const userData: UserData = await userResponse.json();
-
-    return {
-      token: tokenData.token,
-      ...userData,
-      is_email_verified: userData.is_email_verified || false,
-    };
+    return result;
   } catch (error: any) {
-    Alert.alert('Sign-In Error', error.message);
+    Alert.alert('Sign-In Error', error.response?.data?.error || error.message);
     return null;
   }
 };
 
 const SignIn: React.FC = () => {
-  const { user, setUser, isLogged, setIsLogged } =
-    useGlobalContext() as GlobalContextType & { user: UserData | null };
+  const { user, setUser, isLogged, setIsLogged } = useGlobalContext();
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -257,25 +192,7 @@ const SignIn: React.FC = () => {
   useEffect(() => {
     if (!isLogged || !user) return;
 
-    if (!user.is_email_verified) {
-      router.replace('/verify-email');
-
-      const resendOnce = async () => {
-        const alreadyResent = await AsyncStorage.getItem('verificationResent');
-
-        if (alreadyResent) return;
-
-        fetch('https://www.realvistamanagement.com/accounts/resend_token/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: user.email }),
-        }).catch(() => {});
-
-        await AsyncStorage.setItem('verificationResent', 'true');
-      };
-
-      resendOnce();
-    } else {
+    if (user.is_email_verified) {
       router.replace('/(app)/(tabs)');
     }
   }, [isLogged, user]);
@@ -296,27 +213,34 @@ const SignIn: React.FC = () => {
       // Save credentials after successful login if rememberMe is true
       await updateSavedCredentialsAfterLogin(form.email, form.password);
 
-      setUser({
-        id: result.id,
-        email: result.email,
-        name: result.name,
-        firstName: result.first_name,
-        authProvider: result.auth_provider,
-        isActive: result.is_active,
-        isStaff: result.is_staff,
-        dateJoined: result.date_joined,
-        profile: result.profile,
-        preference: result.preference,
-        subscription: result.subscription,
-        referral_code: result.referral_code,
-        referrer: result.referrer,
-        referred_users_count: result.referred_users_count,
-        total_referral_earnings: result.total_referral_earnings,
-        groups: result.groups,
-        is_email_verified: result.is_email_verified,
-      });
+      if (!result.is_email_verified) {
+        // No tokens are issued until verification completes, so there's no
+        // authenticated session to hydrate yet — route straight to
+        // verification using what the login response already gave us.
+        const alreadyResent = await AsyncStorage.getItem('verificationResent');
+        if (!alreadyResent) {
+          api
+            .post('/api/auth/resend-verification/', { email: result.email })
+            .catch(() => {});
+          await AsyncStorage.setItem('verificationResent', 'true');
+        }
 
-      setIsLogged(true);
+        router.replace({
+          pathname: '/verify-email',
+          params: { user_id: String(result.id), email: result.email ?? '' },
+        });
+        return;
+      }
+
+      // Tokens are already stored by signIn() — fetch the full, authoritative
+      // user object instead of hand-mapping the login response.
+      const hydratedUser = await hydrateUser();
+      if (hydratedUser) {
+        setUser(hydratedUser);
+        setIsLogged(true);
+      } else {
+        Alert.alert('Error', 'Signed in, but failed to load your account. Please try again.');
+      }
     } catch (error: any) {
       Alert.alert('Error', 'Failed to sign in. Please try again.');
     } finally {

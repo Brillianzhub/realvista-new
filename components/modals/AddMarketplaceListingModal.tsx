@@ -44,6 +44,7 @@ export default function AddMarketplaceListingModal({
   const { properties } = useFetchVendorProperties(user?.email || null);
 
   const { updateListing, isUpdating } = useUpdateListing();
+  const [listingSlug, setListingSlug] = useState<string | null>(null);
 
   const {} = useListingLoader({
     listingId: listingId ?? null,
@@ -51,6 +52,7 @@ export default function AddMarketplaceListingModal({
     onListingLoaded: (listing) => {
       if (listing) {
         setInitialData(listing);
+        setListingSlug(listing.slug ?? null);
       }
     },
   });
@@ -59,7 +61,11 @@ export default function AddMarketplaceListingModal({
     setLoading(true);
     try {
       if (mode === 'update') {
-        await updateListing({ id: listingId, ...formData });
+        if (!listingSlug) {
+          Alert.alert('Error', 'Unable to determine property slug.');
+          return;
+        }
+        await updateListing(listingSlug, formData);
         Alert.alert('Success', 'Listing updated successfully');
         onClose();
         return;

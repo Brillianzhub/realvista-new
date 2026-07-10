@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import api from '@/lib/apiClient';
 import useUserProperties from '@/hooks/portfolio/useUserProperty';
 import { useUpdateCoordinate } from '@/hooks/portfolio/useUpdateCoordinate';
 
@@ -224,41 +224,14 @@ const CoordinateForm: React.FC<CoordinateFormProps> = ({
         setIsSubmitting(true);
 
         try {
-
-            const token = await AsyncStorage.getItem('authToken');
-
-            if (!token) {
-                Alert.alert(
-                    'Authentication Required',
-                    'Authentication token is missing. Please log in again.'
-                );
-                setIsSubmitting(false);
-                return;
-            }
-
-            const response = await fetch(
-                'https://realvistamanagement.com/portfolio/property/coordinates/',
-                {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Token ${token}`,
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload),
-                }
-            );
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || 'Something went wrong. Please try again.');
-            }
+            await api.post(`/api/portfolio/${selectedPropertyId}/coordinates/`, payload);
 
             Alert.alert('Success', 'Coordinates saved successfully!');
             clearCoordinate();
             if (onSubmit) onSubmit(payload);
         } catch (error: any) {
             console.error('Submission error:', error);
-            Alert.alert('Error', error.message || 'Something went wrong. Please try again.');
+            Alert.alert('Error', error.response?.data?.message || error.message || 'Something went wrong. Please try again.');
         } finally {
             setIsSubmitting(false);
         }
