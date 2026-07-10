@@ -117,3 +117,91 @@ export function useChatSocket(groupId: string | null) {
 
   return { messages, connected, sendMessage };
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// ConversationSocket — 1:1 buyer/agent messaging + WebRTC call signalling
+// ─────────────────────────────────────────────────────────────────────────
+
+const CONVERSATION_WS_BASE =
+  (process.env.EXPO_PUBLIC_API_URL ?? 'https://api.realvistaproperties.com')
+    .replace(/^http/, 'ws');
+
+export type WSMessageType =
+  | 'text' | 'call_offer' | 'call_answer'
+  | 'call_ice' | 'call_end' | 'call_reject';
+
+export type WSFrame = {
+  type: WSMessageType;
+  id?: number;
+  content?: string;
+  sdp?: string;
+  candidate?: RTCIceCandidateInit;
+  sender_id?: number;
+  sender_name?: string;
+  created_at?: string;
+  is_read?: boolean;
+};
+
+type ConversationSocketOptions = {
+  onMessage:  (frame: WSFrame) => void;
+  onOpen?:    () => void;
+  onClose?:   () => void;
+  onError?:   (e: Event) => void;
+};
+
+export class ConversationSocket {
+  private ws:              WebSocket | null = null;
+  private conversationId:  number;
+  private options:         ConversationSocketOptions;
+  private reconnectTimer:  ReturnType<typeof setTimeout> | null = null;
+  private shouldReconnect = true;
+  private token:           string;
+
+  constructor(
+    conversationId: number,
+    token: string,
+    options: ConversationSocketOptions,
+  ) {
+    this.conversationId = conversationId;
+    this.token          = token;
+    this.options        = options;
+  }
+
+  connect(): void {
+    const url =
+      `${CONVERSATION_WS_BASE}/ws/conversations/${this.conversationId}/?token=${this.token}`;
+    this.ws = new WebSocket(url);
+
+    this.ws.onopen    = () => this.options.onOpen?.();
+    this.ws.onmessage = (event) => {
+      try {
+        const frame: WSFrame = JSON.parse(event.data);
+        this.options.onMessage(frame);
+      } catch {
+        console.warn('[ConversationSocket] bad frame', event.data);
+      }
+    };
+    this.ws.onclose = () => {
+      this.options.onClose?.();
+      if (this.shouldReconnect) {
+        this.reconnectTimer = setTimeout(() => this.connect(), 3000);
+      }
+    };
+    this.ws.onerror = (e) => this.options.onError?.(e);
+  }
+
+  send(frame: Omit<WSFrame, 'sender_id'|'sender_name'|'created_at'|'is_read'>): void {
+    if (this.ws?.readyState !== WebSocket.OPEN) {
+      console.warn('[ConversationSocket] not connected');
+      return;
+    }
+    this.ws.send(JSON.stringify(frame));
+  }
+
+  disconnect(): void {
+    this.shouldReconnect = false;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.ws?.close();
+    this.ws = null;
+  }
+}

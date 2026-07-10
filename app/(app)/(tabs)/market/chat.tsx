@@ -1,25 +1,32 @@
-"use client";
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, FlatList,
   KeyboardAvoidingView, Platform, ActivityIndicator,
-  SafeAreaView, StyleSheet,
+  SafeAreaView, StyleSheet, Alert,
 } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { useChatSocket, ChatMessage } from '@/lib/wsClient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useConversation } from '@/hooks/useConversation';
 import { useGlobalContext } from '@/context/GlobalProvider';
 
-const TEAL = '#348b8b';
+const TEAL  = '#348b8b';
 const ORANGE = '#FB902D';
 
 export default function ChatScreen() {
-  const { groupId } = useLocalSearchParams<{ groupId: string }>();
+  const { conversationId } = useLocalSearchParams<{ conversationId: string }>();
+  const router = useRouter();
   const { user } = useGlobalContext();
-  const { messages, connected, sendMessage } = useChatSocket(groupId ?? null);
-  const [input, setInput] = useState('');
-  const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
-  // Scroll to bottom on new message
+  const convId = conversationId ? parseInt(conversationId) : null;
+
+  const {
+    conversation, messages, connected,
+    loading, hasMore, sendMessage, loadMore,
+  } = useConversation(convId);
+
+  const [input, setInput]     = useState('');
+  const flatListRef           = useRef<FlatList>(null);
+
   useEffect(() => {
     if (messages.length > 0) {
       flatListRef.current?.scrollToEnd({ animated: true });
@@ -33,34 +40,40 @@ export default function ChatScreen() {
     setInput('');
   };
 
-  const formatTime = (timestamp: string) => {
+  const fmtTime = (iso: string) => {
     try {
-      return new Date(timestamp).toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
+      return new Date(iso).toLocaleTimeString([], {
+        hour: '2-digit', minute: '2-digit'
       });
-    } catch {
-      return '';
-    }
+    } catch { return ''; }
   };
 
-  const renderMessage = ({ item }: { item: ChatMessage }) => {
-    const isOwn = item.sender === user?.email;
+  const otherUser = conversation?.other_user;
+
+  const renderMessage = ({ item }: { item: any }) => {
+    if (item.message_type !== 'text') return null;
+    const isOwn = item.sender_id === user?.id;
     return (
-      <View style={[styles.bubbleWrapper, isOwn ? styles.ownWrapper : styles.otherWrapper]}>
+      <View style={[
+        styles.bubbleWrapper,
+        isOwn ? styles.ownWrapper : styles.otherWrapper,
+      ]}>
         {!isOwn && (
-          <Text style={styles.senderName}>{item.sender}</Text>
+          <Text style={styles.senderName}>{item.sender_name}</Text>
         )}
-        <View style={[styles.bubble, isOwn ? styles.ownBubble : styles.otherBubble]}>
-          {item.reply_to && (
-            <Text style={styles.replyText}>↩ {item.reply_to}</Text>
-          )}
-          <Text style={[styles.messageText, isOwn && styles.ownMessageText]}>
-            {item.text}
+        <View style={[
+          styles.bubble,
+          isOwn ? styles.ownBubble : styles.otherBubble,
+        ]}>
+          <Text style={[
+            styles.messageText,
+            isOwn && styles.ownMessageText,
+          ]}>
+            {item.content}
           </Text>
         </View>
         <Text style={[styles.timestamp, isOwn && styles.ownTimestamp]}>
-          {formatTime(item.timestamp)}
+          {fmtTime(item.created_at)}
         </Text>
       </View>
     );
@@ -68,52 +81,97 @@ export default function ChatScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Connection status bar */}
-      {!connected && (
-        <View style={styles.connectingBar}>
-          <ActivityIndicator size="small" color="#fff" style={{ marginRight: 8 }} />
-          <Text style={styles.connectingText}>Connecting…</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color="#1f2937" />
+        </TouchableOpacity>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerName} numberOfLines={1}>
+            {otherUser?.name ?? 'Chat'}
+          </Text>
+          {conversation?.listing_title && (
+            <Text style={styles.headerSub} numberOfLines={1}>
+              Re: {conversation.listing_title}
+            </Text>
+          )}
         </View>
+        <View style={styles.connDot}>
+          <View style={[
+            styles.dot,
+            { backgroundColor: connected ? '#16a34a' : '#d1d5db' }
+          ]} />
+        </View>
+      </View>
+
+      {/* Load more */}
+      {hasMore && (
+        <TouchableOpacity style={styles.loadMore} onPress={loadMore}>
+          <Text style={styles.loadMoreText}>Load older messages</Text>
+        </TouchableOpacity>
       )}
 
       {/* Messages */}
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item) => item.message_id}
-        renderItem={renderMessage}
-        contentContainerStyle={styles.messageList}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>
-              {connected ? 'No messages yet. Say hello!' : 'Waiting for connection…'}
-            </Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={styles.loadingCenter}>
+          <ActivityIndicator size="large" color={TEAL} />
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={item => String(item.id)}
+          renderItem={renderMessage}
+          contentContainerStyle={styles.messageList}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
+              <Text style={styles.emptyTitle}>
+                {connected ? 'No messages yet' : 'Connecting...'}
+              </Text>
+              <Text style={styles.emptySub}>
+                {conversation?.listing_title
+                  ? `Ask about ${conversation.listing_title}`
+                  : 'Send a message to get started'}
+              </Text>
+            </View>
+          }
+        />
+      )}
 
-      {/* Input bar */}
+      {/* Input */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={90}>
         <View style={styles.inputBar}>
-          <TextInput
-            style={styles.input}
-            value={input}
-            onChangeText={setInput}
-            placeholder="Type a message…"
-            placeholderTextColor="#9ca3af"
-            multiline
-            maxLength={1000}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!connected || !input.trim()) && styles.sendButtonDisabled]}
-            onPress={handleSend}
-            disabled={!connected || !input.trim()}>
-            <Text style={styles.sendButtonText}>Send</Text>
-          </TouchableOpacity>
+          {!connected && (
+            <View style={styles.reconnecting}>
+              <ActivityIndicator size="small" color={ORANGE} />
+              <Text style={styles.reconnectingText}>Reconnecting...</Text>
+            </View>
+          )}
+          <View style={styles.inputRow}>
+            <TextInput
+              style={styles.input}
+              value={input}
+              onChangeText={setInput}
+              placeholder="Type a message..."
+              placeholderTextColor="#9ca3af"
+              multiline
+              maxLength={2000}
+              returnKeyType="send"
+              onSubmitEditing={handleSend}
+            />
+            <TouchableOpacity
+              style={[
+                styles.sendBtn,
+                (!connected || !input.trim()) && styles.sendBtnDisabled,
+              ]}
+              onPress={handleSend}
+              disabled={!connected || !input.trim()}>
+              <Ionicons name="send" size={18} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -122,26 +180,53 @@ export default function ChatScreen() {
 
 const styles = StyleSheet.create({
   container:        { flex: 1, backgroundColor: '#f9fafb' },
-  connectingBar:    { flexDirection: 'row', alignItems: 'center', backgroundColor: '#d97706', paddingHorizontal: 16, paddingVertical: 8 },
-  connectingText:   { color: '#fff', fontSize: 13, fontWeight: '500' },
+  header:           { flexDirection: 'row', alignItems: 'center',
+                      padding: 16, backgroundColor: 'white',
+                      borderBottomWidth: 1, borderBottomColor: '#F1F3F7' },
+  backBtn:          { padding: 4, marginRight: 8 },
+  headerInfo:       { flex: 1 },
+  headerName:       { fontSize: 15, fontWeight: '600', color: '#1f2937' },
+  headerSub:        { fontSize: 11, color: '#9ca3af', marginTop: 1 },
+  connDot:          { paddingLeft: 8 },
+  dot:              { width: 8, height: 8, borderRadius: 4 },
+  loadMore:         { alignItems: 'center', padding: 10,
+                      backgroundColor: '#f0fdfa' },
+  loadMoreText:     { fontSize: 12, color: TEAL, fontWeight: '500' },
+  loadingCenter:    { flex: 1, alignItems: 'center', justifyContent: 'center' },
   messageList:      { padding: 16, paddingBottom: 8 },
-  emptyState:       { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 60 },
-  emptyText:        { color: '#9ca3af', fontSize: 14 },
+  emptyState:       { alignItems: 'center', paddingTop: 60, gap: 8 },
+  emptyTitle:       { fontSize: 16, fontWeight: '600', color: '#6b7280' },
+  emptySub:         { fontSize: 13, color: '#9ca3af', textAlign: 'center',
+                      paddingHorizontal: 32 },
   bubbleWrapper:    { marginBottom: 12, maxWidth: '80%' },
   ownWrapper:       { alignSelf: 'flex-end', alignItems: 'flex-end' },
   otherWrapper:     { alignSelf: 'flex-start', alignItems: 'flex-start' },
-  senderName:       { fontSize: 11, color: '#6b7280', marginBottom: 3, marginLeft: 4 },
-  bubble:           { borderRadius: 16, paddingHorizontal: 14, paddingVertical: 9 },
+  senderName:       { fontSize: 11, color: '#6b7280', marginBottom: 3,
+                      marginLeft: 4 },
+  bubble:           { borderRadius: 18, paddingHorizontal: 14,
+                      paddingVertical: 10 },
   ownBubble:        { backgroundColor: TEAL, borderBottomRightRadius: 4 },
-  otherBubble:      { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: 1, borderColor: '#F1F3F7' },
-  replyText:        { fontSize: 11, color: '#9ca3af', marginBottom: 4, fontStyle: 'italic' },
+  otherBubble:      { backgroundColor: 'white', borderBottomLeftRadius: 4,
+                      borderWidth: 1, borderColor: '#F1F3F7' },
   messageText:      { fontSize: 15, color: '#1f2937', lineHeight: 21 },
-  ownMessageText:   { color: '#fff' },
-  timestamp:        { fontSize: 10, color: '#9ca3af', marginTop: 3, marginLeft: 4 },
+  ownMessageText:   { color: 'white' },
+  timestamp:        { fontSize: 10, color: '#9ca3af', marginTop: 3,
+                      marginLeft: 4 },
   ownTimestamp:     { marginLeft: 0, marginRight: 4 },
-  inputBar:         { flexDirection: 'row', alignItems: 'flex-end', padding: 12, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#F1F3F7', gap: 8 },
-  input:            { flex: 1, minHeight: 40, maxHeight: 120, borderWidth: 1, borderColor: '#e5e7eb', borderRadius: 20, paddingHorizontal: 16, paddingVertical: 10, fontSize: 15, color: '#1f2937', backgroundColor: '#f9fafb' },
-  sendButton:       { height: 40, paddingHorizontal: 18, borderRadius: 20, backgroundColor: TEAL, justifyContent: 'center', alignItems: 'center' },
-  sendButtonDisabled: { backgroundColor: '#9ca3af' },
-  sendButtonText:   { color: '#fff', fontWeight: '600', fontSize: 14 },
+  inputBar:         { backgroundColor: 'white',
+                      borderTopWidth: 1, borderTopColor: '#F1F3F7' },
+  reconnecting:     { flexDirection: 'row', alignItems: 'center',
+                      justifyContent: 'center', padding: 6, gap: 6 },
+  reconnectingText: { fontSize: 12, color: ORANGE },
+  inputRow:         { flexDirection: 'row', alignItems: 'flex-end',
+                      padding: 12, gap: 8 },
+  input:            { flex: 1, minHeight: 40, maxHeight: 120,
+                      borderWidth: 1, borderColor: '#e5e7eb',
+                      borderRadius: 20, paddingHorizontal: 16,
+                      paddingVertical: 10, fontSize: 15, color: '#1f2937',
+                      backgroundColor: '#f9fafb' },
+  sendBtn:          { width: 42, height: 42, borderRadius: 21,
+                      backgroundColor: TEAL, justifyContent: 'center',
+                      alignItems: 'center' },
+  sendBtnDisabled:  { backgroundColor: '#9ca3af' },
 });

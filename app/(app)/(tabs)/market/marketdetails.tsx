@@ -18,6 +18,7 @@ import { formatCurrency } from '@/utils/general/formatCurrency';
 import MapViewer from '@/components/general/MapViewer';
 import { handleAddBookmark } from '@/utils/market/handleAddBookmarks';
 import { handleRecordInquiry } from '@/utils/market/handleRecordInquiry';
+import { useStartConversation } from '@/hooks/useConversation';
 import { useTheme } from '@/context/ThemeContext';
 
 const screenWidth = Dimensions.get('window').width;
@@ -86,10 +87,23 @@ export default function MarketDetailScreen() {
   const { colors } = useTheme();
 
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const { startConversation, loading: startingConv } = useStartConversation();
 
-  const handleMessageOwner = async (propertySlug: string) => {
-    await handleRecordInquiry(propertySlug);
-    Alert.alert('Coming Soon', 'In-app messaging coming soon!');
+  const handleMessageAgent = async () => {
+    if (!property?.agent_id) {
+      Alert.alert('Unavailable', 'Agent contact not available for this listing.');
+      return;
+    }
+    await handleRecordInquiry(property.slug);
+    const conv = await startConversation(property.agent_id, property.slug);
+    if (conv) {
+      router.push({
+        pathname: '/(app)/(tabs)/market/chat',
+        params: { conversationId: String(conv.id) },
+      });
+    } else {
+      Alert.alert('Error', 'Could not start conversation. Please try again.');
+    }
   };
 
   // 🧭 Set initial bookmark state for this property
@@ -324,11 +338,18 @@ export default function MarketDetailScreen() {
       </View>
       <View style={styles.ctaSection}>
         <TouchableOpacity
-          style={styles.messageButton}
-          onPress={() => handleMessageOwner(property.slug)}
+          style={[styles.messageButton, startingConv && styles.messageButtonDisabled]}
+          onPress={handleMessageAgent}
+          disabled={startingConv}
         >
-          <Ionicons name="chatbubble-outline" size={20} color="#FFFFFF" />
-          <Text style={styles.messageButtonText}>Message Owner</Text>
+          {startingConv ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <Ionicons name="chatbubble-outline" size={20} color="#FFFFFF" />
+              <Text style={styles.messageButtonText}>Message Agent</Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -616,6 +637,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#348b8b',
     paddingVertical: 14,
     borderRadius: 12,
+  },
+  messageButtonDisabled: {
+    opacity: 0.6,
   },
   messageButtonText: {
     color: '#FFFFFF',

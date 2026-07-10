@@ -21,6 +21,7 @@ import {
   CircleHelp as HelpCircle,
   Briefcase,
   FileQuestion,
+  MessageCircle,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/context/GlobalProvider';
@@ -69,6 +70,12 @@ export default function CustomDrawerContent(
       title: 'Saved Properties',
       icon: Save,
       onPress: () => router.push('/(app)/(favorites)'),
+    },
+    {
+      id: '3',
+      title: 'Messages',
+      icon: MessageCircle,
+      onPress: () => router.push('/(app)/(tabs)/market/conversations'),
     },
 
     {

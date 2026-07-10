@@ -72,6 +72,7 @@ export interface PropertyDetails {
     updated_date: string;
     owner_name: string;
     owner_email: string;
+    agent_id: number | null;
     is_bookmarked: boolean;
     images: PropertyImage[];
     files: PropertyFile[];
