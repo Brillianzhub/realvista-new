@@ -22,6 +22,7 @@ import {
   Briefcase,
   FileQuestion,
   MessageCircle,
+  Bell,
 } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useGlobalContext } from '@/context/GlobalProvider';
@@ -76,6 +77,12 @@ export default function CustomDrawerContent(
       title: 'Messages',
       icon: MessageCircle,
       onPress: () => router.push('/(app)/(tabs)/market/conversations'),
+    },
+    {
+      id: '4',
+      title: 'Notifications',
+      icon: Bell,
+      onPress: () => router.push('/(app)/(manage)/Notifications'),
     },
 
     {

@@ -38,6 +38,11 @@ const LearnLayout = () => {
           ),
         }}
       />
+
+      <Stack.Screen
+        name="Notifications"
+        options={{ headerShown: false }}
+      />
     </Stack>
   );
 };
