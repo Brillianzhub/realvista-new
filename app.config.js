@@ -76,6 +76,8 @@ export default {
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
       googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID,
       googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID,
+      apiUrl:
+        process.env.EXPO_PUBLIC_API_URL ?? 'https://api.realvistaproperties.com',
       router: {
         origin: false,
       },
