@@ -71,7 +71,7 @@ export default function ConversationsScreen() {
       <TouchableOpacity
         style={styles.row}
         onPress={() => router.push({
-          pathname: '/(app)/(tabs)/market/chat',
+          pathname: '/(app)/(messages)/chat',
           params: { conversationId: String(item.id) },
         })}>
         {/* Avatar */}

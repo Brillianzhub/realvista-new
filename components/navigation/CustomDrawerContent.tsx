@@ -76,7 +76,7 @@ export default function CustomDrawerContent(
       id: '3',
       title: 'Messages',
       icon: MessageCircle,
-      onPress: () => router.push('/(app)/(tabs)/market/conversations'),
+      onPress: () => router.push('/(app)/(messages)'),
     },
     {
       id: '4',

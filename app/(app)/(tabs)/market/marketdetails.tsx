@@ -98,7 +98,7 @@ export default function MarketDetailScreen() {
     const conv = await startConversation(property.agent_id, property.slug);
     if (conv) {
       router.push({
-        pathname: '/(app)/(tabs)/market/chat',
+        pathname: '/(app)/(messages)/chat',
         params: { conversationId: String(conv.id) },
       });
     } else {

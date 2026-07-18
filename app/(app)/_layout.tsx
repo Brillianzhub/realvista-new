@@ -62,6 +62,13 @@ export default function AppLayout() {
             drawerIcon: ({ color, size }) => <Book color={color} size={size} />,
           }}
         />
+        <Drawer.Screen
+          name="(messages)"
+          options={{
+            drawerLabel: 'Messages',
+            headerShown: false,
+          }}
+        />
       </Drawer>
     </>
   );
