@@ -114,6 +114,15 @@ export default function ConversationsScreen() {
 
   if (loading) return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color="#1f2937" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Messages</Text>
+        <View style={{ width: 40 }} />
+      </View>
       <View style={styles.loadingCenter}>
         <ActivityIndicator size="large" color={TEAL} />
       </View>
@@ -123,7 +132,13 @@ export default function ConversationsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={22} color="#1f2937" />
+        </TouchableOpacity>
         <Text style={styles.headerTitle}>Messages</Text>
+        <View style={{ width: 40 }} />
       </View>
       <FlatList
         data={conversations}
@@ -153,10 +168,13 @@ export default function ConversationsScreen() {
 
 const styles = StyleSheet.create({
   container:    { flex: 1, backgroundColor: 'white' },
-  header:       { paddingHorizontal: 16, paddingVertical: 12,
+  header:       { flexDirection: 'row', alignItems: 'center',
+                  paddingHorizontal: 16, paddingVertical: 12,
                   borderBottomWidth: 1, borderBottomColor: '#F1F3F7',
                   backgroundColor: 'white' },
-  headerTitle:  { fontSize: 20, fontWeight: '700', color: '#1f2937' },
+  backBtn:      { width: 40, height: 40, justifyContent: 'center' },
+  headerTitle:  { flex: 1, textAlign: 'center', fontSize: 17,
+                  fontWeight: '600', color: '#1f2937' },
   loadingCenter:{ flex: 1, alignItems: 'center', justifyContent: 'center' },
   row:          { flexDirection: 'row', alignItems: 'center',
                   paddingHorizontal: 16, paddingVertical: 12 },
