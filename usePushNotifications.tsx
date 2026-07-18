@@ -34,37 +34,46 @@ export const usePushNotifications = (): PushNotificationState => {
     // });
 
 
-    Notifications.setNotificationHandler({
-        handleNotification: async (notification) => {
-            const { request } = notification;
-            const { content } = request;
-            const groupId = content.data?.groupId; // Access groupId from the data payload
+    try {
+        Notifications.setNotificationHandler({
+            handleNotification: async (notification) => {
+                const { request } = notification;
+                const { content } = request;
+                const groupId = content.data?.groupId; // Access groupId from the data payload
 
-            if (groupId) {
-                console.log(`Notification for groupId: ${groupId}`);
+                if (groupId) {
+                    console.log(`Notification for groupId: ${groupId}`);
+                    return {
+                        shouldPlaySound: true,
+                        shouldShowBanner: true,
+                        shouldShowList: true,
+                        shouldSetBadge: true,
+                    };
+                }
+
+                // Default behavior
                 return {
                     shouldPlaySound: true,
                     shouldShowBanner: true,
                     shouldShowList: true,
-                    shouldSetBadge: true,
+                    shouldSetBadge: false,
                 };
-            }
-
-            // Default behavior
-            return {
-                shouldPlaySound: true,
-                shouldShowBanner: true,
-                shouldShowList: true,
-                shouldSetBadge: false,
-            };
-        },
-    });
+            },
+        });
+    } catch (error) {
+        console.warn('Push notification handler setup failed:', error);
+    }
 
 
     const registerForPushNotificationsAsync = async (): Promise<Notifications.ExpoPushToken | undefined> => {
         try {
             if (!Device.isDevice) {
                 console.warn('Must be using a physical device for Push notifications');
+                return;
+            }
+
+            if (Constants.appOwnership === 'expo') {
+                console.log('Push notifications not supported in Expo Go');
                 return;
             }
 
@@ -115,12 +124,22 @@ export const usePushNotifications = (): PushNotificationState => {
     };
 
     useEffect(() => {
-        enableNotifications();
+        (async () => {
+            try {
+                await enableNotifications();
+            } catch (error) {
+                console.warn('Push notification setup failed:', error);
+            }
+        })();
 
-        notificationListener.current = Notifications.addNotificationReceivedListener(setNotification);
-        responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-            console.log('Notification Response:', response);
-        });
+        try {
+            notificationListener.current = Notifications.addNotificationReceivedListener(setNotification);
+            responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+                console.log('Notification Response:', response);
+            });
+        } catch (error) {
+            console.warn('Push notification listener setup failed:', error);
+        }
 
         return () => {
             notificationListener.current?.remove();

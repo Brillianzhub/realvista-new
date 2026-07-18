@@ -68,6 +68,7 @@ export default {
       'expo-apple-authentication',
       'expo-web-browser',
       'expo-secure-store',
+      'expo-notifications',
     ],
     experiments: {
       typedRoutes: true,

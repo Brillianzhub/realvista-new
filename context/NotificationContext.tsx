@@ -113,42 +113,49 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({
 
     // Setup listeners for notifications
     useEffect(() => {
-        const subscription =
-            Notifications.addNotificationReceivedListener((notification) => {
-                console.log("Notification received in foreground:", notification);
+        let subscription: Notifications.EventSubscription | undefined;
+        let responseSubscription: Notifications.EventSubscription | undefined;
 
-                setNotifications((prev) => [
-                    ...prev,
-                    {
-                        id: notification.request.identifier,
-                        title: notification.request.content.title,
-                        body: notification.request.content.body,
-                        data: notification.request.content.data,
-                        read: false,
-                    },
-                ]);
-            });
+        try {
+            subscription =
+                Notifications.addNotificationReceivedListener((notification) => {
+                    console.log("Notification received in foreground:", notification);
 
-        const responseSubscription =
-            Notifications.addNotificationResponseReceivedListener((response) => {
-                console.log("User interacted with the notification:", response);
-                const notification = response.notification;
+                    setNotifications((prev) => [
+                        ...prev,
+                        {
+                            id: notification.request.identifier,
+                            title: notification.request.content.title,
+                            body: notification.request.content.body,
+                            data: notification.request.content.data,
+                            read: false,
+                        },
+                    ]);
+                });
 
-                setNotifications((prev) => [
-                    ...prev,
-                    {
-                        id: notification.request.identifier,
-                        title: notification.request.content.title,
-                        body: notification.request.content.body,
-                        data: notification.request.content.data,
-                        read: false,
-                    },
-                ]);
-            });
+            responseSubscription =
+                Notifications.addNotificationResponseReceivedListener((response) => {
+                    console.log("User interacted with the notification:", response);
+                    const notification = response.notification;
+
+                    setNotifications((prev) => [
+                        ...prev,
+                        {
+                            id: notification.request.identifier,
+                            title: notification.request.content.title,
+                            body: notification.request.content.body,
+                            data: notification.request.content.data,
+                            read: false,
+                        },
+                    ]);
+                });
+        } catch (error) {
+            console.warn("Push notification listener setup failed:", error);
+        }
 
         return () => {
-            subscription.remove();
-            responseSubscription.remove();
+            subscription?.remove();
+            responseSubscription?.remove();
         };
     }, []);
 
