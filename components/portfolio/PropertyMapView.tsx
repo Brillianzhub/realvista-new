@@ -15,6 +15,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Region } from 'react-native-maps';
 import { useTheme } from '@/context/ThemeContext';
+import MapErrorBoundary from '@/components/general/MapErrorBoundary';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -43,6 +44,7 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
 }) => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [mapError, setMapError] = useState<boolean>(false);
   const mapRef = useRef<MapView>(null);
 
   const { colors } = useTheme();
@@ -177,37 +179,54 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
           </View>
 
           <View style={styles.fullScreenMapContainer}>
-            <MapView
-              ref={mapRef}
-              style={styles.fullScreenMap}
-              initialRegion={initialRegion}
-              onMapReady={handleMapReady}
-              showsUserLocation={true}
-              showsMyLocationButton={false}
-              showsCompass={true}
-              showsScale={true}
-              zoomEnabled={true}
-              scrollEnabled={true}
-              rotateEnabled={true}
-              pitchEnabled={true}
-            >
-              <Marker
-                coordinate={{
-                  latitude: mainCoordinate.latitude,
-                  longitude: mainCoordinate.longitude,
-                }}
-                title={propertyTitle}
-                description={fullAddress}
-                pinColor="#358B8B"
+            {mapError ? (
+              <View style={[styles.fullScreenMap, styles.mapFallback]}>
+                <Ionicons name="map-outline" size={40} color="#348b8b" />
+                <Text style={styles.mapFallbackText}>Map unavailable</Text>
+              </View>
+            ) : (
+              <MapErrorBoundary
+                fallback={
+                  <View style={[styles.fullScreenMap, styles.mapFallback]}>
+                    <Ionicons name="map-outline" size={40} color="#348b8b" />
+                    <Text style={styles.mapFallbackText}>Map unavailable</Text>
+                  </View>
+                }
+                onError={() => setMapError(true)}
               >
-                <View style={styles.customMarker}>
-                  <View style={styles.markerDot} />
-                  <View style={styles.markerPulse} />
-                </View>
-              </Marker>
-            </MapView>
+                <MapView
+                  ref={mapRef}
+                  style={styles.fullScreenMap}
+                  initialRegion={initialRegion}
+                  onMapReady={handleMapReady}
+                  showsUserLocation={true}
+                  showsMyLocationButton={false}
+                  showsCompass={true}
+                  showsScale={true}
+                  zoomEnabled={true}
+                  scrollEnabled={true}
+                  rotateEnabled={true}
+                  pitchEnabled={true}
+                >
+                  <Marker
+                    coordinate={{
+                      latitude: mainCoordinate.latitude,
+                      longitude: mainCoordinate.longitude,
+                    }}
+                    title={propertyTitle}
+                    description={fullAddress}
+                    pinColor="#358B8B"
+                  >
+                    <View style={styles.customMarker}>
+                      <View style={styles.markerDot} />
+                      <View style={styles.markerPulse} />
+                    </View>
+                  </Marker>
+                </MapView>
+              </MapErrorBoundary>
+            )}
 
-            {isLoading && (
+            {isLoading && !mapError && (
               <View style={styles.loadingOverlay}>
                 <ActivityIndicator size="large" color="#358B8B" />
                 <Text style={styles.loadingText}>Loading map...</Text>
@@ -257,36 +276,55 @@ const PropertyMapView: React.FC<PropertyMapViewProps> = ({
       <View
         style={[styles.mapContainer, { borderColor: colors.border.default }]}
       >
-        <MapView
-          style={styles.map}
-          initialRegion={initialRegion}
-          scrollEnabled={false}
-          zoomEnabled={false}
-          rotateEnabled={false}
-          pitchEnabled={false}
-          onPress={handleExpandMap}
-        >
-          <Marker
-            coordinate={{
-              latitude: mainCoordinate.latitude,
-              longitude: mainCoordinate.longitude,
-            }}
-            title={propertyTitle}
-            description={fullAddress}
-            pinColor="#358B8B"
-          />
-        </MapView>
-
-        <TouchableOpacity
-          style={styles.overlayButton}
-          onPress={handleExpandMap}
-          activeOpacity={0.8}
-        >
-          <View style={styles.overlayContent}>
-            <Ionicons name="expand" size={24} color="white" />
-            <Text style={styles.overlayText}>Tap to expand map</Text>
+        {mapError ? (
+          <View style={[styles.map, styles.mapFallback]}>
+            <Ionicons name="map-outline" size={32} color="#348b8b" />
+            <Text style={styles.mapFallbackText}>Map unavailable</Text>
           </View>
-        </TouchableOpacity>
+        ) : (
+          <MapErrorBoundary
+            fallback={
+              <View style={[styles.map, styles.mapFallback]}>
+                <Ionicons name="map-outline" size={32} color="#348b8b" />
+                <Text style={styles.mapFallbackText}>Map unavailable</Text>
+              </View>
+            }
+            onError={() => setMapError(true)}
+          >
+            <MapView
+              style={styles.map}
+              initialRegion={initialRegion}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              onPress={handleExpandMap}
+            >
+              <Marker
+                coordinate={{
+                  latitude: mainCoordinate.latitude,
+                  longitude: mainCoordinate.longitude,
+                }}
+                title={propertyTitle}
+                description={fullAddress}
+                pinColor="#358B8B"
+              />
+            </MapView>
+          </MapErrorBoundary>
+        )}
+
+        {!mapError && (
+          <TouchableOpacity
+            style={styles.overlayButton}
+            onPress={handleExpandMap}
+            activeOpacity={0.8}
+          >
+            <View style={styles.overlayContent}>
+              <Ionicons name="expand" size={24} color="white" />
+              <Text style={styles.overlayText}>Tap to expand map</Text>
+            </View>
+          </TouchableOpacity>
+        )}
 
         <View
           style={[
@@ -396,6 +434,16 @@ const styles = StyleSheet.create({
   map: {
     width: '100%',
     height: '100%',
+  },
+  mapFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f0fafa',
+    gap: 8,
+  },
+  mapFallbackText: {
+    color: '#348b8b',
+    fontSize: 13,
   },
   overlayButton: {
     position: 'absolute',
