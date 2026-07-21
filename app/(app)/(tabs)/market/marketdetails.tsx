@@ -9,10 +9,12 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import Carousel from 'react-native-reanimated-carousel';
+import { WebView } from 'react-native-webview';
 import { usePropertyDetails } from '@/hooks/market/usePropertyDetails';
 import { formatCurrency } from '@/utils/general/formatCurrency';
 import MapViewer from '@/components/general/MapViewer';
@@ -211,6 +213,49 @@ export default function MarketDetailScreen() {
           ))}
         </View>
       </View>
+
+      {property.youtube_url && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            Video Tour
+          </Text>
+          <WebView
+            source={{ uri: property.youtube_url.replace('watch?v=', 'embed/') }}
+            style={{ height: 220, borderRadius: 12 }}
+            allowsFullscreenVideo
+          />
+        </View>
+      )}
+
+      {property.files && property.files.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            Documents & Files
+          </Text>
+          {property.files.map((file, index) => {
+            const isImage =
+              file.file_type === 'image' ||
+              file.image_url?.match(/\.(jpg|jpeg|png|webp)/i);
+            return (
+              <TouchableOpacity
+                key={index}
+                style={styles.fileRow}
+                onPress={() => Linking.openURL(file.image_url || file.file)}
+              >
+                <Ionicons
+                  name={isImage ? 'image-outline' : 'document-outline'}
+                  size={20}
+                  color="#348b8b"
+                />
+                <Text style={[styles.fileName, { color: colors.text.primary }]}>
+                  {file.name || `File ${index + 1}`}
+                </Text>
+                <Ionicons name="open-outline" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={[styles.propertyName, { color: colors.text.primary }]}>
@@ -415,6 +460,19 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 16,
+  },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+    backgroundColor: '#f0fafa',
+  },
+  fileName: {
+    flex: 1,
+    fontSize: 14,
   },
   propertyName: {
     fontSize: 24,
