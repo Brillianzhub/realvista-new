@@ -65,7 +65,7 @@ const actions: Action[] = [
   },
   {
     id: 'listing',
-    title: 'Listings',
+    title: 'My Listings',
     subtitle: 'Sell/rent',
     icon: 'business-outline',
     iconSet: 'ionicons',

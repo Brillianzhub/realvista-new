@@ -13,13 +13,16 @@ import { useTheme } from '@/context/ThemeContext';
 export default function App() {
   useDeviceUpdate();
 
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
   return (
     <View
       style={[styles.container, { backgroundColor: colors.background.primary }]}
     >
-      <ExpoStatusBar style="dark" />
-      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
+      <ExpoStatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background.primary}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

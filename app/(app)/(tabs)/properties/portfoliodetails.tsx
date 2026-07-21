@@ -8,7 +8,10 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
+import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LineChart } from 'react-native-chart-kit';
@@ -43,7 +46,7 @@ export default function PropertyDetailScreen() {
 
   const user = useGlobalContext().user;
 
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
 
   const [isEditCoordinateVisible, setIsEditCoordinateVisible] = useState(false);
   const [editCoordinate, setEditCoordinate] = useState<Coordinate | null>(null);
@@ -76,32 +79,58 @@ export default function PropertyDetailScreen() {
 
   if (error) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.background.primary,
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 16,
-        }}
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.background.primary }}
       >
-        <Text style={{ color: colors.text.primary }}>{error}</Text>
-      </View>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            padding: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
+          <Text style={{ color: colors.text.primary, fontSize: 16 }}>Back</Text>
+        </TouchableOpacity>
+        <View
+          style={{
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+          }}
+        >
+          <Text style={{ color: colors.text.primary }}>{error}</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (!property) {
     return (
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: colors.background.primary,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
+      <SafeAreaView
+        style={{ flex: 1, backgroundColor: colors.background.primary }}
       >
-        <Text style={{ color: colors.text.primary }}>Property not found</Text>
-      </View>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={{
+            padding: 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.text.primary} />
+          <Text style={{ color: colors.text.primary, fontSize: 16 }}>Back</Text>
+        </TouchableOpacity>
+        <View
+          style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Text style={{ color: colors.text.primary }}>Property not found</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -211,10 +240,16 @@ export default function PropertyDetailScreen() {
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: colors.background.primary }]}
-      showsVerticalScrollIndicator={false}
-    >
+    <>
+      <ExpoStatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar
+        barStyle={theme === 'dark' ? 'light-content' : 'dark-content'}
+        backgroundColor={colors.background.primary}
+      />
+      <ScrollView
+        style={[styles.container, { backgroundColor: colors.background.primary }]}
+        showsVerticalScrollIndicator={false}
+      >
       <TouchableOpacity
         onPress={() => router.back()}
         style={[styles.backButton, {}]}
@@ -611,7 +646,8 @@ export default function PropertyDetailScreen() {
           <Text style={styles.listButtonText}>Update Property</Text>
         </TouchableOpacity>
       </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 
