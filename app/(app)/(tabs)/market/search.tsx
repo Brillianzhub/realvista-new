@@ -1,44 +1,76 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     View,
     Text,
     StyleSheet,
-    ScrollView,
     TextInput,
     TouchableOpacity,
     FlatList,
     ActivityIndicator,
     RefreshControl,
     useColorScheme,
-    Alert,
+    Modal,
+    ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import PropertySearchCard from '@/components/market/PropertySearchCard';
 import { useSearchProperties, SearchFilters, PropertySearchResult } from '@/hooks/market/useSearchProperties';
 
+const PROPERTY_TYPES: { value: string; label: string }[] = [
+    { value: 'house', label: 'House' },
+    { value: 'apartment', label: 'Apartment' },
+    { value: 'land', label: 'Land' },
+    { value: 'commercial', label: 'Commercial Property' },
+    { value: 'office', label: 'Office Space' },
+    { value: 'warehouse', label: 'Warehouse' },
+    { value: 'shop', label: 'Shop/Store' },
+    { value: 'duplex', label: 'Duplex' },
+    { value: 'bungalow', label: 'Bungalow' },
+    { value: 'terrace', label: 'Terrace' },
+    { value: 'semi_detached', label: 'Semi-Detached House' },
+    { value: 'detached', label: 'Detached House' },
+    { value: 'farm_land', label: 'Farm Land' },
+    { value: 'industrial', label: 'Industrial Property' },
+    { value: 'short_let', label: 'Short Let' },
+    { value: 'studio', label: 'Studio Apartment' },
+];
+
+const PURPOSES: { value: string; label: string }[] = [
+    { value: 'sale', label: 'For Sale' },
+    { value: 'rent', label: 'For Rent' },
+    { value: 'lease', label: 'For Lease' },
+];
+
+const INITIAL_FILTERS: SearchFilters = {
+    title: '',
+    location: '',
+    min_price: '',
+    max_price: '',
+    property_type: '',
+    listing_purpose: '',
+    city: '',
+    state: '',
+};
+
 export default function Search() {
     const colorScheme = useColorScheme();
     const isDark = colorScheme === 'dark';
     const router = useRouter();
 
-    const [filters, setFilters] = useState<SearchFilters>({
-        title: '',
-        location: '',
-        min_price: '',
-        max_price: '',
-    });
-
-    const [loadingMore, setLoadingMore] = useState(false);
-
+    const [filters, setFilters] = useState<SearchFilters>(INITIAL_FILTERS);
+    const [showTypeModal, setShowTypeModal] = useState(false);
 
     const {
         properties,
         loading,
         refreshing,
+        loadingMore,
         error,
         hasSearched,
+        hasMore,
         fetchProperties,
+        loadMore,
         clearResults,
     } = useSearchProperties();
 
@@ -47,21 +79,15 @@ export default function Search() {
     };
 
     const handleClearFilters = () => {
-        setFilters({
-            title: '',
-            location: '',
-            min_price: '',
-            max_price: '',
-        });
-        clearResults()
+        setFilters(INITIAL_FILTERS);
+        clearResults();
     };
 
-    // const handleLoadMore = () => {
-    //     if (!loadingMore && hasMore) {
-    //         fetchProperties(filters, currentPage + 1);
-    //     }
-    // };
-
+    const handleLoadMore = () => {
+        if (hasMore && !loadingMore) {
+            loadMore();
+        }
+    };
 
     const handleRefresh = () => {
         if (hasSearched) {
@@ -69,21 +95,58 @@ export default function Search() {
         }
     };
 
+    const togglePurpose = (value: string) => {
+        setFilters((prev) => ({
+            ...prev,
+            listing_purpose: prev.listing_purpose === value ? '' : value,
+        }));
+    };
+
+    const selectType = (value: string) => {
+        setFilters((prev) => ({ ...prev, property_type: value }));
+        setShowTypeModal(false);
+    };
+
+    const selectedTypeLabel = PROPERTY_TYPES.find(
+        (t) => t.value === filters.property_type
+    )?.label;
+
     const renderPropertyCard = ({ item }: { item: PropertySearchResult }) => {
         return <PropertySearchCard property={item} />;
     };
 
     const renderFooter = () => {
-        if (!loadingMore) return null;
+        if (loadingMore) {
+            return (
+                <View style={styles.footerLoader}>
+                    <ActivityIndicator size="small" color="#358B8B" />
+                    <Text style={[styles.footerLoaderText, isDark && styles.footerLoaderTextDark]}>
+                        Loading more...
+                    </Text>
+                </View>
+            );
+        }
 
-        return (
-            <View style={styles.footerLoader}>
-                <ActivityIndicator size="small" color="#358B8B" />
-                <Text style={[styles.footerLoaderText, isDark && styles.footerLoaderTextDark]}>
-                    Loading more...
-                </Text>
-            </View>
-        );
+        if (hasMore && properties.length > 0) {
+            return (
+                <TouchableOpacity
+                    style={[styles.loadMoreButton, isDark && styles.loadMoreButtonDark]}
+                    onPress={handleLoadMore}
+                    activeOpacity={0.8}
+                >
+                    <Ionicons
+                        name="chevron-down"
+                        size={18}
+                        color={isDark ? '#E5E7EB' : '#374151'}
+                    />
+                    <Text style={[styles.loadMoreButtonText, isDark && styles.loadMoreButtonTextDark]}>
+                        Load More
+                    </Text>
+                </TouchableOpacity>
+            );
+        }
+
+        return null;
     };
 
     const renderEmpty = () => {
@@ -121,6 +184,88 @@ export default function Search() {
             </View>
 
             <View style={[styles.filtersContainer, isDark && styles.filtersContainerDark]}>
+                {/* Purpose pills */}
+                <View style={styles.filterGroup}>
+                    <Text style={[styles.filterLabel, isDark && styles.filterLabelDark]}>
+                        Purpose
+                    </Text>
+                    <View style={styles.pillRow}>
+                        {PURPOSES.map((p) => {
+                            const active = filters.listing_purpose === p.value;
+                            return (
+                                <TouchableOpacity
+                                    key={p.value}
+                                    style={[
+                                        styles.pill,
+                                        isDark && styles.pillDark,
+                                        active && styles.pillActive,
+                                    ]}
+                                    onPress={() => togglePurpose(p.value)}
+                                    activeOpacity={0.8}
+                                >
+                                    <Text
+                                        style={[
+                                            styles.pillText,
+                                            isDark && styles.pillTextDark,
+                                            active && styles.pillTextActive,
+                                        ]}
+                                    >
+                                        {p.label}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
+                    </View>
+                </View>
+
+                {/* Property type selector */}
+                <View style={styles.filterGroup}>
+                    <Text style={[styles.filterLabel, isDark && styles.filterLabelDark]}>
+                        Property Type
+                    </Text>
+                    <TouchableOpacity
+                        style={[styles.inputWrapper, isDark && styles.inputWrapperDark]}
+                        onPress={() => setShowTypeModal(true)}
+                        activeOpacity={0.8}
+                    >
+                        <Ionicons
+                            name="business-outline"
+                            size={20}
+                            color={isDark ? '#9CA3AF' : '#6B7280'}
+                            style={styles.inputIcon}
+                        />
+                        <Text
+                            style={[
+                                styles.selectorText,
+                                isDark && styles.inputDark,
+                                !selectedTypeLabel && styles.selectorPlaceholder,
+                            ]}
+                        >
+                            {selectedTypeLabel || 'Any type'}
+                        </Text>
+                        {filters.property_type ? (
+                            <TouchableOpacity
+                                onPress={() =>
+                                    setFilters((prev) => ({ ...prev, property_type: '' }))
+                                }
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <Ionicons
+                                    name="close-circle"
+                                    size={18}
+                                    color={isDark ? '#9CA3AF' : '#9CA3AF'}
+                                />
+                            </TouchableOpacity>
+                        ) : (
+                            <Ionicons
+                                name="chevron-down"
+                                size={18}
+                                color={isDark ? '#9CA3AF' : '#6B7280'}
+                            />
+                        )}
+                    </TouchableOpacity>
+                </View>
+
                 <View style={styles.filterGroup}>
                     <Text style={[styles.filterLabel, isDark && styles.filterLabelDark]}>
                         Property Title
@@ -160,6 +305,50 @@ export default function Search() {
                             value={filters.location}
                             onChangeText={(text) => setFilters({ ...filters, location: text })}
                         />
+                    </View>
+                </View>
+
+                <View style={styles.filterRow}>
+                    <View style={[styles.filterGroup, styles.filterHalf]}>
+                        <Text style={[styles.filterLabel, isDark && styles.filterLabelDark]}>
+                            City
+                        </Text>
+                        <View style={[styles.inputWrapper, isDark && styles.inputWrapperDark]}>
+                            <Ionicons
+                                name="business-outline"
+                                size={20}
+                                color={isDark ? '#9CA3AF' : '#6B7280'}
+                                style={styles.inputIcon}
+                            />
+                            <TextInput
+                                style={[styles.input, isDark && styles.inputDark]}
+                                placeholder="e.g., Ikeja"
+                                placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                                value={filters.city}
+                                onChangeText={(text) => setFilters({ ...filters, city: text })}
+                            />
+                        </View>
+                    </View>
+
+                    <View style={[styles.filterGroup, styles.filterHalf]}>
+                        <Text style={[styles.filterLabel, isDark && styles.filterLabelDark]}>
+                            State
+                        </Text>
+                        <View style={[styles.inputWrapper, isDark && styles.inputWrapperDark]}>
+                            <Ionicons
+                                name="map-outline"
+                                size={20}
+                                color={isDark ? '#9CA3AF' : '#6B7280'}
+                                style={styles.inputIcon}
+                            />
+                            <TextInput
+                                style={[styles.input, isDark && styles.inputDark]}
+                                placeholder="e.g., Lagos"
+                                placeholderTextColor={isDark ? '#6B7280' : '#9CA3AF'}
+                                value={filters.state}
+                                onChangeText={(text) => setFilters({ ...filters, state: text })}
+                            />
+                        </View>
                     </View>
                 </View>
 
@@ -261,7 +450,7 @@ export default function Search() {
                 </View>
             )}
         </>
-    ), [filters, error, loading, refreshing, isDark]);
+    ), [filters, error, loading, refreshing, isDark, selectedTypeLabel]);
 
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
@@ -272,7 +461,7 @@ export default function Search() {
                 ListHeaderComponent={renderHeader}
                 ListEmptyComponent={renderEmpty}
                 ListFooterComponent={renderFooter}
-                // onEndReached={handleLoadMore}
+                onEndReached={handleLoadMore}
                 onEndReachedThreshold={0.5}
                 refreshControl={
                     <RefreshControl
@@ -290,6 +479,87 @@ export default function Search() {
                 removeClippedSubviews={false}
                 keyboardDismissMode="none"
             />
+
+            {/* Property type picker modal */}
+            <Modal
+                transparent
+                visible={showTypeModal}
+                animationType="slide"
+                onRequestClose={() => setShowTypeModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalContent, isDark && styles.modalContentDark]}>
+                        <View style={styles.modalHeader}>
+                            <Text style={[styles.modalTitle, isDark && styles.modalTitleDark]}>
+                                Select Property Type
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => setShowTypeModal(false)}
+                                style={styles.closeButton}
+                            >
+                                <Ionicons
+                                    name="close"
+                                    size={24}
+                                    color={isDark ? '#9CA3AF' : '#6B7280'}
+                                />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView
+                            style={styles.modalScroll}
+                            showsVerticalScrollIndicator={false}
+                        >
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalOption,
+                                    !filters.property_type && styles.modalOptionSelected,
+                                ]}
+                                onPress={() => selectType('')}
+                            >
+                                <Text
+                                    style={[
+                                        styles.modalOptionText,
+                                        isDark && styles.modalOptionTextDark,
+                                        !filters.property_type && styles.modalOptionTextSelected,
+                                    ]}
+                                >
+                                    Any type
+                                </Text>
+                                {!filters.property_type && (
+                                    <Ionicons name="checkmark" size={20} color="#358B8B" />
+                                )}
+                            </TouchableOpacity>
+
+                            {PROPERTY_TYPES.map((t) => {
+                                const active = filters.property_type === t.value;
+                                return (
+                                    <TouchableOpacity
+                                        key={t.value}
+                                        style={[
+                                            styles.modalOption,
+                                            active && styles.modalOptionSelected,
+                                        ]}
+                                        onPress={() => selectType(t.value)}
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.modalOptionText,
+                                                isDark && styles.modalOptionTextDark,
+                                                active && styles.modalOptionTextSelected,
+                                            ]}
+                                        >
+                                            {t.label}
+                                        </Text>
+                                        {active && (
+                                            <Ionicons name="checkmark" size={20} color="#358B8B" />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -370,6 +640,39 @@ const styles = StyleSheet.create({
     filterLabelDark: {
         color: '#E5E7EB',
     },
+    pillRow: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    pill: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 10,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        backgroundColor: '#F9FAFB',
+    },
+    pillDark: {
+        backgroundColor: '#111827',
+        borderColor: '#374151',
+    },
+    pillActive: {
+        backgroundColor: '#358B8B',
+        borderColor: '#358B8B',
+    },
+    pillText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#374151',
+    },
+    pillTextDark: {
+        color: '#D1D5DB',
+    },
+    pillTextActive: {
+        color: '#FFFFFF',
+    },
     inputWrapper: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -394,6 +697,15 @@ const styles = StyleSheet.create({
     },
     inputDark: {
         color: '#F9FAFB',
+    },
+    selectorText: {
+        flex: 1,
+        fontSize: 15,
+        color: '#111827',
+        paddingVertical: 14,
+    },
+    selectorPlaceholder: {
+        color: '#9CA3AF',
     },
     buttonRow: {
         flexDirection: 'row',
@@ -545,5 +857,66 @@ const styles = StyleSheet.create({
     },
     loadMoreButtonTextDark: {
         color: '#E5E7EB',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: '#FFFFFF',
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        paddingTop: 24,
+        paddingBottom: 34,
+        maxHeight: '80%',
+    },
+    modalContentDark: {
+        backgroundColor: '#1F2937',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginBottom: 16,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    modalTitleDark: {
+        color: '#F9FAFB',
+    },
+    closeButton: {
+        padding: 4,
+    },
+    modalScroll: {
+        maxHeight: 420,
+    },
+    modalOption: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#F3F4F6',
+    },
+    modalOptionSelected: {
+        backgroundColor: '#F0FDFA',
+    },
+    modalOptionText: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#374151',
+    },
+    modalOptionTextDark: {
+        color: '#D1D5DB',
+    },
+    modalOptionTextSelected: {
+        color: '#0F766E',
+        fontWeight: '600',
     },
 });

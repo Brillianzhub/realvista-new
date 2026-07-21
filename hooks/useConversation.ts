@@ -94,6 +94,8 @@ export function useConversation(
       socket = new ConversationSocket(conversationId, token, {
         onMessage: (frame: WSFrame) => {
           if (frame.type === 'text') {
+            // Guard against empty content (e.g. connection/keepalive frames)
+            if (!frame.content || !frame.content.trim()) return;
             setMessages(prev => [...prev, {
               id:           frame.id ?? Date.now(),
               content:      frame.content ?? '',
