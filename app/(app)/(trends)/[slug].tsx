@@ -21,6 +21,7 @@ type PostDetail = {
     id: number;
     title: string;
     body: string;
+    cover_image: string | null;
     attachment: string | null;
     date_created: string;
     source: string;
@@ -252,6 +253,8 @@ export default function PostDetail() {
         );
     }
 
+    const coverImageUri = post.cover_image || post.attachment;
+
     return (
         <View style={[styles.container, isDark && styles.containerDark]}>
             <View style={styles.header}>
@@ -275,13 +278,13 @@ export default function PostDetail() {
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
             >
-                {post.attachment && (
+                {coverImageUri ? (
                     <Image
-                        source={{ uri: post.attachment }}
+                        source={{ uri: coverImageUri }}
                         style={styles.coverImage}
                         resizeMode="cover"
                     />
-                )}
+                ) : null}
 
                 <View style={styles.content}>
                     {post.category && (

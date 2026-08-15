@@ -199,7 +199,7 @@ export default function Trends() {
               id={item.id.toString()}
               title={item.title}
               excerpt={extractExcerpt(item.body)}
-              thumbnail={item.attachment || undefined}
+              thumbnail={item.cover_image || item.attachment || undefined}
               publishedDate={item.date_created}
               category={item.category}
               onPress={() => handlePostPress(item.slug)}

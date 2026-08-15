@@ -6,6 +6,7 @@ export type TrendPost = {
   title: string;
   slug: string;
   body: string;
+  cover_image: string | null;
   attachment: string | null;
   date_created: string;
   category: string;
