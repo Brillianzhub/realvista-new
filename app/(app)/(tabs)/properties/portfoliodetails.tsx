@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -137,6 +138,35 @@ export default function PropertyDetailScreen() {
   const incomes = property.incomes || [];
   const expenses = property.expenses || [];
 
+  // The API returns `images` ({id, image_url, uploaded_at}) and `files`
+  // ({id, name, file_url, file_type, uploaded_at}) — not image_files or
+  // property_files. Images/videos are merged into one gallery feed;
+  // `source` tracks which table each item came from since they're deleted
+  // via different endpoints (/images/<id>/ vs /files/<id>/).
+  const galleryMedia = [
+    ...(property.images || []).map((img: any) => ({
+      id: img.id,
+      file: img.image_url,
+      file_type: 'image' as const,
+      name: 'Photo',
+      source: 'image' as const,
+    })),
+    ...(property.files || [])
+      .filter((f: any) => f.file_type === 'image' || f.file_type === 'video')
+      .map((f: any) => ({
+        id: f.id,
+        file: f.file_url,
+        file_type: f.file_type,
+        name: f.name || 'File',
+        source: 'file' as const,
+      })),
+  ];
+
+  // Everything else uploaded via the generic file endpoint — pdf, doc, etc.
+  const documentFiles = (property.files || []).filter(
+    (f: any) => f.file_type !== 'image' && f.file_type !== 'video',
+  );
+
   const totalIncome = incomes.reduce(
     (sum: number, item: any) => sum + parseFloat(item.amount || 0),
     0,
@@ -191,7 +221,7 @@ export default function PropertyDetailScreen() {
       errors.push('Add at least one location (coordinates)');
     }
 
-    if (!property.images?.length && !property.image_files?.length) {
+    if (!property.images?.length) {
       errors.push('Upload at least one image');
     }
 
@@ -581,12 +611,33 @@ export default function PropertyDetailScreen() {
       </View>
 
       <PortfolioMediaGallery
-        mediaFiles={property.image_files || []}
+        mediaFiles={galleryMedia}
         propertyTitle={property.title}
         propertyId={property.id}
         onRefetchNeeded={handleRefetch}
         editable={true}
       />
+
+      {documentFiles.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
+            Documents
+          </Text>
+          {documentFiles.map((file: any, i: number) => (
+            <TouchableOpacity
+              key={file.id ?? i}
+              style={styles.fileRow}
+              onPress={() => file.file_url && Linking.openURL(file.file_url)}
+            >
+              <Ionicons name="document-outline" size={20} color="#348b8b" />
+              <Text style={[styles.fileName, { color: colors.text.primary }]}>
+                {file.name || `Document ${i + 1}`}
+              </Text>
+              <Ionicons name="open-outline" size={16} color="#9ca3af" />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
       <PropertyMapView
         coordinates={property.coordinates || []}
@@ -885,5 +936,19 @@ const styles = StyleSheet.create({
 
   disabledButtonText: {
     color: '#6B7280',
+  },
+
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 8,
+    backgroundColor: '#f0fafa',
+  },
+  fileName: {
+    flex: 1,
+    fontSize: 14,
   },
 });

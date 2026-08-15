@@ -29,6 +29,10 @@ interface MediaFile {
   file: string;
   file_type: 'image' | 'video';
   name: string;
+  // Images and videos live in separate backend tables with separate ids
+  // (PortfolioPropertyImage vs PortfolioPropertyFile) — needed to delete
+  // against the correct endpoint.
+  source: 'image' | 'file';
 }
 
 interface PortfolioMediaGalleryProps {
@@ -64,6 +68,7 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
   const handleDeleteFile = async (
     fileId: number,
     fileType: 'image' | 'video',
+    source: 'image' | 'file',
   ): Promise<void> => {
     // Show confirmation dialog
     Alert.alert(
@@ -74,7 +79,7 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => confirmDeleteFile(fileId, fileType),
+          onPress: () => confirmDeleteFile(fileId, fileType, source),
         },
       ],
     );
@@ -96,12 +101,14 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
   const confirmDeleteFile = async (
     fileId: number,
     fileType: 'image' | 'video',
+    source: 'image' | 'file',
   ): Promise<void> => {
     setIsDeleting(true);
     setDeletingFileId(fileId);
 
     try {
-      await api.delete(`/api/portfolio/${propertyId}/files/${fileId}/`);
+      const endpoint = source === 'image' ? 'images' : 'files';
+      await api.delete(`/api/portfolio/${propertyId}/${endpoint}/${fileId}/`);
 
       // Successfully deleted
       Alert.alert(
@@ -236,7 +243,11 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
               {canDeleteFile() && currentMedia && (
                 <TouchableOpacity
                   onPress={() =>
-                    handleDeleteFile(currentMedia.id, currentMedia.file_type)
+                    handleDeleteFile(
+                      currentMedia.id,
+                      currentMedia.file_type,
+                      currentMedia.source,
+                    )
                   }
                   style={styles.deleteButton}
                   disabled={isDeletingCurrent}
@@ -390,7 +401,9 @@ const PortfolioMediaGallery: React.FC<PortfolioMediaGalleryProps> = ({
             {editable && (
               <TouchableOpacity
                 style={styles.thumbnailDeleteButton}
-                onPress={() => handleDeleteFile(item.id, item.file_type)}
+                onPress={() =>
+                  handleDeleteFile(item.id, item.file_type, item.source)
+                }
                 disabled={isDeleting}
               >
                 {isDeleting && deletingFileId === item.id ? (
