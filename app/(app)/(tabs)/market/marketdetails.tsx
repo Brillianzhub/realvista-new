@@ -79,6 +79,17 @@ const getAmenityIcon = (amenity: string): string => {
   return iconMap[amenity] || 'checkmark-circle';
 };
 
+// Was `youtube_url.replace('watch?v=', 'embed/')` — a no-op (and an
+// unplayable WebView source) for youtu.be, shorts, and already-embed URLs,
+// since only literal "watch?v=" text gets replaced.
+const getYouTubeEmbedUrl = (url: string): string | null => {
+  if (!url) return null;
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/|m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
+  );
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null;
+};
+
 export default function MarketDetailScreen() {
   const router = useRouter();
   const [activeSlide, setActiveSlide] = useState(0);
@@ -214,13 +225,13 @@ export default function MarketDetailScreen() {
         </View>
       </View>
 
-      {property.youtube_url && (
+      {property.youtube_url && getYouTubeEmbedUrl(property.youtube_url) && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text.primary }]}>
             Video Tour
           </Text>
           <WebView
-            source={{ uri: property.youtube_url.replace('watch?v=', 'embed/') }}
+            source={{ uri: getYouTubeEmbedUrl(property.youtube_url)! }}
             style={{ height: 220, borderRadius: 12 }}
             allowsFullscreenVideo
           />
