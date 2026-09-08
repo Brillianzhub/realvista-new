@@ -267,6 +267,36 @@ const VerifyEmail: React.FC = () => {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        <View style={{
+          backgroundColor: '#FFF8E7',
+          borderColor: '#F59E0B',
+          borderWidth: 1,
+          borderRadius: 12,
+          padding: 16,
+          marginBottom: 20,
+          flexDirection: 'row',
+          gap: 12,
+        }}>
+          <Text style={{ fontSize: 20 }}>⚠️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{
+              fontWeight: '600',
+              color: '#92400E',
+              fontSize: 14,
+            }}>
+              Email verification required
+            </Text>
+            <Text style={{
+              color: '#B45309',
+              fontSize: 13,
+              marginTop: 4,
+            }}>
+              Please verify your email to access all
+              features of the app.
+            </Text>
+          </View>
+        </View>
+
         {/* Header Section */}
         <View style={styles.header}>
           <View style={styles.iconContainer}>

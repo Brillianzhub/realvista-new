@@ -1,14 +1,29 @@
 import { Drawer } from 'expo-router/drawer';
+import { Redirect } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Platform } from 'react-native';
 import DrawerContent from '@/components/navigation/CustomDrawerContent';
 import { Book, Home } from 'lucide-react-native';
 import { TouchableOpacity, useColorScheme } from 'react-native';
+import { useGlobalContext } from '@/context/GlobalProvider';
 
 export default function AppLayout() {
+  // Hooks first, unconditionally, before the verification early-return
+  // below — this file renders a real navigator (not a passthrough
+  // <Slot/>), so the gate has to sit here rather than in the root layout.
+  const { user, isLogged, loading } = useGlobalContext();
+
   // Temporary theme values until you add a real theme system
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+
+  // Redirect to verify-email if logged in but not verified. Skipped while
+  // GlobalProvider's initial hydrateUser() call is still in flight
+  // (loading) — user/isLogged both start out falsy before that resolves,
+  // which would otherwise misfire this redirect on every cold start.
+  if (!loading && isLogged && user && !user.is_email_verified) {
+    return <Redirect href="/(auth)/verify-email" />;
+  }
 
   const colors = {
     background: isDark ? '#FFFFFF' : '#FFFFFF',
